@@ -212,6 +212,7 @@ private fun YoutubeWebView(
                 settings.javaScriptEnabled = true
                 settings.mediaPlaybackRequiresUserGesture = false
                 settings.domStorageEnabled = true
+                settings.userAgentString = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
                 webViewClient = WebViewClient()
                 webChromeClient = WebChromeClient()
                 val html = """<!DOCTYPE html>
@@ -228,21 +229,21 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden}
 <div id="player"></div>
 <script>
 var tag=document.createElement('script');
-tag.src="https://www.youtube.com/iframe_api";
+tag.src="https://www.youtube-nocookie.com/iframe_api";
 var firstScriptTag=document.getElementsByTagName('script')[0];
 firstScriptTag.parentNode.insertBefore(tag,firstScriptTag);
 var player;
 window.onYouTubeIframeAPIReady=function(){
 player=new YT.Player('player',{
 videoId:'$youtubeId',
-playerVars:{'autoplay':1,'playsinline':1,'rel':0,'modestbranding':1,'fs':0},
+playerVars:{'autoplay':1,'playsinline':1,'rel':0,'origin':'https://www.youtube-nocookie.com','fs':0},
 events:{'onReady':function(e){e.target.playVideo();}}
 });
 };
 </script>
 </body>
 </html>""".trimIndent()
-                loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
+                loadDataWithBaseURL("https://www.youtube-nocookie.com", html, "text/html", "UTF-8", null)
             }
         }
     )
