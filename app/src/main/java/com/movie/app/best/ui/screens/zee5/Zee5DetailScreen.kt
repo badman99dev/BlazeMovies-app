@@ -437,43 +437,6 @@ fun Zee5DetailActions(
             )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            ActionButton(icon = Icons.Filled.Add, label = "My List", onClick = { })
-            ActionButton(icon = Icons.Filled.Star, label = "Rate", onClick = { })
-            ActionButton(icon = Icons.Filled.Share, label = "Share", onClick = { })
-            ActionButton(icon = Icons.Filled.Download, label = "Download", onClick = { })
-        }
-    }
-}
-
-@Composable
-private fun ActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = Color.White,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            color = Color.White,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 
