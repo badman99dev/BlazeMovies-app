@@ -117,7 +117,7 @@ fun TVShowDetailScreen(
     slug: String,
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
-    onTrailerClick: (youtubeId: String, title: String) -> Unit = { _, _ -> },
+    onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
     onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int) -> Unit = { _, _, _, _, _ -> },
     onMovieClick: (String) -> Unit = {},
     onSeriesClick: (String) -> Unit = {},
@@ -351,7 +351,7 @@ private fun TVShowDetailContent(
     uiState: TVShowDetailUiState,
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
-    onTrailerClick: (youtubeId: String, title: String) -> Unit = { _, _ -> },
+    onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
     onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int) -> Unit,
     onPostComment: (name: String, msg: String) -> Unit,
     onRequestStream: () -> Unit,
@@ -525,7 +525,7 @@ private fun TVShowDetailContent(
         TrailersRow(
             youtubeId = series.youtubeId,
             onTrailerClick = {
-                onTrailerClick(series.youtubeId, series.title)
+                onTrailerClick(series.youtubeId, series.title, series.imdbId)
             }
         )
 

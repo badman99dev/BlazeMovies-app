@@ -89,9 +89,9 @@ sealed class Screen(val route: String) {
             return "videoPlayer?playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&streamUrl=${URLEncoder.encode(streamUrl, "UTF-8")}&title=${URLEncoder.encode(title, "UTF-8")}&youtubeId=${URLEncoder.encode(youtubeId, "UTF-8")}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&slug=${URLEncoder.encode(slug, "UTF-8")}&isLive=$isLive&contentSource=${URLEncoder.encode(contentSource, "UTF-8")}"
         }
     }
-    object YoutubeTrailer : Screen("youtubeTrailer/{youtubeId}?title={title}") {
-        fun createRoute(youtubeId: String, title: String): String {
-            return "youtubeTrailer/${Uri.encode(youtubeId)}?title=${URLEncoder.encode(title, "UTF-8")}"
+    object YoutubeTrailer : Screen("youtubeTrailer/{youtubeId}?title={title}&imdbId={imdbId}") {
+        fun createRoute(youtubeId: String, title: String, imdbId: String = ""): String {
+            return "youtubeTrailer/${Uri.encode(youtubeId)}?title=${URLEncoder.encode(title, "UTF-8")}&imdbId=${URLEncoder.encode(imdbId, "UTF-8")}"
         }
     }
 }
@@ -195,8 +195,8 @@ fun AppNavigation(
                 onPlayClick = { playerUrl, streamUrl, title, youtubeId, movieId, slug ->
                     navController.navigate(Screen.VideoPlayer.createRoute(playerUrl, streamUrl, title, youtubeId, movieId, slug))
                 },
-                onTrailerClick = { youtubeId, title ->
-                    navController.navigate(Screen.YoutubeTrailer.createRoute(youtubeId, title))
+                onTrailerClick = { youtubeId, title, imdbId ->
+                    navController.navigate(Screen.YoutubeTrailer.createRoute(youtubeId, title, imdbId))
                 },
                 onWatchClick = { imdbId, mTitle, mId, mSlug, mHasStream, mPlayerUrl, mPosterUrl ->
                     navController.navigate(Screen.MovieWatch.createRoute(mSlug, imdbId, mTitle, mId, mHasStream, mPlayerUrl, mPosterUrl))
@@ -237,8 +237,8 @@ fun AppNavigation(
                 onPlayClick = { playerUrl, streamUrl, title, youtubeId, movieId, slug ->
                     navController.navigate(Screen.VideoPlayer.createRoute(playerUrl, streamUrl, title, youtubeId, movieId, slug))
                 },
-                onTrailerClick = { youtubeId, title ->
-                    navController.navigate(Screen.YoutubeTrailer.createRoute(youtubeId, title))
+                onTrailerClick = { youtubeId, title, imdbId ->
+                    navController.navigate(Screen.YoutubeTrailer.createRoute(youtubeId, title, imdbId))
                 },
                 onWatchNow = { imdbId, title, movieId, slug, targetSeason ->
                     navController.navigate(Screen.SeriesWatch.createRoute(imdbId, title, movieId, slug, targetSeason))
@@ -390,14 +390,17 @@ fun AppNavigation(
             route = Screen.YoutubeTrailer.route,
             arguments = listOf(
                 navArgument("youtubeId") { type = NavType.StringType },
-                navArgument("title") { type = NavType.StringType; defaultValue = "" }
+                navArgument("title") { type = NavType.StringType; defaultValue = "" },
+                navArgument("imdbId") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
             val ytId = backStackEntry.arguments?.getString("youtubeId") ?: ""
             val ytTitle = backStackEntry.arguments?.getString("title") ?: ""
+            val imdbId = backStackEntry.arguments?.getString("imdbId") ?: ""
             com.movie.app.best.ui.screens.player.YoutubeTrailerScreen(
                 youtubeId = ytId,
                 title = ytTitle,
+                imdbId = imdbId,
                 onBackClick = { navController.popBackStack() }
             )
         }

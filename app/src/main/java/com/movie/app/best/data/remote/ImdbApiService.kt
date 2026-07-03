@@ -1,6 +1,7 @@
 package com.movie.app.best.data.remote
 
 import com.movie.app.best.data.model.ImdbCertificatesResponse
+import com.movie.app.best.data.model.ImdbCreditsResponse
 import com.movie.app.best.data.model.ImdbEpisodeResponse
 import com.movie.app.best.data.model.ImdbTitleDetails
 import retrofit2.http.GET
@@ -24,4 +25,10 @@ interface ImdbApiService {
     suspend fun getCertificates(
         @Path("titleId") titleId: String
     ): ImdbCertificatesResponse
+
+    @GET("titles/{titleId}/credits")
+    suspend fun getCredits(
+        @Path("titleId") titleId: String,
+        @Query("pageSize") pageSize: Int = 20
+    ): ImdbCreditsResponse
 }

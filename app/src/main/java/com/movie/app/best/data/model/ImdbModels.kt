@@ -31,7 +31,8 @@ data class ImdbEpisode(
 data class ImdbImage(
     val url: String = "",
     val width: Int = 0,
-    val height: Int = 0
+    val height: Int = 0,
+    val type: String? = null
 )
 
 data class ImdbRating(
@@ -45,20 +46,58 @@ data class ImdbReleaseDate(
     val day: Int = 0
 )
 
+data class ImdbMetacritic(
+    val score: Int = 0,
+    @SerializedName("reviewCount") val reviewCount: Int = 0
+)
+
+data class ImdbName(
+    val id: String = "",
+    @SerializedName("displayName") val displayName: String = "",
+    @SerializedName("primaryImage") val primaryImage: ImdbImage? = null,
+    @SerializedName("primaryProfessions") val primaryProfessions: List<String> = emptyList()
+) {
+    val photoUrl: String get() = primaryImage?.url ?: ""
+}
+
+data class ImdbCountry(
+    val code: String = "",
+    val name: String = ""
+)
+
+data class ImdbLanguage(
+    val code: String = "",
+    val name: String = ""
+)
+
 data class ImdbTitleDetails(
     val id: String = "",
     val type: String = "",
     @SerializedName("primaryTitle") val primaryTitle: String = "",
+    @SerializedName("originalTitle") val originalTitle: String? = null,
     @SerializedName("primaryImage") val primaryImage: ImdbImage? = null,
     @SerializedName("startYear") val startYear: Int = 0,
     @SerializedName("endYear") val endYear: Int? = null,
     @SerializedName("runtimeSeconds") val runtimeSeconds: Int = 0,
     val genres: List<String> = emptyList(),
     val rating: ImdbRating? = null,
-    val plot: String = ""
+    val metacritic: ImdbMetacritic? = null,
+    val plot: String = "",
+    val directors: List<ImdbName> = emptyList(),
+    val writers: List<ImdbName> = emptyList(),
+    val stars: List<ImdbName> = emptyList(),
+    @SerializedName("originCountries") val originCountries: List<ImdbCountry> = emptyList(),
+    @SerializedName("spokenLanguages") val spokenLanguages: List<ImdbLanguage> = emptyList()
 ) {
     val posterUrl: String get() = primaryImage?.url ?: ""
     val runtimeMinutes: Int get() = runtimeSeconds / 60
+    val ratingValue: Double get() = rating?.aggregateRating ?: 0.0
+    val voteCount: Int get() = rating?.voteCount ?: 0
+    val metacriticScore: Int get() = metacritic?.score ?: 0
+    val countriesText: String get() = originCountries.joinToString(", ") { it.name }
+    val languagesText: String get() = spokenLanguages.joinToString(", ") { it.name }
+    val directorsText: String get() = directors.joinToString(", ") { it.displayName }
+    val writersText: String get() = writers.joinToString(", ") { it.displayName }
 }
 
 data class ImdbCertificatesResponse(
@@ -75,3 +114,18 @@ data class ImdbCertificateCountry(
     val code: String = "",
     val name: String = ""
 )
+
+data class ImdbCreditsResponse(
+    val credits: List<ImdbCredit> = emptyList()
+)
+
+data class ImdbCredit(
+    val name: ImdbName = ImdbName(),
+    val category: String = "",
+    val characters: List<String> = emptyList()
+) {
+    val photoUrl: String get() = name.photoUrl
+    val displayName: String get() = name.displayName
+    val characterText: String get() = characters.joinToString(", ")
+    val isActor: Boolean get() = category == "actor" || category == "actress"
+}
