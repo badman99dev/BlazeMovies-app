@@ -25,6 +25,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -116,19 +119,46 @@ fun MainScreen() {
             val prefs = remember { context.getSharedPreferences("update_cache", android.content.Context.MODE_PRIVATE) }
             val lastShown = remember { prefs.getLong("last_prompt_time", 0L) }
             val shouldShow = remember { (System.currentTimeMillis() - lastShown) >= 24 * 60 * 60 * 1000 }
+            var showUpdateDialog by remember { mutableStateOf(true) }
 
-            if (shouldShow) {
+            if (shouldShow && showUpdateDialog) {
                 LaunchedEffect(Unit) {
                     prefs.edit().putLong("last_prompt_time", System.currentTimeMillis()).apply()
                 }
                 NormalUpdateDialog(
                     data = updateResp,
-                    onDismiss = {},
+                    onDismiss = { showUpdateDialog = false },
                     onUpdate = {
+                        showUpdateDialog = false
                         updateViewModel.startDownload(context, updateResp.downloadUrl)
                     }
                 )
             }
+
+            val normalUpdateState by updateViewModel.state.collectAsState()
+            when (val s = normalUpdateState) {
+                is UpdateUiState.Downloading -> {
+                    DownloadProgressDialog(
+                        progress = s.progress,
+                        onDismiss = { updateViewModel.resetState() }
+                    )
+                }
+                is UpdateUiState.DownloadComplete -> {
+                    InstallDialog(
+                        onInstall = { updateViewModel.installApk(context, s.file) },
+                        onDismiss = { updateViewModel.resetState() }
+                    )
+                }
+                is UpdateUiState.Error -> {
+                    InfoDialog(
+                        title = "Update Error",
+                        message = s.message,
+                        onDismiss = { updateViewModel.resetState() }
+                    )
+                }
+                else -> {}
+            }
+
             MainContent()
         } else {
             if (updateResp != null && !updateResp.updateAvailable) {
@@ -321,14 +351,29 @@ private fun MaintenanceScreen(message: String, onRetry: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color(0xFF0A0A0A)),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🔧", fontSize = 48.sp)
-            Spacer(modifier = Modifier.height(16.dp))
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(Color(0xFF1A1A1A), androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Build,
+                    contentDescription = null,
+                    tint = Color(0xFFF59E0B),
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
-                "Maintenance Mode",
+                "Under Maintenance",
                 color = Color.White,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
@@ -336,17 +381,21 @@ private fun MaintenanceScreen(message: String, onRetry: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 message,
-                color = Color.White.copy(alpha = 0.5f),
+                color = Color.White.copy(alpha = 0.4f),
                 fontSize = 14.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp)
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
             androidx.compose.material3.OutlinedButton(
                 onClick = onRetry,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.White
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF333333))
             ) {
-                Text("Try Again", color = Color.White)
+                Text("Try Again", color = Color.White, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -366,11 +415,25 @@ private fun ForceUpdateScreen(
     when (val s = updateState) {
         is UpdateUiState.Downloading -> {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black),
+                modifier = Modifier.fillMaxSize().background(Color(0xFF0A0A0A)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Downloading Update...", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(Color(0xFF1A1A1A), androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = null,
+                            tint = Color(0xFFE50914),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text("Downloading Update", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     androidx.compose.material3.LinearProgressIndicator(
                         progress = { s.progress / 100f },
@@ -379,7 +442,7 @@ private fun ForceUpdateScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("$s.progress%", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+                    Text("${s.progress}%", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
                 }
             }
         }
@@ -388,12 +451,24 @@ private fun ForceUpdateScreen(
                 apkRepo.installApk(context, s.file)
             }
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black),
+                modifier = Modifier.fillMaxSize().background(Color(0xFF0A0A0A)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("✅", fontSize = 40.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(Color(0xFF0D2818), androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text("Download Complete", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Installing update...", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
@@ -402,15 +477,27 @@ private fun ForceUpdateScreen(
         }
         else -> {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black),
+                modifier = Modifier.fillMaxSize().background(Color(0xFF0A0A0A)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 ) {
-                    Text("⚠️", fontSize = 48.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(Color(0xFF1A0A0A), androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SystemUpdate,
+                            contentDescription = null,
+                            tint = Color(0xFFE50914),
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         "Update Required",
                         color = Color.White,
@@ -426,25 +513,32 @@ private fun ForceUpdateScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "v${data.version} · ${data.downloadSizeMb} MB",
+                        "v${data.version}  ${data.downloadSizeMb} MB",
                         color = Color(0xFFE50914),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
                     if (data.whatsNew.isNotBlank()) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        val lines = data.whatsNew.lines()
-                            .map { it.removePrefix("## ").removePrefix("# ").trim() }
-                            .filter { it.isNotBlank() && !it.startsWith("What's New") }
-                        lines.forEach { line ->
-                            val clean = line.removePrefix("- ").trim()
-                            if (clean.isNotBlank()) {
-                                androidx.compose.foundation.layout.Row(
-                                    modifier = Modifier.padding(vertical = 2.dp),
-                                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Start
-                                ) {
-                                    Text("▸ ", color = Color(0xFFE50914), fontSize = 12.sp)
-                                    Text(clean, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                        Card(
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                            colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color(0xFF111111)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("What's New", color = Color(0xFFE50914), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                val lines = data.whatsNew.lines()
+                                    .map { it.removePrefix("## ").removePrefix("# ").trim() }
+                                    .filter { it.isNotBlank() && !it.startsWith("What's New") }
+                                lines.forEach { line ->
+                                    val clean = line.removePrefix("- ").trim()
+                                    if (clean.isNotBlank()) {
+                                        androidx.compose.foundation.layout.Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                                            Text("  ", color = Color(0xFFE50914), fontSize = 12.sp)
+                                            Text(clean, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -456,6 +550,8 @@ private fun ForceUpdateScreen(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text("Update Now", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
