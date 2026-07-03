@@ -79,10 +79,18 @@ class SplashViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val result = repository.checkForUpdate(BuildConfig.VERSION_CODE)
-                if (result is com.movie.app.best.data.model.Resource.Success) {
-                    PrefetchCache.updateResponse = result.data
+                when (result) {
+                    is com.movie.app.best.data.model.Resource.Success -> {
+                        PrefetchCache.updateResponse = result.data
+                    }
+                    is com.movie.app.best.data.model.Resource.Error -> {
+                        android.util.Log.e("SplashVM", "Update check failed: ${result.error}")
+                    }
+                    else -> {}
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SplashVM", "Update check exception: ${e.message}", e)
+            }
         }
     }
 }
