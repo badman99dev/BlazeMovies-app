@@ -118,35 +118,6 @@ fun YoutubeTrailerScreen(
         }
     }
 
-    if (isFullscreen) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-        ) {
-            YoutubeWebView(
-                youtubeId = youtubeId,
-                modifier = Modifier.fillMaxSize()
-            )
-            IconButton(
-                onClick = { exitFullscreen() },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.5f))
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.FullscreenExit,
-                    contentDescription = "Exit Fullscreen",
-                    tint = Color.White
-                )
-            }
-        }
-        return
-    }
-
     val trailerState by trailerViewModel.state.collectAsState()
 
     Column(
@@ -154,116 +125,123 @@ fun YoutubeTrailerScreen(
             .fillMaxSize()
             .background(WasmerBlack)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = {
-                    activity?.let { ImmersiveMode.exit(it) }
-                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    onBackClick()
-                },
+        if (!isFullscreen) {
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.5f))
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
+                IconButton(
+                    onClick = {
+                        activity?.let { ImmersiveMode.exit(it) }
+                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        onBackClick()
+                    },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = title,
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .background(Color.Black)
+            modifier = if (isFullscreen)
+                Modifier.fillMaxSize()
+            else
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(Color.Black)
         ) {
             YoutubeWebView(
                 youtubeId = youtubeId,
                 modifier = Modifier.fillMaxSize()
             )
             IconButton(
-                onClick = { enterFullscreen() },
+                onClick = { if (isFullscreen) exitFullscreen() else enterFullscreen() },
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(8.dp)
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.5f))
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Fullscreen,
-                    contentDescription = "Fullscreen",
+                    imageVector = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+                    contentDescription = if (isFullscreen) "Exit Fullscreen" else "Fullscreen",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
             }
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(WasmerBlack),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 32.dp)
-        ) {
-            when (val s = trailerState) {
-                is TrailerUiState.Loading -> {
-                    item { TrailerLoadingShimmer() }
-                }
-                is TrailerUiState.Success -> {
-                    item { TrailerInfoHeader(s.title, s.certificate?.rating ?: "") }
-                    item { Spacer(modifier = Modifier.height(12.dp)) }
-                    item { RatingRow(s.title) }
-                    item { Spacer(modifier = Modifier.height(12.dp)) }
-                    if (s.title.genres.isNotEmpty()) {
-                        item { GenreChips(s.title.genres) }
-                        item { Spacer(modifier = Modifier.height(12.dp)) }
+        if (!isFullscreen) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(WasmerBlack),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 32.dp)
+            ) {
+                when (val s = trailerState) {
+                    is TrailerUiState.Loading -> {
+                        item { TrailerLoadingShimmer() }
                     }
-                    if (s.title.plot.isNotBlank()) {
-                        item { SynopsisSection(s.title.plot) }
+                    is TrailerUiState.Success -> {
+                        item { TrailerInfoHeader(s.title, s.certificate?.rating ?: "") }
                         item { Spacer(modifier = Modifier.height(12.dp)) }
-                    }
-                    if (s.cast.isNotEmpty()) {
-                        item { CastRow(s.cast) }
+                        item { RatingRow(s.title) }
                         item { Spacer(modifier = Modifier.height(12.dp)) }
+                        if (s.title.genres.isNotEmpty()) {
+                            item { GenreChips(s.title.genres) }
+                            item { Spacer(modifier = Modifier.height(12.dp)) }
+                        }
+                        if (s.title.plot.isNotBlank()) {
+                            item { SynopsisSection(s.title.plot) }
+                            item { Spacer(modifier = Modifier.height(12.dp)) }
+                        }
+                        if (s.cast.isNotEmpty()) {
+                            item { CastRow(s.cast) }
+                            item { Spacer(modifier = Modifier.height(12.dp)) }
+                        }
+                        item { CrewSection(s.title) }
+                        item { Spacer(modifier = Modifier.height(12.dp)) }
+                        item { MoreDetailsSection(s.title) }
                     }
-                    item { CrewSection(s.title) }
-                    item { Spacer(modifier = Modifier.height(12.dp)) }
-                    item { MoreDetailsSection(s.title) }
-                }
-                is TrailerUiState.Error -> {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Details unavailable",
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 14.sp
-                            )
+                    is TrailerUiState.Error -> {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Details unavailable",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
+                    is TrailerUiState.Idle -> {}
                 }
-                is TrailerUiState.Idle -> {}
             }
         }
     }
