@@ -23,11 +23,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -617,6 +626,82 @@ private fun NormalUpdateDialog(
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) {
                 Text("Later", color = Color.White.copy(alpha = 0.5f))
+            }
+        },
+        containerColor = Color(0xFF1A1A1A),
+        titleContentColor = Color.White,
+        textContentColor = Color.White.copy(alpha = 0.7f)
+    )
+}
+
+@Composable
+private fun DownloadProgressDialog(progress: Int, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Downloading Update", color = Color.White, fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    color = Color(0xFFE50914),
+                    trackColor = Color.White.copy(alpha = 0.1f),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("$progress%", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+            }
+        },
+        containerColor = Color(0xFF1A1A1A),
+        titleContentColor = Color.White,
+        textContentColor = Color.White.copy(alpha = 0.7f)
+    )
+}
+
+@Composable
+private fun InstallDialog(onInstall: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Download Complete", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = { Text("APK downloaded. Tap Install to update.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        confirmButton = {
+            androidx.compose.material3.Button(
+                onClick = onInstall,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
+            ) {
+                Text("Install", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+            }
+        },
+        containerColor = Color(0xFF1A1A1A),
+        titleContentColor = Color.White,
+        textContentColor = Color.White.copy(alpha = 0.7f)
+    )
+}
+
+@Composable
+private fun InfoDialog(title: String, message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, color = Color.White, fontWeight = FontWeight.Bold) },
+        text = { Text(message, color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK", color = Color(0xFFE50914))
             }
         },
         containerColor = Color(0xFF1A1A1A),
