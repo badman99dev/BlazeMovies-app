@@ -2,6 +2,12 @@ package com.movie.app.best.ui.screens.serieswatch
 
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,13 +24,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -44,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -439,6 +450,11 @@ fun SeriesWatchScreen(
                     lineHeight = 19.sp
                 )
             }
+
+            val stars = state.titleDetails?.stars ?: emptyList()
+            if (stars.isNotEmpty()) {
+                CollapsibleCastRow(stars)
+            }
         }
 
         if (state.seasonKeys.isNotEmpty()) {
@@ -536,6 +552,103 @@ fun SeriesWatchScreen(
                         )
                     }
                     item { Spacer(modifier = Modifier.height(80.dp)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleCastRow(stars: List<com.movie.app.best.data.model.ImdbName>) {
+    var expanded by remember { mutableStateOf(false) }
+    val arrowRotation by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(300),
+        label = "arrow_rot"
+    )
+
+    Spacer(modifier = Modifier.height(14.dp))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.7f),
+            modifier = Modifier
+                .size(22.dp)
+                .rotate(arrowRotation)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = "Cast",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "  (${stars.size})",
+            color = Color.White.copy(alpha = 0.4f),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Normal
+        )
+    }
+
+    AnimatedVisibility(
+        visible = expanded,
+        enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(tween(300)),
+        exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(tween(200))
+    ) {
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            items(stars) { star ->
+                Column(
+                    modifier = Modifier.width(72.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF1A1A1A)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (star.photoUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = star.photoUrl,
+                                contentDescription = star.displayName,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = star.displayName,
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
