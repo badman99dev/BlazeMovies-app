@@ -3,7 +3,7 @@ package com.movie.app.best
 import android.app.Application
 import androidx.work.Configuration
 import coil.ImageLoader
-import coil.SingletonImageLoader
+import coil.ImageLoaderFactory
 import com.movie.app.best.data.settings.VideoQualitySettings
 import com.ketch.Ketch
 import com.ketch.NotificationConfig
@@ -14,7 +14,7 @@ import org.acra.ktx.initAcra
 import org.acra.data.StringFormat
 
 @HiltAndroidApp
-class MovieApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
+class MovieApplication : Application(), Configuration.Provider, ImageLoaderFactory {
 
     lateinit var ketch: Ketch
         private set
