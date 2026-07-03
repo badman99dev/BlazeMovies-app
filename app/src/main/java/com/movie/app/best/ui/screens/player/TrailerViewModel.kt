@@ -7,8 +7,6 @@ import com.movie.app.best.data.model.ImdbCredit
 import com.movie.app.best.data.model.ImdbTitleDetails
 import com.movie.app.best.data.remote.ImdbApiService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,17 +29,18 @@ class TrailerViewModel @Inject constructor(
         _state.value = TrailerUiState.Loading
         viewModelScope.launch {
             try {
-                val deferredTitle = async { imdbApi.getTitleDetails(imdbId) }
-                val deferredCredits = async { imdbApi.getCredits(imdbId) }
-                val deferredCerts = async { imdbApi.getCertificates(imdbId) }
+                val title = safeApiCall { imdbApi.getTitleDetails(imdbId) }
+                val credits = safeApiCall { imdbApi.getCredits(imdbId) }
+                val certs = safeApiCall { imdbApi.getCertificates(imdbId) }
 
-                val title = deferredTitle.await()
-                val credits = deferredCredits.await()
-                val certs = deferredCerts.await()
+                if (title == null) {
+                    _state.value = TrailerUiState.Error("Failed to load details")
+                    return@launch
+                }
 
-                val usCert = certs.certificates.firstOrNull { it.country?.code == "US" }
-                    ?: certs.certificates.firstOrNull()
-                val cast = credits.credits.filter { it.isActor }.take(15)
+                val usCert = certs?.certificates?.firstOrNull { it.country?.code == "US" }
+                    ?: certs?.certificates?.firstOrNull()
+                val cast = credits?.credits?.filter { it.isActor }?.take(15) ?: emptyList()
 
                 _state.value = TrailerUiState.Success(
                     title = title,
@@ -52,6 +51,10 @@ class TrailerViewModel @Inject constructor(
                 _state.value = TrailerUiState.Error(e.message ?: "Failed to load")
             }
         }
+    }
+
+    private suspend inline fun <T> safeApiCall(block: suspend () -> T): T? {
+        return try { block() } catch (e: Exception) { null }
     }
 }
 
