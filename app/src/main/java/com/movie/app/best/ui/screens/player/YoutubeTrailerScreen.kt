@@ -218,32 +218,21 @@ private fun YoutubeWebView(
                 val html = """<!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;background:#000;overflow:hidden}
-#player{width:100%;height:100%}
+iframe{width:100%;height:100%;border:0}
 </style>
 </head>
 <body>
-<div id="player"></div>
-<script>
-var tag=document.createElement('script');
-tag.src="https://www.youtube-nocookie.com/iframe_api";
-var firstScriptTag=document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag,firstScriptTag);
-var player;
-window.onYouTubeIframeAPIReady=function(){
-player=new YT.Player('player',{
-videoId:'$youtubeId',
-playerVars:{'autoplay':1,'playsinline':1,'rel':0,'origin':'https://www.youtube-nocookie.com','fs':0},
-events:{'onReady':function(e){e.target.playVideo();}}
-});
-};
-</script>
+<iframe src="https://www.youtube.com/embed/$youtubeId?autoplay=1&playsinline=1&rel=0"
+frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen
+referrerpolicy="strict-origin-when-cross-origin"></iframe>
 </body>
 </html>""".trimIndent()
-                loadDataWithBaseURL("https://www.youtube-nocookie.com", html, "text/html", "UTF-8", null)
+                loadDataWithBaseURL("https://wasmer-hub.vercel.app/", html, "text/html", "UTF-8", null)
             }
         }
     )
