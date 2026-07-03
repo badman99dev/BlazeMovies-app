@@ -65,7 +65,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -576,83 +575,63 @@ private fun NormalUpdateDialog(
     onDismiss: () -> Unit,
     onUpdate: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF121212))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SystemUpdate,
-                        contentDescription = null,
-                        tint = Color(0xFFE50914),
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("Update Available", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(
-                            "v${data.version} · ${data.downloadSizeMb} MB",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            androidx.compose.material3.Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.SystemUpdate,
+                contentDescription = null,
+                tint = Color(0xFFE50914),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Update Available", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column {
+                Text(
+                    "v${data.version} · ${data.downloadSizeMb} MB",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 13.sp
+                )
                 if (data.whatsNew.isNotBlank()) {
-                    Text(
-                        "What's New",
-                        color = Color(0xFFE50914),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("What's New:", color = Color(0xFFE50914), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
                     val lines = data.whatsNew.lines()
                         .map { it.removePrefix("## ").removePrefix("# ").trim() }
                         .filter { it.isNotBlank() && !it.startsWith("What's New") }
                     lines.forEach { line ->
-                        val cleanLine = line.removePrefix("- ").trim()
-                        if (cleanLine.isNotBlank()) {
-                            androidx.compose.foundation.layout.Row(modifier = Modifier.padding(vertical = 3.dp, horizontal = 4.dp)) {
-                                Text("▸ ", color = Color(0xFFE50914), fontSize = 13.sp)
-                                Text(cleanLine, color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+                        val clean = line.removePrefix("- ").trim()
+                        if (clean.isNotBlank()) {
+                            androidx.compose.foundation.layout.Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                                Text("▸ ", color = Color(0xFFE50914), fontSize = 12.sp)
+                                Text(clean, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
                             }
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Later", color = Color.White.copy(alpha = 0.5f))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    androidx.compose.material3.Button(
-                        onClick = onUpdate,
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Update Now", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                }
             }
-        }
-    }
+        },
+        confirmButton = {
+            androidx.compose.material3.Button(
+                onClick = onUpdate,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
+            ) {
+                Text("Update", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Later", color = Color.White.copy(alpha = 0.5f))
+            }
+        },
+        containerColor = Color(0xFF1A1A1A),
+        titleContentColor = Color.White,
+        textContentColor = Color.White.copy(alpha = 0.7f)
+    )
 }
 
 @Composable
