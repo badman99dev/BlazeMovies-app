@@ -2,6 +2,7 @@ package com.movie.app.best
 
 import android.app.Application
 import androidx.work.Configuration
+import coil.ImageLoader
 import com.movie.app.best.data.settings.VideoQualitySettings
 import com.ketch.Ketch
 import com.ketch.NotificationConfig
@@ -21,6 +22,12 @@ class MovieApplication : Application(), Configuration.Provider {
         get() = Configuration.Builder()
             .setMinimumLoggingLevel(android.util.Log.INFO)
             .build()
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .crossfade(300)
+            .build()
+    }
 
     private fun isAcraProcess(): Boolean {
         val processName = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
