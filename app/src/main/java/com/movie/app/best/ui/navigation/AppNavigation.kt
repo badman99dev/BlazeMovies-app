@@ -74,24 +74,24 @@ sealed class Screen(val route: String) {
     object SeriesDetail : Screen("series/{slug}") {
         fun createRoute(slug: String) = "series/${Uri.encode(slug)}"
     }
-    object SeriesWatch : Screen("seriesWatch/{imdbId}/{title}/{movieId}/{slug}/{targetSeason}?cast={cast}&director={director}") {
-        fun createRoute(imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int = -1, cast: String = "", director: String = ""): String {
-            return "seriesWatch/${Uri.encode(imdbId)}/${Uri.encode(title)}/${Uri.encode(movieId)}/${Uri.encode(slug)}/${targetSeason}?cast=${URLEncoder.encode(cast, "UTF-8")}&director=${URLEncoder.encode(director, "UTF-8")}"
+    object SeriesWatch : Screen("seriesWatch/{imdbId}/{title}/{movieId}/{slug}/{targetSeason}?cast={cast}&director={director}&description={description}") {
+        fun createRoute(imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int = -1, cast: String = "", director: String = "", description: String = ""): String {
+            return "seriesWatch/${Uri.encode(imdbId)}/${Uri.encode(title)}/${Uri.encode(movieId)}/${Uri.encode(slug)}/${targetSeason}?cast=${Uri.encode(cast)}&director=${Uri.encode(director)}&description=${Uri.encode(description)}"
         }
     }
-    object MovieWatch : Screen("movieWatch/{slug}?imdbId={imdbId}&title={title}&movieId={movieId}&hasStream={hasStream}&playerUrl={playerUrl}&posterUrl={posterUrl}&cast={cast}&director={director}") {
-        fun createRoute(slug: String, imdbId: String, title: String, movieId: String, hasStream: Boolean, playerUrl: String, posterUrl: String, cast: String = "", director: String = ""): String {
-            return "movieWatch/${Uri.encode(slug)}?imdbId=${URLEncoder.encode(imdbId, "UTF-8")}&title=${URLEncoder.encode(title, "UTF-8")}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&hasStream=$hasStream&playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&posterUrl=${URLEncoder.encode(posterUrl, "UTF-8")}&cast=${URLEncoder.encode(cast, "UTF-8")}&director=${URLEncoder.encode(director, "UTF-8")}"
+    object MovieWatch : Screen("movieWatch/{slug}?imdbId={imdbId}&title={title}&movieId={movieId}&hasStream={hasStream}&playerUrl={playerUrl}&posterUrl={posterUrl}&cast={cast}&director={director}&description={description}") {
+        fun createRoute(slug: String, imdbId: String, title: String, movieId: String, hasStream: Boolean, playerUrl: String, posterUrl: String, cast: String = "", director: String = "", description: String = ""): String {
+            return "movieWatch/${Uri.encode(slug)}?imdbId=${URLEncoder.encode(imdbId, "UTF-8")}&title=${Uri.encode(title)}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&hasStream=$hasStream&playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&posterUrl=${URLEncoder.encode(posterUrl, "UTF-8")}&cast=${Uri.encode(cast)}&director=${Uri.encode(director)}&description=${Uri.encode(description)}"
         }
     }
     object VideoPlayer : Screen("videoPlayer?playerUrl={playerUrl}&streamUrl={streamUrl}&title={title}&youtubeId={youtubeId}&movieId={movieId}&slug={slug}&isLive={isLive}&contentSource={contentSource}") {
         fun createRoute(playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String = "", slug: String = "", isLive: Boolean = false, contentSource: String = "wasmer"): String {
-            return "videoPlayer?playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&streamUrl=${URLEncoder.encode(streamUrl, "UTF-8")}&title=${URLEncoder.encode(title, "UTF-8")}&youtubeId=${URLEncoder.encode(youtubeId, "UTF-8")}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&slug=${URLEncoder.encode(slug, "UTF-8")}&isLive=$isLive&contentSource=${URLEncoder.encode(contentSource, "UTF-8")}"
+            return "videoPlayer?playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&streamUrl=${URLEncoder.encode(streamUrl, "UTF-8")}&title=${Uri.encode(title)}&youtubeId=${URLEncoder.encode(youtubeId, "UTF-8")}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&slug=${URLEncoder.encode(slug, "UTF-8")}&isLive=$isLive&contentSource=${URLEncoder.encode(contentSource, "UTF-8")}"
         }
     }
     object YoutubeTrailer : Screen("youtubeTrailer/{youtubeId}?title={title}&imdbId={imdbId}") {
         fun createRoute(youtubeId: String, title: String, imdbId: String = ""): String {
-            return "youtubeTrailer/${Uri.encode(youtubeId)}?title=${URLEncoder.encode(title, "UTF-8")}&imdbId=${URLEncoder.encode(imdbId, "UTF-8")}"
+            return "youtubeTrailer/${Uri.encode(youtubeId)}?title=${Uri.encode(title)}&imdbId=${URLEncoder.encode(imdbId, "UTF-8")}"
         }
     }
 }
@@ -198,8 +198,8 @@ fun AppNavigation(
                 onTrailerClick = { youtubeId, title, imdbId ->
                     navController.navigate(Screen.YoutubeTrailer.createRoute(youtubeId, title, imdbId))
                 },
-                onWatchClick = { imdbId, mTitle, mId, mSlug, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector ->
-                    navController.navigate(Screen.MovieWatch.createRoute(mSlug, imdbId, mTitle, mId, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector))
+                onWatchClick = { imdbId, mTitle, mId, mSlug, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector, mDescription ->
+                    navController.navigate(Screen.MovieWatch.createRoute(mSlug, imdbId, mTitle, mId, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector, mDescription))
                 },                onSeriesClick = { seriesSlug ->
                     navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug)) {
                         popUpTo(Screen.MovieDetail.route) { inclusive = true }
@@ -240,8 +240,8 @@ fun AppNavigation(
                 onTrailerClick = { youtubeId, title, imdbId ->
                     navController.navigate(Screen.YoutubeTrailer.createRoute(youtubeId, title, imdbId))
                 },
-                onWatchNow = { imdbId, title, movieId, slug, targetSeason, cast, director ->
-                    navController.navigate(Screen.SeriesWatch.createRoute(imdbId, title, movieId, slug, targetSeason, cast, director))
+                onWatchNow = { imdbId, title, movieId, slug, targetSeason, cast, director, description ->
+                    navController.navigate(Screen.SeriesWatch.createRoute(imdbId, title, movieId, slug, targetSeason, cast, director, description))
                 },
                 onMovieClick = { movieSlug ->
                     navController.navigate(Screen.MovieDetail.createRoute(movieSlug))
@@ -278,7 +278,8 @@ fun AppNavigation(
                     defaultValue = -1
                 },
                 navArgument("cast") { type = NavType.StringType; defaultValue = "" },
-                navArgument("director") { type = NavType.StringType; defaultValue = "" }
+                navArgument("director") { type = NavType.StringType; defaultValue = "" },
+                navArgument("description") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
             SeriesWatchScreen(
@@ -297,7 +298,8 @@ fun AppNavigation(
                 navArgument("playerUrl") { type = NavType.StringType; defaultValue = "" },
                 navArgument("posterUrl") { type = NavType.StringType; defaultValue = "" },
                 navArgument("cast") { type = NavType.StringType; defaultValue = "" },
-                navArgument("director") { type = NavType.StringType; defaultValue = "" }
+                navArgument("director") { type = NavType.StringType; defaultValue = "" },
+                navArgument("description") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
             MovieWatchScreen(

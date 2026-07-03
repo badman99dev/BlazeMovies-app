@@ -440,6 +440,7 @@ fun SeriesWatchScreen(
 
             val description = state.currentEpisode?.plot?.takeIf { it.isNotBlank() }
                 ?: state.titleDetails?.plot?.takeIf { it.isNotBlank() }
+                ?: state.backendDescription?.takeIf { it.isNotBlank() }
             description?.let { desc ->
                 Text(
                     text = desc,

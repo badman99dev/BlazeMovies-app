@@ -537,6 +537,7 @@ fun MovieWatchScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             val description = state.titleDetails?.plot?.takeIf { it.isNotBlank() }
+                ?: state.backendDescription?.takeIf { it.isNotBlank() }
             description?.let { desc ->
                 Text(
                     text = desc,

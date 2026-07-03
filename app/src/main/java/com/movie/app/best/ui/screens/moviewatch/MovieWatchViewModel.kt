@@ -50,6 +50,7 @@ class MovieWatchViewModel @Inject constructor(
     val posterUrl: String = savedStateHandle["posterUrl"] ?: ""
     val backendCast: String = savedStateHandle["cast"] ?: ""
     val backendDirector: String = savedStateHandle["director"] ?: ""
+    val backendDescription: String = savedStateHandle["description"] ?: ""
     val title: String get() = movieTitle
     val contentSlug: String get() = slug
 
@@ -87,7 +88,8 @@ class MovieWatchViewModel @Inject constructor(
                     showBuffering = needsImdb,
                     error = null,
                     backendCast = backendCast,
-                    backendDirector = backendDirector
+                    backendDirector = backendDirector,
+                    backendDescription = backendDescription
                 )
             }
 
@@ -349,5 +351,6 @@ data class MovieWatchState(
     val streamRequestError: String? = null,
     val isBookmarked: Boolean = false,
     val backendCast: String = "",
-    val backendDirector: String = ""
+    val backendDirector: String = "",
+    val backendDescription: String = ""
 )
