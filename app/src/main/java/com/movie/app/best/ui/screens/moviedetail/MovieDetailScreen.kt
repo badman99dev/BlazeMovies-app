@@ -36,7 +36,7 @@ fun MovieDetailScreen(
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
-    onWatchClick: (imdbId: String, title: String, movieId: String, slug: String, hasStream: Boolean, playerUrl: String, posterUrl: String) -> Unit = { _, _, _, _, _, _, _ -> },
+    onWatchClick: (imdbId: String, title: String, movieId: String, slug: String, hasStream: Boolean, playerUrl: String, posterUrl: String, cast: String, director: String) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
     onSeriesClick: (slug: String) -> Unit,
     onMovieClick: (slug: String) -> Unit = {},
     onDownloadClick: (linkUrl: String) -> Unit = { },
@@ -235,7 +235,7 @@ private fun MovieDetailContent(
     onBackClick: () -> Unit,
     onPlayClick: (String, String, String, String, String, String) -> Unit,
     onTrailerClick: (String, String, String) -> Unit = { _, _, _ -> },
-    onWatchClick: (String, String, String, String, Boolean, String, String) -> Unit,
+    onWatchClick: (String, String, String, String, Boolean, String, String, String, String) -> Unit,
     onDownloadClick: () -> Unit,
     onPostComment: (String, String) -> Unit,
     onRequestStream: () -> Unit,
@@ -314,7 +314,7 @@ private fun MovieDetailContent(
                 hasDownloadLinks = uiState.downloadLinks.isNotEmpty(),
                 alwaysShowWatch = true,
                 onPlayClick     = {
-                    onWatchClick(movie.imdbId, movie.title, movie.id.toString(), movie.slug, movie.hasStream, movie.playerUrl, movie.posterUrl)
+                    onWatchClick(movie.imdbId, movie.title, movie.id.toString(), movie.slug, movie.hasStream, movie.playerUrl, movie.posterUrl, movie.cast, movie.director)
                 },
                 onDownloadClick = onDownloadClick,
                 onMyListClick   = onToggleBookmark,

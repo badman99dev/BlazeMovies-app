@@ -549,8 +549,19 @@ fun MovieWatchScreen(
             }
 
             val stars = state.titleDetails?.stars ?: emptyList()
-            if (stars.isNotEmpty()) {
-                CollapsibleCastRow(stars)
+            val backendCast = state.backendCast
+            val castList = if (stars.isNotEmpty()) {
+                stars
+            } else if (backendCast.isNotBlank()) {
+                backendCast.split(",").mapNotNull { name ->
+                    val trimmed = name.trim()
+                    if (trimmed.isNotBlank()) com.movie.app.best.data.model.ImdbName(displayName = trimmed) else null
+                }
+            } else {
+                emptyList()
+            }
+            if (castList.isNotEmpty()) {
+                CollapsibleCastRow(castList)
             }
         }
 

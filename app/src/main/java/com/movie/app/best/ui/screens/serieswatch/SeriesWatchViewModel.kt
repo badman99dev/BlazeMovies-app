@@ -31,6 +31,8 @@ class SeriesWatchViewModel @Inject constructor(
     private val movieId: String = savedStateHandle["movieId"] ?: ""
     private val slug: String = savedStateHandle["slug"] ?: ""
     private val targetSeason: Int = savedStateHandle["targetSeason"] ?: -1
+    val backendCast: String = savedStateHandle["cast"] ?: ""
+    val backendDirector: String = savedStateHandle["director"] ?: ""
 
     private val _state = MutableStateFlow(ExtractionState())
     val state: StateFlow<ExtractionState> = _state.asStateFlow()
@@ -43,7 +45,7 @@ class SeriesWatchViewModel @Inject constructor(
 
     private fun loadAll() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true, error = null, backendCast = backendCast, backendDirector = backendDirector) }
 
             // Start IMDb title & certificate requests in viewModelScope so they survive
             // the 2-second wait and keep running in the background until they finish.

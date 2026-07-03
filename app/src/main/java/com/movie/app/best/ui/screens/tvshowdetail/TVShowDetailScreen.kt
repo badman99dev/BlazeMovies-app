@@ -118,7 +118,7 @@ fun TVShowDetailScreen(
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
-    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int) -> Unit = { _, _, _, _, _ -> },
+    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String) -> Unit = { _, _, _, _, _, _, _ -> },
     onMovieClick: (String) -> Unit = {},
     onSeriesClick: (String) -> Unit = {},
     onGoToDownloads: () -> Unit = {},
@@ -352,7 +352,7 @@ private fun TVShowDetailContent(
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
-    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int) -> Unit,
+    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String) -> Unit,
     onPostComment: (name: String, msg: String) -> Unit,
     onRequestStream: () -> Unit,
     onStartDownload: (linkUrl: String, linkId: Int?) -> Unit,
@@ -428,7 +428,7 @@ private fun TVShowDetailContent(
             isLiked = uiState.isLiked,
             isSeries = true,
             onPlayClick = {
-                onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason)
+                onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason, series.cast, series.director)
             },
             onDownloadClick = {
                 val allLinks = uiState.linksByEpisode.values.flatten() + uiState.downloadLinks
@@ -490,7 +490,7 @@ private fun TVShowDetailContent(
                     downloadLoadingLinkId = uiState.downloadLoadingLinkId,
                     downloadStartedLinkIds = uiState.downloadStartedLinkIds,
                     onPlayClick = {
-                        onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason)
+                        onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason, series.cast, series.director)
                     },
                     onDownloadClick = { links ->
                         onOpenEpisodeDownloadSheet(links, "${series.title} - S${selectedSeason}E${episode.episodeNo}")

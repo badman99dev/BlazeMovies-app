@@ -59,7 +59,9 @@ data class ExtractionState(
     val currentEpisode: WatchEpisode? = null,
     val titleDetails: ImdbTitleDetails? = null,
     val ageRating: String = "",
-    val error: String? = null
+    val error: String? = null,
+    val backendCast: String = "",
+    val backendDirector: String = ""
 ) {
     val mergedEpisodes: List<WatchEpisode>
         get() {
