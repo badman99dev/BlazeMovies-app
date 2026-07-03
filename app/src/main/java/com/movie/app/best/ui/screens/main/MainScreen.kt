@@ -203,6 +203,7 @@ fun MainContent() {
     var isConnected by remember { mutableStateOf(isCurrentlyConnected(connectivityManager)) }
     var wasOffline by remember { mutableStateOf(!isConnected) }
     var showBackOnlineBanner by remember { mutableStateOf(false) }
+    var showConnectionLostBanner by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -229,6 +230,9 @@ fun MainContent() {
             showBackOnlineBanner = false
         } else if (!isConnected) {
             wasOffline = true
+            showConnectionLostBanner = true
+            delay(3000)
+            showConnectionLostBanner = false
         }
     }
 
@@ -296,7 +300,7 @@ fun MainContent() {
                 )
 
                 AnimatedVisibility(
-                    visible = !isConnected,
+                    visible = showConnectionLostBanner,
                     enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(tween(300)),
                     exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(tween(200))
                 ) {
