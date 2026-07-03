@@ -352,7 +352,7 @@ private fun TVShowDetailContent(
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
-    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String) -> Unit,
+    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String) -> Unit,
     onPostComment: (name: String, msg: String) -> Unit,
     onRequestStream: () -> Unit,
     onStartDownload: (linkUrl: String, linkId: Int?) -> Unit,

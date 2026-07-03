@@ -235,7 +235,7 @@ private fun MovieDetailContent(
     onBackClick: () -> Unit,
     onPlayClick: (String, String, String, String, String, String) -> Unit,
     onTrailerClick: (String, String, String) -> Unit = { _, _, _ -> },
-    onWatchClick: (String, String, String, String, Boolean, String, String, String, String) -> Unit,
+    onWatchClick: (String, String, String, String, Boolean, String, String, String, String, String) -> Unit,
     onDownloadClick: () -> Unit,
     onPostComment: (String, String) -> Unit,
     onRequestStream: () -> Unit,
