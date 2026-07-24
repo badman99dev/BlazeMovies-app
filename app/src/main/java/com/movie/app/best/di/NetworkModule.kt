@@ -130,7 +130,7 @@ object NetworkModule {
     @Named("imdb")
     fun provideImdbRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api.imdbapi.dev/")
+            .baseUrl("https://api.tiffara.com/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

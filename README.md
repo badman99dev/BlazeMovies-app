@@ -57,7 +57,7 @@ A full-featured Android streaming app built with Jetpack Compose. Browse movies,
 | Auth & DB | Firebase Auth + Firestore |
 | Crash Reports | ACRA |
 | Search | MeiliSearch |
-| APIs | Wasmer Hub Backend (PHP/Vercel) + IMDb API (`api.imdbapi.dev`) |
+| APIs | Wasmer Hub Backend (PHP/Vercel) + IMDb API (`api.tiffara.com`) |
 | Build | GitHub Actions (3-mode: test / minor / major) |
 
 ---
@@ -159,7 +159,7 @@ buildConfigField("String", "BASE_URL", "\"https://wasmer-hub.vercel.app/v1/\"")
 ### IMDb API
 Used for enrichment (cast, ratings, plots, episodes):
 ```
-https://api.imdbapi.dev
+https://api.tiffara.com
 ```
 
 ### Ecosystem

@@ -12,7 +12,7 @@ import retrofit2.http.Query
 interface Zee5ApiService {
     
     companion object {
-        const val BASE_URL = "https://zee5-no-ads.vercel.app/"
+        const val BASE_URL = "https://zee5-no-ads.onrender.com/"
         const val DEFAULT_LANGS = "hi,hr"
     }
     
