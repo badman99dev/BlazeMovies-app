@@ -386,7 +386,8 @@ fun AppNavigation(
                 categorySlug = slug,
                 categoryName = name,
                 onContentClick = { s, isSeries -> navigateToContent(s, isSeries) },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 
@@ -456,7 +457,8 @@ fun AppNavigation(
         composable(Screen.Trending.route) {
             TrendingScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
-                navController = navController
+                navController = navController,
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 
@@ -509,14 +511,16 @@ fun AppNavigation(
         composable(Screen.LatestUploads.route) {
             LatestUploadScreen(
                 onBackClick = { navController.popBackStack() },
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) }
+                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 
         composable(Screen.MyFeed.route) {
             MyFeedScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
-                navController = navController
+                navController = navController,
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 

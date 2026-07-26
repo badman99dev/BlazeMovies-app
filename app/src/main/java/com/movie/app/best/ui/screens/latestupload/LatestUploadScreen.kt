@@ -10,17 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,13 +29,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.movie.app.best.data.settings.ModerationSettings
+import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.screens.home.components.movieGridItems
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LatestUploadScreen(
     onBackClick: () -> Unit,
     onContentClick: (String, Boolean) -> Unit,
+    onSearchClick: () -> Unit = {},
     viewModel: LatestUploadViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -65,24 +59,12 @@ fun LatestUploadScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0D0D))
+            .background(Color.Black)
     ) {
-        TopAppBar(
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-            },
-            title = {
-                Text(
-                    "Latest Uploads",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF0D0D0D)
-            )
+        CompactPageHeader(
+            title = "Latest Uploads",
+            onBackClick = onBackClick,
+            onSearchClick = onSearchClick
         )
 
         Box(

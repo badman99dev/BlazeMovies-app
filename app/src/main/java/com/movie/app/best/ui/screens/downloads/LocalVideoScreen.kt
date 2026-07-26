@@ -17,18 +17,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,8 +36,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.movie.app.best.ui.components.CompactPageHeader
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalVideoScreen(
     onBackClick: () -> Unit,
@@ -54,14 +49,9 @@ fun LocalVideoScreen(
     Column(
         modifier = Modifier.fillMaxSize().background(Color.Black)
     ) {
-        TopAppBar(
-            title = { Text("Local Videos", fontWeight = FontWeight.Bold, color = Color.White) },
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+        CompactPageHeader(
+            title = "Local Videos",
+            onBackClick = onBackClick
         )
 
         if (videos.isEmpty()) {

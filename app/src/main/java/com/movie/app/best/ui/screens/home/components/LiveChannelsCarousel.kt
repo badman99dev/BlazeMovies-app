@@ -40,7 +40,7 @@ fun LiveChannelsCarousel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 68.dp, bottom = 12.dp)  // Top padding to clear AppHeader
+            .padding(top = WindowInsets.statusBars.calculateTopPadding() + 44.dp, bottom = 12.dp)  // hugs AppHeader bottom
     ) {
         LiveTvSectionHeader(onMoreClick = onMoreClick)
 
@@ -70,11 +70,12 @@ fun LiveChannelsCarousel(
     applyTopPadding: Boolean = false,  // Search page has its own top bar; skip home's spacer
 ) {
     val listState = rememberLazyListState()
+    val topPadding = if (applyTopPadding) WindowInsets.statusBars.calculateTopPadding() + 44.dp else 8.dp
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = if (applyTopPadding) 68.dp else 8.dp, bottom = 12.dp)
+            .padding(top = topPadding, bottom = 12.dp)
     ) {
         LiveTvSectionHeader(onMoreClick = onMoreClick)
 

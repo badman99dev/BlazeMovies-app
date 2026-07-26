@@ -22,18 +22,13 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,12 +55,12 @@ import com.movie.app.best.data.model.WasmerCategory
 import com.movie.app.best.data.model.WasmerMovie
 import com.movie.app.best.data.repository.MovieRepository
 import com.movie.app.best.ui.components.AppHeader
+import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.components.ErrorView
 import com.movie.app.best.ui.components.MovieCard
 import com.movie.app.best.ui.components.SkeletonCategoryCard
 import com.movie.app.best.ui.screens.home.components.movieGridItems
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(
     onCategoryClick: (categorySlug: String, categoryName: String) -> Unit,
@@ -238,13 +233,13 @@ fun CategoryCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryPageScreen(
     categorySlug: String,
     categoryName: String,
     onContentClick: (slug: String, isSeries: Boolean) -> Unit,
     onBackClick: () -> Unit,
+    onSearchClick: () -> Unit = {},
     viewModel: CategoryPageViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -270,30 +265,12 @@ fun CategoryPageScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0D0D))
+            .background(Color.Black)
     ) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = categoryName,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF0D0D0D)
-            )
+        CompactPageHeader(
+            title = categoryName,
+            onBackClick = onBackClick,
+            onSearchClick = onSearchClick
         )
 
         Box(

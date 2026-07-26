@@ -50,7 +50,7 @@ fun AppHeader(
                     endY = 220f
                 )
             )
-            .padding(top = 24.dp)
+            .statusBarsPadding()
             .height(48.dp)
             .padding(horizontal = 16.dp)
     ) {

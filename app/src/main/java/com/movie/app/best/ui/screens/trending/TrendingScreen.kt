@@ -13,10 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,13 +29,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.movie.app.best.data.settings.ModerationSettings
+import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.screens.home.components.movieGridItems
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrendingScreen(
     navController: androidx.navigation.NavController,
     onContentClick: (String, Boolean) -> Unit,
+    onSearchClick: () -> Unit = {},
     viewModel: TrendingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -61,19 +59,12 @@ fun TrendingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0D0D))
+            .background(Color.Black)
     ) {
-        TopAppBar(
-            title = {
-                Text(
-                    "Trending",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF0D0D0D)
-            )
+        CompactPageHeader(
+            title = "Trending",
+            onBackClick = { navController.popBackStack() },
+            onSearchClick = onSearchClick
         )
 
         Box(
