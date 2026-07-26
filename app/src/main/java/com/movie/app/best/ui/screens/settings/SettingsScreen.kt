@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -214,7 +215,8 @@ fun SettingsScreen(
                     )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+            windowInsets = WindowInsets(0, 0, 0, 0)
         )
 
         Column(
@@ -556,7 +558,8 @@ private fun LogViewerScreen(
                     Icon(imageVector = Icons.Default.Clear, contentDescription = "Refresh", tint = Color.White.copy(alpha = 0.7f))
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF111111))
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF111111)),
+            windowInsets = WindowInsets(0, 0, 0, 0)
         )
 
         if (uploadedLink.isNotEmpty()) {

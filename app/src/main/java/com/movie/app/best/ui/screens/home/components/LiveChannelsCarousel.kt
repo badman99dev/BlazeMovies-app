@@ -23,7 +23,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -37,13 +36,12 @@ fun LiveChannelsCarousel(
     onMoreClick: (() -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
-    val density = LocalDensity.current
-    val statusBarClearance = with(density) { WindowInsets.statusBars.getTop(this).toDp() + 32.dp }
+    val headerClearance = 40.dp   // = 36dp AppHeader row + 4dp gap (status bar handled by MainActivity)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = statusBarClearance, bottom = 12.dp)  // hugs AppHeader bottom
+            .padding(top = headerClearance, bottom = 12.dp)  // hugs AppHeader bottom
     ) {
         LiveTvSectionHeader(onMoreClick = onMoreClick)
 
@@ -73,9 +71,8 @@ fun LiveChannelsCarousel(
     applyTopPadding: Boolean = false,  // Search page has its own top bar; skip home's spacer
 ) {
     val listState = rememberLazyListState()
-    val density = LocalDensity.current
-    val statusBarClearance = with(density) { WindowInsets.statusBars.getTop(this).toDp() + 32.dp }
-    val topPadding = if (applyTopPadding) statusBarClearance else 8.dp
+    val headerClearance = 40.dp   // = 36dp AppHeader row + 4dp gap (status bar handled by MainActivity)
+    val topPadding = if (applyTopPadding) headerClearance else 8.dp
 
     Column(
         modifier = Modifier

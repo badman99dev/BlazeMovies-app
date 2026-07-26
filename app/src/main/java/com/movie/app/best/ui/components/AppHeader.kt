@@ -50,7 +50,6 @@ fun AppHeader(
                     endY = 220f
                 )
             )
-            .statusBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
         // ── Hamburger + Logo ────────────────────────────────

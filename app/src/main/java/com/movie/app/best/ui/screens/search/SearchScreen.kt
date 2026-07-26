@@ -151,7 +151,8 @@ fun SearchScreen(
                         )
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
         containerColor = Color.Black
