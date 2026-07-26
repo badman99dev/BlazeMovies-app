@@ -18,12 +18,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class LiveTvUiState(
-    val broadcastChannels: List<UnifiedChannel> = emptyList(),
-    val tvChannels: List<UnifiedChannel> = emptyList(),
+    val channels: List<UnifiedChannel> = emptyList(),
     val categories: List<TvStreamCategory> = emptyList(),
     val selectedCategory: String? = null,
-    val totalTvChannels: Int = 0,
-    val currentTvOffset: Int = 0,
+    val totalChannels: Int = 0,
+    val currentOffset: Int = 0,
     val canLoadMore: Boolean = false,
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
@@ -37,7 +36,8 @@ class LiveTvViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private const val PAGE_LIMIT = 70
+        // 80 = 4-per-row × 20 rows → rows stay perfectly intact when paginating
+        private const val PAGE_LIMIT = 80
     }
 
     private val _uiState = MutableStateFlow(LiveTvUiState())
@@ -49,22 +49,19 @@ class LiveTvViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, selectedCategory = null) }
             coroutineScope {
-                val broadcastDeferred = async { fetchBroadcastsSafe() }
                 val catsDeferred       = async { fetchCategoriesSafe() }
-                val firstPageDeferred  = async { fetchTvPageSafe(null, 0) }
+                val firstPageDeferred  = async { fetchPageSafe(null, 0) }
 
-                val broadcasts = broadcastDeferred.await()
                 val cats       = catsDeferred.await()
                 val firstPage  = firstPageDeferred.await()
 
                 _uiState.update {
                     it.copy(
-                        broadcastChannels = broadcasts,
-                        categories        = cats,
-                        tvChannels        = firstPage.channels,
-                        totalTvChannels   = firstPage.total,
-                        currentTvOffset   = firstPage.offset + firstPage.channels.size,
-                        canLoadMore       = firstPage.channels.size >= PAGE_LIMIT &&
+                        channels        = firstPage.channels,
+                        categories      = cats,
+                        totalChannels   = firstPage.total,
+                        currentOffset   = firstPage.offset + firstPage.channels.size,
+                        canLoadMore     = firstPage.channels.size >= PAGE_LIMIT &&
                                 (firstPage.offset + firstPage.channels.size) < firstPage.total,
                         isLoading = false
                     )
@@ -76,17 +73,17 @@ class LiveTvViewModel @Inject constructor(
     fun loadMore() {
         val current = _uiState.value
         if (current.isLoadingMore || !current.canLoadMore) return
-        val nextOffset = current.currentTvOffset
-        if (nextOffset >= current.totalTvChannels) return
+        val nextOffset = current.currentOffset
+        if (nextOffset >= current.totalChannels) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMore = true) }
-            val result = fetchTvPageSafe(current.selectedCategory, nextOffset)
+            val result = fetchPageSafe(current.selectedCategory, nextOffset)
             _uiState.update {
                 it.copy(
-                    tvChannels      = it.tvChannels + result.channels,
-                    currentTvOffset = result.offset + result.channels.size,
-                    canLoadMore     = result.channels.size >= PAGE_LIMIT &&
+                    channels      = it.channels + result.channels,
+                    currentOffset  = result.offset + result.channels.size,
+                    canLoadMore    = result.channels.size >= PAGE_LIMIT &&
                             (result.offset + result.channels.size) < result.total,
                     isLoadingMore = false
                 )
@@ -100,12 +97,12 @@ class LiveTvViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isFiltering = true, selectedCategory = category) }
-            val result = fetchTvPageSafe(category, 0)
+            val result = fetchPageSafe(category, 0)
             _uiState.update {
                 it.copy(
-                    tvChannels      = result.channels,
-                    totalTvChannels = result.total,
-                    currentTvOffset = result.offset + result.channels.size,
+                    channels        = result.channels,
+                    totalChannels   = result.total,
+                    currentOffset   = result.offset + result.channels.size,
                     canLoadMore     = result.channels.size >= PAGE_LIMIT &&
                             (result.offset + result.channels.size) < result.total,
                     isFiltering = false
@@ -113,14 +110,6 @@ class LiveTvViewModel @Inject constructor(
             }
         }
     }
-
-    private suspend fun fetchBroadcastsSafe(): List<UnifiedChannel> = try {
-        var result: List<UnifiedChannel> = emptyList()
-        repository.getBroadcastsUnified().collect { r ->
-            if (r is Resource.Success) result = r.data ?: emptyList()
-        }
-        result
-    } catch (_: Exception) { emptyList() }
 
     private suspend fun fetchCategoriesSafe(): List<TvStreamCategory> = try {
         var result: List<TvStreamCategory> = emptyList()
@@ -130,21 +119,21 @@ class LiveTvViewModel @Inject constructor(
         result
     } catch (_: Exception) { emptyList() }
 
-    private suspend fun fetchTvPageSafe(category: String?, offset: Int): TvPageResult = try {
-        var result = TvPageResult(emptyList(), 0, offset)
+    private suspend fun fetchPageSafe(category: String?, offset: Int): PageResult = try {
+        var result = PageResult(emptyList(), 0, offset)
         repository.getTvStreams(category, offset, PAGE_LIMIT).collect { r ->
             if (r is Resource.Success) {
                 val data = r.data
                 if (data != null) {
                     val unified = data.channels.mapIndexed { idx, ch -> ch.toUnified(idx, offset) }
-                    result = TvPageResult(unified, data.total, data.offset)
+                    result = PageResult(unified, data.total, data.offset)
                 }
             }
         }
         result
-    } catch (_: Exception) { TvPageResult(emptyList(), 0, offset) }
+    } catch (_: Exception) { PageResult(emptyList(), 0, offset) }
 
-    private data class TvPageResult(
+    private data class PageResult(
         val channels: List<UnifiedChannel>,
         val total: Int,
         val offset: Int

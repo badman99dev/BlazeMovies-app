@@ -6,7 +6,7 @@ import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.WasmerMovie
 import com.movie.app.best.data.model.WasmerNotification
 import com.movie.app.best.data.model.WasmerSliderResult
-import com.movie.app.best.data.model.LiveChannel
+import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.repository.MeiliSearchRepository
@@ -275,7 +275,7 @@ class HomeViewModel @Inject constructor(
 
     fun loadLiveChannels() {
         viewModelScope.launch {
-            repository.getBroadcasts().collect { result ->
+            repository.getTvStreamsUnified(limit = 15).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         _uiState.update { it.copy(isLiveChannelsLoading = true) }
@@ -327,6 +327,6 @@ data class HomeUiState(
     val isNotificationLoading: Boolean = false,
     val notificationError: String? = null,
 
-    val liveChannels: List<LiveChannel> = emptyList(),
+    val liveChannels: List<UnifiedChannel> = emptyList(),
     val isLiveChannelsLoading: Boolean = false
 )

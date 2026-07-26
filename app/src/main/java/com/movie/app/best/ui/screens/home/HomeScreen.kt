@@ -27,7 +27,7 @@ import com.movie.app.best.ui.components.SkeletonHomeContent
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.screens.home.components.*
 import com.movie.app.best.ui.screens.home.components.LiveChannelsCarousel
-import com.movie.app.best.data.model.LiveChannel
+import com.movie.app.best.data.model.UnifiedChannel
 
 @Composable
 fun HomeScreen(

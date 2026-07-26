@@ -325,6 +325,7 @@ fun AppNavigation(
                             streamUrl = "",
                             title = channel.name,
                             youtubeId = "",
+                            isLive = true,
                             contentSource = "live_tv"
                         )
                     )
@@ -351,6 +352,7 @@ fun AppNavigation(
                             streamUrl = "",
                             title = channel.name,
                             youtubeId = "",
+                            isLive = true,
                             contentSource = "live_tv"
                         )
                     )

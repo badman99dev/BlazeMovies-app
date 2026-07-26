@@ -68,7 +68,7 @@ class SplashViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                repository.getBroadcasts().collect { result ->
+                repository.getTvStreamsUnified(limit = 15).collect { result ->
                     if (result is com.movie.app.best.data.model.Resource.Success) {
                         PrefetchCache.liveChannels = result.data ?: emptyList()
                     }

@@ -16,11 +16,13 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,16 +72,14 @@ fun LiveTvScreen(
     viewModel: LiveTvViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val listState = rememberLazyListState()
-
-    val allChannels = uiState.broadcastChannels + uiState.tvChannels
-    val rows = remember(allChannels) { allChannels.chunked(5) }
+    val gridState = rememberLazyGridState()
+    val channels = uiState.channels
 
     val shouldLoadMore by remember {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            val totalItems = listState.layoutInfo.totalItemsCount
-            lastVisible >= totalItems - 3 && uiState.canLoadMore && !uiState.isLoadingMore
+            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = gridState.layoutInfo.totalItemsCount
+            lastVisible >= totalItems - 8 && uiState.canLoadMore && !uiState.isLoadingMore
         }
     }
 
@@ -124,47 +124,15 @@ fun LiveTvScreen(
             )
         )
 
-        // ── Filter chips row ──
-        if (uiState.categories.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                item {
-                    FilterChip(
-                        selected = uiState.selectedCategory == null,
-                        onClick = { viewModel.filterByCategory(null) },
-                        label = { Text("All", fontSize = 12.sp) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFFFF0000),
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-                items(uiState.categories, key = { "cat_${it.name}" }) { cat ->
-                    FilterChip(
-                        selected = uiState.selectedCategory == cat.name,
-                        onClick = { viewModel.filterByCategory(cat.name) },
-                        label = { Text("${cat.name} (${cat.count})", fontSize = 12.sp, maxLines = 1) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFFFF0000),
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-            }
-        }
-
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             when {
-                uiState.isLoading && allChannels.isEmpty() -> {
+                uiState.isLoading && channels.isEmpty() -> {
                     CircularProgressIndicator(color = Color(0xFFFF0000))
                 }
-                uiState.error != null && allChannels.isEmpty() -> {
+                uiState.error != null && channels.isEmpty() -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = uiState.error ?: "Unknown error",
@@ -180,7 +148,7 @@ fun LiveTvScreen(
                         }
                     }
                 }
-                allChannels.isEmpty() -> {
+                channels.isEmpty() -> {
                     Text(
                         text = "No live channels available right now",
                         color = Color.White.copy(alpha = 0.7f),
@@ -188,27 +156,54 @@ fun LiveTvScreen(
                     )
                 }
                 else -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        state = gridState,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        itemsIndexed(rows, key = { idx, _ -> "ring_$idx" }) { _, rowChannels ->
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp)
-                            ) {
-                                items(rowChannels, key = { it.uniqueKey }) { ch ->
-                                    CircleCell(channel = ch, onClick = { onChannelClick(ch) })
+                        // Filter chips row — spans all 4 columns
+                        if (uiState.categories.isNotEmpty()) {
+                            item(span = { GridItemSpan(4) }) {
+                                LazyRow(
+                                    contentPadding = PaddingValues(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    item {
+                                        FilterChip(
+                                            selected = uiState.selectedCategory == null,
+                                            onClick = { viewModel.filterByCategory(null) },
+                                            label = { Text("All", fontSize = 12.sp) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = Color(0xFFFF0000),
+                                                selectedLabelColor = Color.White
+                                            )
+                                        )
+                                    }
+                                    items(uiState.categories, key = { "cat_${it.name}" }) { cat ->
+                                        FilterChip(
+                                            selected = uiState.selectedCategory == cat.name,
+                                            onClick = { viewModel.filterByCategory(cat.name) },
+                                            label = { Text("${cat.name} (${cat.count})", fontSize = 12.sp, maxLines = 1) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = Color(0xFFFF0000),
+                                                selectedLabelColor = Color.White
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
 
+                        items(channels, key = { it.uniqueKey }) { ch ->
+                            CircleCell(channel = ch, onClick = { onChannelClick(ch) })
+                        }
+
                         if (uiState.isLoadingMore || uiState.isFiltering) {
-                            item {
+                            item(span = { GridItemSpan(4) }) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -223,7 +218,9 @@ fun LiveTvScreen(
                             }
                         }
 
-                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                        item(span = { GridItemSpan(4) }) {
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
                     }
                 }
             }
@@ -239,13 +236,14 @@ private fun CircleCell(channel: UnifiedChannel, onClick: () -> Unit) {
         end = Offset(1f, 1f)
     )
 
+    // ── Sizes match home carousel exactly (80dp column width, 72dp circle) ──
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
+                .size(72.dp)
                 .drawWithCache {
                     onDrawWithContent {
                         drawCircle(
@@ -275,17 +273,17 @@ private fun CircleCell(channel: UnifiedChannel, onClick: () -> Unit) {
 
         Box(
             modifier = Modifier
-                .offset(y = (-4).dp)
+                .offset(y = (-6).dp)
                 .background(
                     color = Color(0xFFFF0000),
-                    shape = RoundedCornerShape(3.dp)
+                    shape = RoundedCornerShape(4.dp)
                 )
                 .padding(horizontal = 4.dp, vertical = 1.dp)
         ) {
             Text(
                 text = "LIVE",
                 color = Color.White,
-                fontSize = 8.sp,
+                fontSize = 9.sp,
                 fontWeight = FontWeight.ExtraBold,
                 style = TextStyle(
                     shadow = Shadow(
@@ -297,12 +295,12 @@ private fun CircleCell(channel: UnifiedChannel, onClick: () -> Unit) {
             )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
             text = channel.name,
             color = Color.White,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             textAlign = TextAlign.Center,
