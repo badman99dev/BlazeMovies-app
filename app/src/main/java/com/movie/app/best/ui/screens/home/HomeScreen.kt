@@ -77,7 +77,8 @@ fun HomeScreen(
                             "videoPlayer?playerUrl=${channel.streamUrl}&title=${channel.name}&isLive=true"
                         )
                     },
-                    onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) }
+                    onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
+                    applyTopPadding = true
                 )
             }
 

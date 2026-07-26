@@ -33,7 +33,8 @@ fun BoxScope.QualitySelectorView(
         val isAuto = !hasVideoOverride &&
                 !params.disabledTrackTypes.contains(C.TRACK_TYPE_VIDEO) &&
                 params.maxVideoHeight == Int.MAX_VALUE &&
-                params.minVideoHeight == 0
+                params.minVideoHeight == 0 &&
+                !params.forceLowestBitrate
         if (isAuto) {
             selectedHeight = 0
             return@LaunchedEffect
