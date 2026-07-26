@@ -11,7 +11,11 @@ import com.movie.app.best.data.model.WasmerSearchResult
 import com.movie.app.best.data.model.WasmerSliderResult
 import com.movie.app.best.data.model.BroadcastResponse
 import com.movie.app.best.data.model.LiveChannel
+import com.movie.app.best.data.model.TvStreamResponse
+import com.movie.app.best.data.model.TvStreamCategoriesResponse
+import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.model.UpdateResponse
+import com.movie.app.best.data.model.toUnified
 import com.movie.app.best.data.remote.MovieApiService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -100,6 +104,71 @@ class MovieRepository @Inject constructor(
             val response = apiService.getBroadcasts()
             if (response.status == "success" && response.data != null) {
                 Resource.Success(response.data.channels)
+            } else {
+                Resource.Error(response.message ?: "Unknown error")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Network error")
+        }.also { emit(it) }
+    }
+
+    /** Broadcast channels normalized to UnifiedChannel (premium, third-party source) */
+    fun getBroadcastsUnified(): Flow<Resource<List<UnifiedChannel>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getBroadcasts()
+            if (response.status == "success" && response.data != null) {
+                Resource.Success(response.data.channels.map { it.toUnified() })
+            } else {
+                Resource.Error(response.message ?: "Unknown error")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Network error")
+        }.also { emit(it) }
+    }
+
+    /** IPTV Indian channels (iptv-india repo) — paginated, category-filtered */
+    fun getTvStreams(
+        category: String? = null,
+        offset: Int = 0,
+        limit: Int = 70
+    ): Flow<Resource<TvStreamResponse>> = flow {
+        emit(Resource.Loading())
+        emit(safeApiCall { apiService.getTvStreams(category, limit, offset) })
+    }
+
+    /** IPTV Indian channels normalized to UnifiedChannel (paginated) */
+    fun getTvStreamsUnified(
+        category: String? = null,
+        offset: Int = 0,
+        limit: Int = 70
+    ): Flow<Resource<List<UnifiedChannel>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getTvStreams(category, limit, offset)
+            if (response.status == "success" && response.data != null) {
+                Resource.Success(response.data.channels.map { it.toUnified() })
+            } else {
+                Resource.Error(response.message ?: "Unknown error")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Network error")
+        }.also { emit(it) }
+    }
+
+    /** Categories for IPTV channels (News/Entertainment/Movies etc.) */
+    fun getTvStreamCategories(): Flow<Resource<TvStreamCategoriesResponse>> = flow {
+        emit(Resource.Loading())
+        emit(safeApiCall { apiService.getTvStreamCategories() })
+    }
+
+    /** Search IPTV channels by name/category */
+    fun searchTvStreams(query: String, limit: Int = 50): Flow<Resource<List<UnifiedChannel>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.searchTvStreams(query, limit)
+            if (response.status == "success" && response.data != null) {
+                Resource.Success(response.data.channels.map { it.toUnified() })
             } else {
                 Resource.Error(response.message ?: "Unknown error")
             }

@@ -28,6 +28,7 @@ import com.movie.app.best.ui.screens.moviedetail.MovieDetailScreen
 import com.movie.app.best.ui.screens.search.SearchScreen
 import com.movie.app.best.ui.screens.tvshowdetail.TVShowDetailScreen
 import com.movie.app.best.ui.screens.tvshows.TVShowsScreen
+import com.movie.app.best.ui.screens.livetv.LiveTvScreen
 import com.movie.app.best.ui.screens.serieswatch.SeriesWatchScreen
 import com.movie.app.best.ui.screens.moviewatch.MovieWatchScreen
 import java.net.URLEncoder
@@ -59,6 +60,7 @@ sealed class Screen(val route: String) {
     }
     object Search : Screen("search")
     object TVShows : Screen("tv-shows")
+    object LiveTv : Screen("live-tv")
     object Downloads : Screen("downloads")
     object Library : Screen("library")
     object Settings : Screen("settings")
@@ -315,7 +317,18 @@ fun AppNavigation(
         composable(Screen.Search.route) {
             SearchScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
-                onZee5Click = { id -> navController.navigate("zee5_detail/$id") }
+                onZee5Click = { id -> navController.navigate("zee5_detail/$id") },
+                onTvChannelClick = { channel ->
+                    navController.navigate(
+                        Screen.VideoPlayer.createRoute(
+                            playerUrl = channel.streamUrl,
+                            streamUrl = "",
+                            title = channel.name,
+                            youtubeId = "",
+                            contentSource = "live_tv"
+                        )
+                    )
+                }
             )
         }
 
@@ -325,6 +338,24 @@ fun AppNavigation(
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onMenuClick = onMenuClick
+            )
+        }
+
+        composable(Screen.LiveTv.route) {
+            LiveTvScreen(
+                onBackClick = { navController.popBackStack() },
+                onChannelClick = { channel ->
+                    navController.navigate(
+                        Screen.VideoPlayer.createRoute(
+                            playerUrl = channel.streamUrl,
+                            streamUrl = "",
+                            title = channel.name,
+                            youtubeId = "",
+                            contentSource = "live_tv"
+                        )
+                    )
+                },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 

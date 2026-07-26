@@ -73,11 +73,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.MeiliHit
+import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.model.Zee5Bucket
 import com.movie.app.best.data.model.Zee5Item
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
 import com.movie.app.best.ui.components.SkeletonPosterCard
+import com.movie.app.best.ui.screens.home.components.LiveChannelsCarousel
 import com.movie.app.best.ui.screens.home.components.QualityBadge
 import com.movie.app.best.ui.screens.home.components.StreamBadge
 import com.movie.app.best.ui.screens.home.components.SeriesBadge
@@ -87,6 +89,7 @@ import com.movie.app.best.ui.screens.home.components.SeriesBadge
 fun SearchScreen(
     onContentClick: (String, Boolean) -> Unit,
     onZee5Click: (String) -> Unit,
+    onTvChannelClick: (UnifiedChannel) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -172,6 +175,7 @@ fun SearchScreen(
                     state = uiState,
                     onContentClick = onContentClick,
                     onZee5Click = onZee5Click,
+                    onTvChannelClick = onTvChannelClick,
                     gridState = gridState
                 )
             }
@@ -341,11 +345,12 @@ fun SearchResultsView(
     state: SearchUiState,
     onContentClick: (String, Boolean) -> Unit,
     onZee5Click: (String) -> Unit,
+    onTvChannelClick: (UnifiedChannel) -> Unit,
     gridState: androidx.compose.foundation.lazy.grid.LazyGridState
 ) {
     val ownLoading = state.isOwnLoading && state.ownResults.isEmpty()
 
-    if (ownLoading && state.zee5Results.isEmpty() && !state.isZee5Loading) {
+    if (ownLoading && state.zee5Results.isEmpty() && !state.isZee5Loading && state.tvChannels.isEmpty()) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             contentPadding = PaddingValues(8.dp),
@@ -365,6 +370,18 @@ fun SearchResultsView(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxSize()
     ) {
+        // ── LIVE TV channels row (searched from /v1/tv-stream endpoint) ──
+        // Shown ONLY if at least one channel matched; silently hidden if 0 results.
+        if (state.tvChannels.isNotEmpty()) {
+            item(span = { GridItemSpan(3) }) {
+                LiveChannelsCarousel(
+                    channels = state.tvChannels,
+                    onChannelClick = onTvChannelClick,
+                    applyTopPadding = false
+                )
+            }
+        }
+
         if (state.zee5Results.isNotEmpty()) {
             item(span = { GridItemSpan(3) }) {
                 Column {

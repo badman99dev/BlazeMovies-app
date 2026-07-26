@@ -7,6 +7,9 @@ import com.movie.app.best.data.model.WasmerOffsetResult
 import com.movie.app.best.data.model.WasmerCategoryOffsetResult
 import com.movie.app.best.data.model.ContentModerationResponse
 import com.movie.app.best.data.model.BroadcastResponse
+import com.movie.app.best.data.model.TvStreamResponse
+import com.movie.app.best.data.model.TvStreamCategoriesResponse
+import com.movie.app.best.data.model.TvStreamCategory
 import com.movie.app.best.data.model.UpdateResponse
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -100,6 +103,23 @@ interface MovieApiService {
 
     @GET("broadcast")
     suspend fun getBroadcasts(): WasmerApiResponse<BroadcastResponse>
+
+    // ── IPTV Indian TV Streams (iptv-india repo, har 6 ghante auto-update) ──
+    @GET("tv-stream")
+    suspend fun getTvStreams(
+        @Query("category") category: String? = null,
+        @Query("limit") limit: Int = 70,
+        @Query("offset") offset: Int = 0
+    ): WasmerApiResponse<TvStreamResponse>
+
+    @GET("tv-stream/categories")
+    suspend fun getTvStreamCategories(): WasmerApiResponse<TvStreamCategoriesResponse>
+
+    @GET("tv-stream")
+    suspend fun searchTvStreams(
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 50
+    ): WasmerApiResponse<TvStreamResponse>
 
     @GET("app-update")
     suspend fun checkForUpdate(@Query("currentCode") currentCode: Int): WasmerApiResponse<UpdateResponse>

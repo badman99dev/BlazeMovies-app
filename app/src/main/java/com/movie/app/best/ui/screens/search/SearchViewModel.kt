@@ -3,11 +3,14 @@ package com.movie.app.best.ui.screens.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.MeiliHit
+import com.movie.app.best.data.model.Resource
+import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.model.Zee5Bucket
 import com.movie.app.best.data.remote.Zee5ApiService
 import com.movie.app.best.data.remote.Zee5SuggestionApiService
 import com.movie.app.best.data.repository.MeiliSearchRepository
 import com.movie.app.best.data.repository.MeiliSearchResponse
+import com.movie.app.best.data.repository.MovieRepository
 import com.movie.app.best.data.repository.Zee5TokenRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -26,7 +29,8 @@ class SearchViewModel @Inject constructor(
     private val zee5SuggestionApi: Zee5SuggestionApiService,
     private val zee5Api: Zee5ApiService,
     private val meiliRepository: MeiliSearchRepository,
-    private val zee5TokenRepository: Zee5TokenRepository
+    private val zee5TokenRepository: Zee5TokenRepository,
+    private val movieRepository: MovieRepository
 ) : ViewModel() {
 
     companion object {
@@ -115,6 +119,7 @@ class SearchViewModel @Inject constructor(
                 isShowingSuggestions = false,
                 ownResults = emptyList(),
                 zee5Results = emptyList(),
+                tvChannels = emptyList(),
                 currentOffset = 0,
                 estimatedTotalHits = 0,
                 canLoadMore = false
@@ -122,7 +127,7 @@ class SearchViewModel @Inject constructor(
         }
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _uiState.update { it.copy(isOwnLoading = true, isZee5Loading = true, error = null) }
+            _uiState.update { it.copy(isOwnLoading = true, isZee5Loading = true, isTvLoading = true, error = null) }
             coroutineScope {
                 launch {
                     try {
@@ -160,6 +165,18 @@ class SearchViewModel @Inject constructor(
                         }
                     } catch (_: Exception) {
                         _uiState.update { it.copy(isZee5Loading = false) }
+                    }
+                }
+                // ── 3rd parallel search: IPTV live TV channels (tv-stream endpoint) ──
+                launch {
+                    try {
+                        var result: List<UnifiedChannel> = emptyList()
+                        movieRepository.searchTvStreams(query).collect { r ->
+                            if (r is Resource.Success) result = r.data ?: emptyList()
+                        }
+                        _uiState.update { it.copy(tvChannels = result, isTvLoading = false) }
+                    } catch (_: Exception) {
+                        _uiState.update { it.copy(isTvLoading = false) }
                     }
                 }
             }
@@ -207,8 +224,10 @@ data class SearchUiState(
 
     val ownResults: List<MeiliHit> = emptyList(),
     val zee5Results: List<Zee5Bucket> = emptyList(),
+    val tvChannels: List<UnifiedChannel> = emptyList(),
     val isOwnLoading: Boolean = false,
     val isZee5Loading: Boolean = false,
+    val isTvLoading: Boolean = false,
     val error: String? = null,
 
     val currentOffset: Int = 0,

@@ -76,7 +76,8 @@ fun HomeScreen(
                         navController.navigate(
                             "videoPlayer?playerUrl=${channel.streamUrl}&title=${channel.name}&isLive=true"
                         )
-                    }
+                    },
+                    onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) }
                 )
             }
 

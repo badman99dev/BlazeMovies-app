@@ -27,11 +27,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.LiveChannel
+import com.movie.app.best.data.model.UnifiedChannel
 
 @Composable
 fun LiveChannelsCarousel(
     channels: List<LiveChannel>,
     onChannelClick: (LiveChannel) -> Unit,
+    onMoreClick: (() -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
 
@@ -40,13 +42,69 @@ fun LiveChannelsCarousel(
             .fillMaxWidth()
             .padding(top = 68.dp, bottom = 12.dp)  // Top padding to clear AppHeader
     ) {
-        // ── Section Title: ● LIVE TV ────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        LiveTvSectionHeader(onMoreClick = onMoreClick)
+
+        LazyRow(
+            state = listState,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
+            items(channels, key = { "lc_${it.id}" }) { channel ->
+                ChannelCircle(
+                    logoUrl = channel.logoUrl,
+                    name = channel.name,
+                    onClick = { onChannelClick(channel) }
+                )
+            }
+        }
+    }
+}
+
+// Overload for UnifiedChannel — used by SearchScreen (and any future viewer of merged channels)
+@Composable
+fun LiveChannelsCarousel(
+    channels: List<UnifiedChannel>,
+    onChannelClick: (UnifiedChannel) -> Unit,
+    onMoreClick: (() -> Unit)? = null,
+    applyTopPadding: Boolean = false,  // Search page has its own top bar; skip home's spacer
+) {
+    val listState = rememberLazyListState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = if (applyTopPadding) 68.dp else 8.dp, bottom = 12.dp)
+    ) {
+        LiveTvSectionHeader(onMoreClick = onMoreClick)
+
+        LazyRow(
+            state = listState,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(channels, key = { "uc_${it.id}_${it.source.name}" }) { channel ->
+                ChannelCircle(
+                    logoUrl = channel.logoUrl,
+                    name = channel.name,
+                    onClick = { onChannelClick(channel) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LiveTvSectionHeader(onMoreClick: (() -> Unit)?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(8.dp)
@@ -61,30 +119,26 @@ fun LiveChannelsCarousel(
                 letterSpacing = 1.sp
             )
         }
-
-        // ── Horizontal scrollable channel circles ───────
-        LazyRow(
-            state = listState,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) {
-            items(
-                items = channels,
-                key = { it.id }
-            ) { channel ->
-                LiveChannelCircle(
-                    channel = channel,
-                    onClick = { onChannelClick(channel) }
+        if (onMoreClick != null) {
+            Text(
+                text = "More >",
+                color = Color(0xFFFF4081),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onMoreClick
                 )
-            }
+            )
         }
     }
 }
 
 @Composable
-private fun LiveChannelCircle(
-    channel: LiveChannel,
+private fun ChannelCircle(
+    logoUrl: String,
+    name: String,
     onClick: () -> Unit
 ) {
     val redGradient = Brush.linearGradient(
@@ -121,17 +175,17 @@ private fun LiveChannelCircle(
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
-                model = channel.logoUrl,
-                contentDescription = channel.name,
+                model = logoUrl,
+                contentDescription = name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
         }
 
-        // ── LIVE badge BELOW circle (not overlapping border) ──
+        // ── LIVE badge BELOW circle ──
         Box(
             modifier = Modifier
-                .offset(y = (-6).dp)  // Slight overlap upward to sit snug against circle bottom
+                .offset(y = (-6).dp)
                 .background(
                     color = Color(0xFFFF0000),
                     shape = RoundedCornerShape(4.dp)
@@ -157,7 +211,7 @@ private fun LiveChannelCircle(
 
         // ── Channel name below — center aligned ──────────────────
         Text(
-            text = channel.name,
+            text = name,
             color = Color.White,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
