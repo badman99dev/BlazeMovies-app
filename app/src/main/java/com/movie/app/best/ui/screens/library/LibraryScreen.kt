@@ -83,28 +83,19 @@ fun LibraryScreen(
                 .background(Color.Black)
                 .verticalScroll(rememberScrollState())
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Library",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(26.dp)
-                    )
+            com.movie.app.best.ui.components.CompactPageHeader(
+                title = "Library",
+                actions = {
+                    com.movie.app.best.ui.components.PageHeaderIconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
-            }
+            )
 
             if (!uiState.isOnline) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {

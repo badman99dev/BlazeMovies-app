@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.sp
  * - Relies on MainActivity's global notch-safe black strip for status-bar
  *   inset (no additional statusBarsPadding to avoid double padding).
  * - Pure-black background, horizontal padding, optional back arrow,
- *   optional leading slot (e.g. LIVE red dot), optional trailing search icon.
+ *   optional leading slot (e.g. LIVE red dot), optional trailing search icon
+ *   OR a custom `actions` slot (for screens with multiple trailing icons
+ *   like Profile / Library / Downloads).
  */
 @Composable
 fun CompactPageHeader(
@@ -43,6 +45,7 @@ fun CompactPageHeader(
     onBackClick: (() -> Unit)? = null,
     onSearchClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
+    actions: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -81,7 +84,9 @@ fun CompactPageHeader(
             )
         }
 
-        if (onSearchClick != null) {
+        if (actions != null) {
+            actions()
+        } else if (onSearchClick != null) {
             PageHeaderIconButton(onClick = onSearchClick) {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -95,7 +100,7 @@ fun CompactPageHeader(
 }
 
 @Composable
-private fun PageHeaderIconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
+fun PageHeaderIconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .size(36.dp)

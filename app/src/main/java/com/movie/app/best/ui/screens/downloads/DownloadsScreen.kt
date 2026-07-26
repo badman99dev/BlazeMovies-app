@@ -200,42 +200,35 @@ fun DownloadsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Downloads",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.weight(1f)
-            )
-            if (isRefreshing || uiState.isRescanning) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                IconButton(onClick = {
-                    isRefreshing = true
-                    viewModel.rescanDownloads()
-                    isRefreshing = false
-                }) {
-                    Icon(imageVector = Icons.Default.FolderOpen, contentDescription = "Refresh",
-                        tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+        com.movie.app.best.ui.components.CompactPageHeader(
+            title = "Downloads",
+            actions = {
+                if (isRefreshing || uiState.isRescanning) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    com.movie.app.best.ui.components.PageHeaderIconButton(onClick = {
+                        isRefreshing = true
+                        viewModel.rescanDownloads()
+                        isRefreshing = false
+                    }) {
+                        Icon(imageVector = Icons.Default.FolderOpen, contentDescription = "Refresh",
+                            tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+                    }
+                }
+                com.movie.app.best.ui.components.PageHeaderIconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
             }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = Color.White.copy(alpha = 0.8f),
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-        }
+        )
 
         if (uiState.isResolving) {
             Card(
