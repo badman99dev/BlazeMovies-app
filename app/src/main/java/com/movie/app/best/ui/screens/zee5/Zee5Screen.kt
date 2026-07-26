@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -39,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.movie.app.best.R
 import com.movie.app.best.data.model.Zee5Bucket
 import com.movie.app.best.data.model.Zee5Item
 import com.movie.app.best.ui.components.GlassBadge
@@ -206,16 +209,16 @@ fun Zee5Header(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "ZEE5",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = WasmerRed,
-            letterSpacing = 2.sp
+        Image(
+            painter = painterResource(id = R.drawable.zee5_logo),
+            contentDescription = "ZEE5",
+            modifier = Modifier
+                .height(28.dp)
+                .width(34.dp)
         )
 
         IconButton(onClick = onSearchClick) {
