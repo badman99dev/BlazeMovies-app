@@ -59,7 +59,7 @@ import com.movie.app.best.ui.components.CompactPageHeader
 @Composable
 fun LiveTvScreen(
     onBackClick: () -> Unit,
-    onChannelClick: (UnifiedChannel) => Unit,
+    onChannelClick: (UnifiedChannel) -> Unit,
     onSearchClick: () -> Unit,
     viewModel: LiveTvViewModel = hiltViewModel()
 ) {
