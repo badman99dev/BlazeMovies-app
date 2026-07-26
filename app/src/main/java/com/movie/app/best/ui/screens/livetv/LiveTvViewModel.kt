@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.TvStreamCategory
 import com.movie.app.best.data.model.UnifiedChannel
+import com.movie.app.best.data.model.toUnified
 import com.movie.app.best.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -134,7 +135,7 @@ class LiveTvViewModel @Inject constructor(
         repository.getTvStreams(category, offset, PAGE_LIMIT).collect { r ->
             if (r is Resource.Success) {
                 val data = r.data
-                if (data != null) result = TvPageResult(data.channels, data.total, data.offset)
+                if (data != null) result = TvPageResult(data.channels.map { it.toUnified() }, data.total, data.offset)
             }
         }
         result
