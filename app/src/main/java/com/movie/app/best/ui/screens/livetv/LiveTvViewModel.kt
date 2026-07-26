@@ -135,7 +135,10 @@ class LiveTvViewModel @Inject constructor(
         repository.getTvStreams(category, offset, PAGE_LIMIT).collect { r ->
             if (r is Resource.Success) {
                 val data = r.data
-                if (data != null) result = TvPageResult(data.channels.map { it.toUnified() }, data.total, data.offset)
+                if (data != null) {
+                    val unified = data.channels.mapIndexed { idx, ch -> ch.toUnified(idx, offset) }
+                    result = TvPageResult(unified, data.total, data.offset)
+                }
             }
         }
         result

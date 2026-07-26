@@ -118,7 +118,7 @@ class MovieRepository @Inject constructor(
         try {
             val response = apiService.getBroadcasts()
             if (response.status == "success" && response.data != null) {
-                Resource.Success(response.data.channels.map { it.toUnified() })
+                Resource.Success(response.data.channels.mapIndexed { idx, ch -> ch.toUnified(idx) })
             } else {
                 Resource.Error(response.message ?: "Unknown error")
             }
@@ -137,7 +137,7 @@ class MovieRepository @Inject constructor(
         emit(safeApiCall { apiService.getTvStreams(category, limit, offset) })
     }
 
-    /** IPTV Indian channels normalized to UnifiedChannel (paginated) */
+    /** IPTV Indian channels normalized to UnifiedChannel (paginated) — keys are globally unique */
     fun getTvStreamsUnified(
         category: String? = null,
         offset: Int = 0,
@@ -147,7 +147,9 @@ class MovieRepository @Inject constructor(
         try {
             val response = apiService.getTvStreams(category, limit, offset)
             if (response.status == "success" && response.data != null) {
-                Resource.Success(response.data.channels.map { it.toUnified() })
+                Resource.Success(
+                    response.data.channels.mapIndexed { idx, ch -> ch.toUnified(idx, offset) }
+                )
             } else {
                 Resource.Error(response.message ?: "Unknown error")
             }
@@ -162,13 +164,15 @@ class MovieRepository @Inject constructor(
         emit(safeApiCall { apiService.getTvStreamCategories() })
     }
 
-    /** Search IPTV channels by name/category */
+    /** Search IPTV channels by name/category — single-shot (no pagination) */
     fun searchTvStreams(query: String, limit: Int = 50): Flow<Resource<List<UnifiedChannel>>> = flow {
         emit(Resource.Loading())
         try {
             val response = apiService.searchTvStreams(query, limit)
             if (response.status == "success" && response.data != null) {
-                Resource.Success(response.data.channels.map { it.toUnified() })
+                Resource.Success(
+                    response.data.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
+                )
             } else {
                 Resource.Error(response.message ?: "Unknown error")
             }

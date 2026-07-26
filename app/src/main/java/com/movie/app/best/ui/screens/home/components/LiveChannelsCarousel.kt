@@ -84,7 +84,7 @@ fun LiveChannelsCarousel(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
-            items(channels, key = { "uc_${it.id}_${it.source.name}" }) { channel ->
+            items(channels, key = { it.uniqueKey }) { channel ->
                 ChannelCircle(
                     logoUrl = channel.logoUrl,
                     name = channel.name,

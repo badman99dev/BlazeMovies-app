@@ -54,25 +54,41 @@ data class UnifiedChannel(
     val category: String,
     val streamUrl: String,
     val quality: String = "",
-    val source: ChannelSource = ChannelSource.TV_STREAM
+    val source: ChannelSource = ChannelSource.TV_STREAM,
+    val uniqueKey: String = ""
 )
 
-fun LiveChannel.toUnified(): UnifiedChannel = UnifiedChannel(
-    id = id.toString(),
-    name = name,
-    logoUrl = logoUrl,
-    category = category,
-    streamUrl = streamUrl,
-    quality = "",
-    source = ChannelSource.BROADCAST
-)
+// Broadcast — ids already globally unique Int (1..44), not paginated.
+// indexInBatch provides extra armor so even same-channel + same-url (impossible per backend)
+// would produce a different key per list slot.
+fun LiveChannel.toUnified(indexInBatch: Int = 0): UnifiedChannel {
+    val streamHash = streamUrl.hashCode().toUInt().toString(16).padStart(8, '0')
+    return UnifiedChannel(
+        id = id.toString(),
+        name = name,
+        logoUrl = logoUrl,
+        category = category,
+        streamUrl = streamUrl,
+        quality = "",
+        source = ChannelSource.BROADCAST,
+        uniqueKey = "bc_${id}__${streamHash}_idx$indexInBatch"
+    )
+}
 
-fun TvStreamChannel.toUnified(): UnifiedChannel = UnifiedChannel(
-    id = id.ifEmpty { name },
-    name = name,
-    logoUrl = logo,
-    category = category,
-    streamUrl = streamUrl,
-    quality = quality,
-    source = ChannelSource.TV_STREAM
-)
+// IPTV channel — ids can repeat (same channel, multiple stream URLs).
+// batchOffset is the pagination offset; (indexInBatch + batchOffset) yields a globally unique
+// position across pages, guaranteeing no Compose key collisions even across paged loads.
+fun TvStreamChannel.toUnified(indexInBatch: Int = 0, batchOffset: Int = 0): UnifiedChannel {
+    val safeId = id.ifEmpty { name.ifEmpty { "_noname" } }
+    val streamHash = streamUrl.hashCode().toUInt().toString(16).padStart(8, '0')
+    return UnifiedChannel(
+        id = safeId,
+        name = name,
+        logoUrl = logo,
+        category = category,
+        streamUrl = streamUrl,
+        quality = quality,
+        source = ChannelSource.TV_STREAM,
+        uniqueKey = "uc_${safeId}__${streamHash}_idx${indexInBatch + batchOffset}"
+    )
+}

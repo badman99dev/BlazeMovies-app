@@ -201,7 +201,7 @@ fun LiveTvScreen(
                                     .fillMaxWidth()
                                     .padding(vertical = 6.dp)
                             ) {
-                                items(rowChannels, key = { "ch_${it.id}_${it.source.name}" }) { ch ->
+                                items(rowChannels, key = { it.uniqueKey }) { ch ->
                                     CircleCell(channel = ch, onClick = { onChannelClick(ch) })
                                 }
                             }
