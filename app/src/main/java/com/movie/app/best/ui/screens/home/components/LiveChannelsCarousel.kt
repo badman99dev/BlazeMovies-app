@@ -38,7 +38,7 @@ fun LiveChannelsCarousel(
 ) {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
-    val statusBarClearance = with(density) { WindowInsets.statusBars.getTop(this).toDp() + 44.dp }
+    val statusBarClearance = with(density) { WindowInsets.statusBars.getTop(this).toDp() + 32.dp }
 
     Column(
         modifier = Modifier
@@ -74,7 +74,7 @@ fun LiveChannelsCarousel(
 ) {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
-    val statusBarClearance = with(density) { WindowInsets.statusBars.getTop(this).toDp() + 44.dp }
+    val statusBarClearance = with(density) { WindowInsets.statusBars.getTop(this).toDp() + 32.dp }
     val topPadding = if (applyTopPadding) statusBarClearance else 8.dp
 
     Column(

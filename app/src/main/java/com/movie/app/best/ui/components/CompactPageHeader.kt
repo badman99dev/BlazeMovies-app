@@ -51,7 +51,6 @@ fun CompactPageHeader(
             .fillMaxWidth()
             .background(Color.Black)
             .statusBarsPadding()
-            .height(48.dp)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
