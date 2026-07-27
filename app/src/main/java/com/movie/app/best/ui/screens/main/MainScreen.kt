@@ -112,6 +112,7 @@ fun MainScreen() {
         }
 
         val updateResp = PrefetchCache.updateResponse
+        var showUpdateDialog by remember { mutableStateOf(false) }
 
         if (updateResp != null && updateResp.maintenance) {
             MaintenanceScreen(
@@ -131,12 +132,16 @@ fun MainScreen() {
             val prefs = remember { context.getSharedPreferences("update_cache", android.content.Context.MODE_PRIVATE) }
             val lastShown = remember { prefs.getLong("last_prompt_time", 0L) }
             val shouldShow = remember { (System.currentTimeMillis() - lastShown) >= 24 * 60 * 60 * 1000 }
-            var showUpdateDialog by remember { mutableStateOf(true) }
 
-            if (shouldShow && showUpdateDialog) {
-                LaunchedEffect(Unit) {
+            // Auto-prompt once per 24h on app open (existing throttle behaviour).
+            LaunchedEffect(Unit) {
+                if (shouldShow) {
                     prefs.edit().putLong("last_prompt_time", System.currentTimeMillis()).apply()
+                    showUpdateDialog = true
                 }
+            }
+
+            if (showUpdateDialog) {
                 NormalUpdateDialog(
                     data = updateResp,
                     onDismiss = { showUpdateDialog = false },
@@ -171,7 +176,7 @@ fun MainScreen() {
                 else -> {}
             }
 
-            MainContent()
+            MainContent(onUpdateClick = { showUpdateDialog = true })
         } else {
             if (updateResp != null && !updateResp.updateAvailable) {
                 val prefs = remember { context.getSharedPreferences("update_cache", android.content.Context.MODE_PRIVATE) }
@@ -179,14 +184,16 @@ fun MainScreen() {
                     prefs.edit().remove("last_prompt_time").apply()
                 }
             }
-            MainContent()
+            MainContent(onUpdateClick = { showUpdateDialog = true })
         }
     }
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun MainContent() {
+fun MainContent(
+    onUpdateClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -276,6 +283,10 @@ fun MainContent() {
                 onAllCategoriesClick = {
                     scope.launch { drawerState.close() }
                     navController.navigate(Screen.Categories.route)
+                },
+                onUpdateClick = {
+                    scope.launch { drawerState.close() }
+                    onUpdateClick()
                 }
             )
         }

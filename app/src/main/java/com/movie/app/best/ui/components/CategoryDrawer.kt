@@ -33,26 +33,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.WasmerCategory
+import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.ui.screens.categories.CategoriesViewModel
 import com.movie.app.best.ui.theme.WasmerBg
 import com.movie.app.best.ui.theme.WasmerCardDark
 import com.movie.app.best.ui.theme.WasmerDivider
 import com.movie.app.best.ui.theme.WasmerRed
 import com.movie.app.best.ui.theme.WasmerSubText
+import androidx.compose.foundation.shape.CircleShape
 
 @Composable
 fun CategoryDrawerContent(
     onCategoryClick: (slug: String, name: String) -> Unit,
     onAllCategoriesClick: () -> Unit = {},
+    onUpdateClick: () -> Unit = {},
     viewModel: CategoriesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -63,21 +64,53 @@ fun CategoryDrawerContent(
             .width(280.dp)
             .background(WasmerBg)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(WasmerRed.copy(alpha = 0.12f))
-                .padding(horizontal = 20.dp, vertical = 28.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = WasmerRed, fontWeight = FontWeight.Black)) { append("W") }
-                    withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.ExtraBold)) { append("ASMER ") }
-                    withStyle(SpanStyle(color = WasmerRed, fontWeight = FontWeight.Black)) { append("HUB") }
-                },
-                fontSize = 22.sp,
-                letterSpacing = (-0.5).sp
+                text = "v${BuildConfig.VERSION_NAME}",
+                color = Color.White.copy(alpha = 0.4f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val updateResp = PrefetchCache.updateResponse
+            val updateAvailable = updateResp != null &&
+                    updateResp.updateAvailable &&
+                    !updateResp.forceUpdate
+
+            if (updateAvailable) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onUpdateClick() }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(WasmerRed, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Update Available",
+                        color = WasmerRed,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            } else {
+                Text(
+                    text = "Running on Latest Version",
+                    color = Color.White.copy(alpha = 0.3f),
+                    fontSize = 12.sp
+                )
+            }
         }
 
         HorizontalDivider(color = WasmerDivider, thickness = 1.dp)
