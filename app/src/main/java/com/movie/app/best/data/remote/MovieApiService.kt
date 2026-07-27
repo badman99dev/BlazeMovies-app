@@ -104,7 +104,7 @@ interface MovieApiService {
     @GET("broadcast")
     suspend fun getBroadcasts(): WasmerApiResponse<BroadcastResponse>
 
-    // ── IPTV Indian TV Streams (iptv-india repo, har 6 ghante auto-update) ──
+    // ── Live TV streams (served by Wasmer Hub v1 API; auto-refreshed every 6h) ──
     @GET("tv-stream")
     suspend fun getTvStreams(
         @Query("category") category: String? = null,

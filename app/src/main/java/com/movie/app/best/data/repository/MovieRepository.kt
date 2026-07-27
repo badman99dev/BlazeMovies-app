@@ -127,7 +127,7 @@ class MovieRepository @Inject constructor(
         }.also { emit(it) }
     }
 
-    /** IPTV Indian channels (iptv-india repo) — paginated, category-filtered */
+    /** Live TV channels — paginated, category-filtered (Wasmer Hub v1 API) */
     fun getTvStreams(
         category: String? = null,
         offset: Int = 0,
