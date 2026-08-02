@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
 
@@ -48,7 +48,7 @@ fun FindingSimilarSection(modifier: Modifier = Modifier) {
 
 @Composable
 fun MoreLikeThisSection(
-    movies: List<WasmerMovie>,
+    movies: List<Movie>,
     onMovieClick: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -73,7 +73,7 @@ fun MoreLikeThisSection(
 
 @Composable
 private fun SimilarMovieCard(
-    movie: WasmerMovie,
+    movie: Movie,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }

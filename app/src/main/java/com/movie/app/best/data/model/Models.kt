@@ -40,7 +40,7 @@ data class ContentModerationResponse(
 )
 
 @Parcelize
-data class WasmerMovie(
+data class Movie(
     val id: Int,
     val slug: String,
     val title: String,
@@ -62,7 +62,7 @@ data class WasmerMovie(
 }
 
 @Parcelize
-data class WasmerMovieDetails(
+data class MovieDetails(
     val id: Int,
     val slug: String,
     val title: String,
@@ -94,7 +94,7 @@ data class WasmerMovieDetails(
 ) : Parcelable
 
 @Parcelize
-data class WasmerCategory(
+data class Category(
     val id: Int,
     @SerializedName("category_name") val categoryName: String,
     val slug: String,
@@ -103,7 +103,7 @@ data class WasmerCategory(
 ) : Parcelable
 
 @Parcelize
-data class WasmerDownloadLink(
+data class DownloadLink(
     val id: Int,
     val label: String,
     @SerializedName("link_url") val linkUrl: String,
@@ -113,7 +113,7 @@ data class WasmerDownloadLink(
 ) : Parcelable
 
 @Parcelize
-data class WasmerComment(
+data class Comment(
     val id: Int,
     @SerializedName("user_name") val userName: String,
     val comment: String,
@@ -121,7 +121,7 @@ data class WasmerComment(
 ) : Parcelable
 
 @Parcelize
-data class WasmerEpisode(
+data class Episode(
     val id: Int,
     @SerializedName("season_no") val seasonNo: Int,
     @SerializedName("episode_no") val episodeNo: Int,
@@ -133,7 +133,7 @@ data class WasmerEpisode(
 ) : Parcelable
 
 @Parcelize
-data class WasmerSeason(
+data class Season(
     val id: Int,
     val title: String,
     val slug: String = "",
@@ -144,7 +144,7 @@ data class WasmerSeason(
 ) : Parcelable
 
 @Parcelize
-data class WasmerNotification(
+data class AppNotification(
     val id: Int,
     val type: String,
     val content: String,
@@ -153,56 +153,56 @@ data class WasmerNotification(
     @SerializedName("is_active") val isActive: Boolean
 ) : Parcelable
 
-data class WasmerApiResponse<T>(
+data class ApiResponse<T>(
     val status: String,
     val data: T?,
     val message: String?
 )
 
-data class WasmerSearchResult(
+data class SearchResult(
     val query: String,
-    val results: List<WasmerMovie>,
+    val results: List<Movie>,
     val total: Int,
     val page: Int,
     @SerializedName("total_pages") val totalPages: Int
 )
 
-data class WasmerOffsetResult(
-    val items: List<WasmerMovie>,
+data class OffsetResult(
+    val items: List<Movie>,
     val total: Int,
     val offset: Int,
     val limit: Int
 )
 
-data class WasmerCategoryOffsetResult(
-    val category: WasmerCategory,
-    val items: List<WasmerMovie>,
+data class CategoryOffsetResult(
+    val category: Category,
+    val items: List<Movie>,
     val total: Int,
     val offset: Int,
     val limit: Int
 )
 
-data class WasmerSliderResult(
+data class SliderResult(
     val mode: String,
     val limit: Int,
-    val movies: List<WasmerMovie>
+    val movies: List<Movie>
 )
 
-data class WasmerContentDetailResponse(
+data class ContentDetailResponse(
     @SerializedName("content_type") val contentType: String,
-    val movie: WasmerMovieDetails,
+    val movie: MovieDetails,
     val genres: List<String>,
-    @SerializedName("download_links") val downloadLinks: List<WasmerDownloadLink>,
-    val comments: List<WasmerComment>,
+    @SerializedName("download_links") val downloadLinks: List<DownloadLink>,
+    val comments: List<Comment>,
     val screenshots: List<String>,
-    @SerializedName("episodes_by_season") val episodesBySeason: Map<String, List<WasmerEpisode>> = emptyMap(),
-    @SerializedName("links_by_episode") val linksByEpisode: Map<String, List<WasmerDownloadLink>> = emptyMap(),
-    @SerializedName("links_no_episode") val linksNoEpisode: List<WasmerDownloadLink> = emptyList(),
-    @SerializedName("more_seasons") val moreSeasons: List<WasmerSeason> = emptyList()
+    @SerializedName("episodes_by_season") val episodesBySeason: Map<String, List<Episode>> = emptyMap(),
+    @SerializedName("links_by_episode") val linksByEpisode: Map<String, List<DownloadLink>> = emptyMap(),
+    @SerializedName("links_no_episode") val linksNoEpisode: List<DownloadLink> = emptyList(),
+    @SerializedName("more_seasons") val moreSeasons: List<Season> = emptyList()
 )
 
 @Parcelize
-data class WasmerCategorySimple(
+data class CategorySimple(
     val id: String,
     @SerializedName("category_name") val categoryName: String,
     val slug: String

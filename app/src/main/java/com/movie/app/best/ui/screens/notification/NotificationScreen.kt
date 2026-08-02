@@ -32,8 +32,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.movie.app.best.data.model.WasmerNotification
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.data.model.AppNotification
+import com.movie.app.best.ui.theme.AppRed
 
 @Composable
 fun NotificationScreen(
@@ -59,7 +59,7 @@ fun NotificationScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = WasmerRed)
+                    CircularProgressIndicator(color = AppRed)
                 }
             }
             uiState.notification != null -> {
@@ -78,7 +78,7 @@ fun NotificationScreen(
 
 @Composable
 private fun ActiveNotificationCard(
-    notification: WasmerNotification,
+    notification: AppNotification,
     onBtnLinkClick: (String) -> Unit
 ) {
     val accentColor = when (notification.type) {
@@ -127,7 +127,7 @@ private fun ActiveNotificationCard(
                     Spacer(Modifier.weight(1f))
                     Text(
                         text = "LIVE",
-                        color = WasmerRed,
+                        color = AppRed,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 1.sp

@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.AppRed
 
 @Composable
 fun ExpandableDescription(
@@ -57,14 +57,14 @@ fun ExpandableDescription(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text       = if (expanded) "Show less" else "Read More",
-                    color      = WasmerRed,
+                    color      = AppRed,
                     fontSize   = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Icon(
                     imageVector  = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint         = WasmerRed,
+                    tint         = AppRed,
                     modifier     = Modifier.size(16.dp)
                 )
             }

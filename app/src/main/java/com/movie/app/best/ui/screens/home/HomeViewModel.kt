@@ -3,9 +3,9 @@ package com.movie.app.best.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerMovie
-import com.movie.app.best.data.model.WasmerNotification
-import com.movie.app.best.data.model.WasmerSliderResult
+import com.movie.app.best.data.model.Movie
+import com.movie.app.best.data.model.AppNotification
+import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.data.debug.NetworkMonitor
@@ -303,19 +303,19 @@ class HomeViewModel @Inject constructor(
 }
 
 data class HomeUiState(
-    val sliderMovies: List<WasmerMovie> = emptyList(),
+    val sliderMovies: List<Movie> = emptyList(),
     val isSliderLoading: Boolean = false,
     val sliderError: String? = null,
 
-    val trendingMovies: List<WasmerMovie> = emptyList(),
+    val trendingMovies: List<Movie> = emptyList(),
     val isTrendingLoading: Boolean = false,
     val trendingError: String? = null,
 
-    val myFeedMovies: List<WasmerMovie> = emptyList(),
+    val myFeedMovies: List<Movie> = emptyList(),
     val isMyFeedLoading: Boolean = false,
     val myFeedError: String? = null,
 
-    val allTabMovies: List<WasmerMovie> = emptyList(),
+    val allTabMovies: List<Movie> = emptyList(),
     val isAllTabLoading: Boolean = false,
     val isAllTabLoadingMore: Boolean = false,
     val allTabError: String? = null,
@@ -323,7 +323,7 @@ data class HomeUiState(
     val allTabTotal: Int = 0,
     val canLoadMoreAllTab: Boolean = false,
 
-    val notification: WasmerNotification? = null,
+    val notification: AppNotification? = null,
     val isNotificationLoading: Boolean = false,
     val notificationError: String? = null,
 

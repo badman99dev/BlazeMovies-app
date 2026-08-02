@@ -27,7 +27,7 @@ data class PlaylistItem(
 class LibraryRepository @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("wasmer_library", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("app_library", Context.MODE_PRIVATE)
     private val gson = Gson()
 
     fun getHistory(): List<HistoryItem> {

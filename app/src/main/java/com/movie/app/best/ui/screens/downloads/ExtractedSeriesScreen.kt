@@ -60,10 +60,10 @@ import androidx.media3.common.C
 import coil.compose.AsyncImage
 import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
-import com.movie.app.best.ui.theme.WasmerBlack
-import com.movie.app.best.ui.theme.WasmerCardDark
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppBlack
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
 import java.io.File
@@ -226,7 +226,7 @@ fun ExtractedSeriesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         Box(
             modifier = Modifier
@@ -295,7 +295,7 @@ fun ExtractedSeriesScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(WasmerBlack)
+                .background(AppBlack)
                 .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -316,7 +316,7 @@ fun ExtractedSeriesScreen(
             if (episodes.isNotEmpty()) {
                 Text(
                     text = "${episodes.size} videos",
-                    color = WasmerSubText,
+                    color = SecondaryText,
                     fontSize = 13.sp
                 )
             }
@@ -363,7 +363,7 @@ private fun ExtractedEpisodeItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (isPlaying) WasmerRed.copy(alpha = 0.12f) else Color.Transparent)
+            .background(if (isPlaying) AppRed.copy(alpha = 0.12f) else Color.Transparent)
             .clickable(onClick = onPlay)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -387,7 +387,7 @@ private fun ExtractedEpisodeItem(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(WasmerRed.copy(alpha = 0.8f)),
+                    .background(AppRed.copy(alpha = 0.8f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (isPlaying) {
@@ -421,7 +421,7 @@ private fun ExtractedEpisodeItem(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = formatFileSize(episode.size),
-                color = WasmerSubText,
+                color = SecondaryText,
                 fontSize = 12.sp
             )
         }
@@ -431,7 +431,7 @@ private fun ExtractedEpisodeItem(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(WasmerRed)
+                    .background(AppRed)
             )
         }
     }

@@ -18,7 +18,7 @@ class ApkUpdateRepository @Inject constructor() {
 
     companion object {
         private const val UPDATE_DIR = "updates"
-        private const val APK_NAME = "wasmer-hub-update.apk"
+        private const val APK_NAME = "blazemovies-update.apk"
     }
 
     fun downloadApk(context: Context, url: String): Int {

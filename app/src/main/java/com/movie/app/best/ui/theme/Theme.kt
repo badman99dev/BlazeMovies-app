@@ -10,20 +10,20 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val WasmerHubColorScheme = darkColorScheme(
-    primary = WasmerRed,
+private val AppColorScheme = darkColorScheme(
+    primary = AppRed,
     onPrimary = Color.White,
-    secondary = WasmerDarkRed,
+    secondary = AppDarkRed,
     onSecondary = Color.White,
-    tertiary = WasmerGreen,
-    background = WasmerBlack,
-    surface = WasmerCardDark,
-    surfaceVariant = WasmerSurface,
-    onBackground = WasmerText,
-    onSurface = WasmerText,
-    onSurfaceVariant = WasmerSubText,
+    tertiary = SuccessGreen,
+    background = AppBlack,
+    surface = CardDark,
+    surfaceVariant = AppSurface,
+    onBackground = PrimaryText,
+    onSurface = PrimaryText,
+    onSurfaceVariant = SecondaryText,
     outline = Color(0xFF3D3D3D),
-    error = WasmerRed
+    error = AppRed
 )
 
 @Composable
@@ -32,7 +32,7 @@ fun MovieAppTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = WasmerHubColorScheme
+    val colorScheme = AppColorScheme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {

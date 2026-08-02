@@ -114,11 +114,11 @@ class DownloadRepository @Inject constructor(
         val isZip = metadataStore.isZipFile(safeFileName)
 
         val downloadPath = if (isZip) {
-            File(context.cacheDir, "wasmer_zips").apply { if (!exists()) mkdirs() }.path
+            File(context.cacheDir, "app_zips").apply { if (!exists()) mkdirs() }.path
         } else {
             File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "WasmerHub"
+                "BlazeMovies"
             ).apply { if (!exists()) mkdirs() }.path
         }
 
@@ -154,7 +154,7 @@ class DownloadRepository @Inject constructor(
             url = mirror.jackpot,
             path = downloadPath,
             fileName = safeFileName,
-            tag = "wasmerhub",
+            tag = "app_download",
             headers = headers
         )
 
@@ -169,7 +169,7 @@ class DownloadRepository @Inject constructor(
 
         val downloadPath = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "WasmerHub"
+            "BlazeMovies"
         ).apply { if (!exists()) mkdirs() }.path
 
         val headers = HashMap<String, String>().apply {
@@ -182,7 +182,7 @@ class DownloadRepository @Inject constructor(
             url = url,
             path = downloadPath,
             fileName = actualFileName,
-            tag = "wasmerhub",
+            tag = "app_download",
             headers = headers
         )
 
@@ -237,7 +237,7 @@ class DownloadRepository @Inject constructor(
 
             val downloadDir = File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "WasmerHub"
+                "BlazeMovies"
             ).apply { if (!exists()) mkdirs() }
 
             zipExtractor.extractZipWithProgress(meta.filePath, downloadDir).collect { progress ->
@@ -325,7 +325,7 @@ class DownloadRepository @Inject constructor(
     fun rescanDownloads() {
         val downloadDir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "WasmerHub"
+            "BlazeMovies"
         )
         metadataStore.rescanAndCleanup(downloadDir)
     }

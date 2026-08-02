@@ -88,9 +88,9 @@ import com.movie.app.best.ui.screens.moviedetail.components.MoreLikeThisSection
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestWaitingPopup
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
-import com.movie.app.best.ui.theme.WasmerBlack
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppBlack
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
 import kotlinx.coroutines.delay
@@ -338,7 +338,7 @@ fun MovieWatchScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
     Column(
         modifier = Modifier
@@ -483,7 +483,7 @@ fun MovieWatchScreen(
                                     .background(Color.Black.copy(alpha = 0.4f))
                             )
                         }
-                        CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(36.dp))
+                        CircularProgressIndicator(color = AppRed, modifier = Modifier.size(36.dp))
                     }
                 }
             }
@@ -491,7 +491,7 @@ fun MovieWatchScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(WasmerBlack)
+                .background(AppBlack)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             val headerTitle = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title
@@ -511,7 +511,7 @@ fun MovieWatchScreen(
                 year?.let {
                     Text(
                         text = it,
-                        color = WasmerSubText,
+                        color = SecondaryText,
                         fontSize = 12.sp
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -520,7 +520,7 @@ fun MovieWatchScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .border(0.5.dp, WasmerSubText, RoundedCornerShape(4.dp))
+                            .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
@@ -598,7 +598,7 @@ fun MovieWatchScreen(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(48.dp))
+                CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = "Loading...",

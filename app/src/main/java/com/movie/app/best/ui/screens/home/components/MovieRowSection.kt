@@ -27,11 +27,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
-import com.movie.app.best.ui.theme.WasmerGreen
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.SuccessGreen
+import com.movie.app.best.ui.theme.AppRed
 
 // ── Poster sizes ──────────────────────────────────────────
 enum class CardSize(val width: Dp, val height: Dp) {
@@ -46,7 +46,7 @@ enum class CardSize(val width: Dp, val height: Dp) {
 @Composable
 fun MovieRowSection(
     title: String,
-    movies: List<WasmerMovie>,
+    movies: List<Movie>,
     isLoading: Boolean = false,
     cardSize: CardSize = CardSize.NORMAL,
     onMovieClick: (String, Boolean) -> Unit,
@@ -79,7 +79,7 @@ fun MovieRowSection(
  */
 @Composable
 fun MoviePosterCard(
-    movie: WasmerMovie,
+    movie: Movie,
     size: CardSize = CardSize.NORMAL,
     onClick: () -> Unit
 ) {

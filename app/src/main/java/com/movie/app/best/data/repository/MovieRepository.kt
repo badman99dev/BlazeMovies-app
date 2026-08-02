@@ -1,14 +1,14 @@
 package com.movie.app.best.data.repository
 
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerApiResponse
-import com.movie.app.best.data.model.WasmerContentDetailResponse
-import com.movie.app.best.data.model.WasmerNotification
-import com.movie.app.best.data.model.WasmerCategory
-import com.movie.app.best.data.model.WasmerCategoryOffsetResult
-import com.movie.app.best.data.model.WasmerOffsetResult
-import com.movie.app.best.data.model.WasmerSearchResult
-import com.movie.app.best.data.model.WasmerSliderResult
+import com.movie.app.best.data.model.ApiResponse
+import com.movie.app.best.data.model.ContentDetailResponse
+import com.movie.app.best.data.model.AppNotification
+import com.movie.app.best.data.model.Category
+import com.movie.app.best.data.model.CategoryOffsetResult
+import com.movie.app.best.data.model.OffsetResult
+import com.movie.app.best.data.model.SearchResult
+import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.BroadcastResponse
 import com.movie.app.best.data.model.LiveChannel
 import com.movie.app.best.data.model.TvStreamResponse
@@ -26,7 +26,7 @@ import javax.inject.Singleton
 class MovieRepository @Inject constructor(
     private val apiService: MovieApiService
 ) {
-    private suspend fun <T> safeApiCall(call: suspend () -> WasmerApiResponse<T>): Resource<T> {
+    private suspend fun <T> safeApiCall(call: suspend () -> ApiResponse<T>): Resource<T> {
         return try {
             val response = call()
             if (response.status == "success" && response.data != null) {
@@ -39,42 +39,42 @@ class MovieRepository @Inject constructor(
         }
     }
 
-    fun getNotification(): Flow<Resource<WasmerNotification?>> = flow {
+    fun getNotification(): Flow<Resource<AppNotification?>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getNotification() })
     }
 
-    fun getSlider(): Flow<Resource<WasmerSliderResult>> = flow {
+    fun getSlider(): Flow<Resource<SliderResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getSlider() })
     }
 
-    fun getContentDetails(slug: String): Flow<Resource<WasmerContentDetailResponse>> = flow {
+    fun getContentDetails(slug: String): Flow<Resource<ContentDetailResponse>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getContentDetails(slug) })
     }
 
-    fun searchMovies(query: String, page: Int = 1): Flow<Resource<WasmerSearchResult>> = flow {
+    fun searchMovies(query: String, page: Int = 1): Flow<Resource<SearchResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.searchMovies(query, page) })
     }
 
-    fun getLatestUploads(offset: Int = 0, limit: Int = 45): Flow<Resource<WasmerOffsetResult>> = flow {
+    fun getLatestUploads(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getLatestUploads(offset, limit) })
     }
 
-    fun getWatchableContent(offset: Int = 0, limit: Int = 45): Flow<Resource<WasmerOffsetResult>> = flow {
+    fun getWatchableContent(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getWatchableContent(offset, limit) })
     }
 
-    fun getTrending(offset: Int = 0, limit: Int = 45): Flow<Resource<WasmerOffsetResult>> = flow {
+    fun getTrending(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getTrending(offset, limit) })
     }
 
-    fun getMyFeed(offset: Int = 0, limit: Int = 45): Flow<Resource<WasmerOffsetResult>> = flow {
+    fun getMyFeed(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getMyFeed(offset, limit) })
     }
@@ -83,17 +83,17 @@ class MovieRepository @Inject constructor(
         try { apiService.recreateMyFeed() } catch (_: Exception) {}
     }
 
-    fun getSimilar(imdbId: String): Flow<Resource<WasmerOffsetResult>> = flow {
+    fun getSimilar(imdbId: String): Flow<Resource<OffsetResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getSimilar(imdbId) })
     }
 
-    fun getCategoryMovies(slug: String, offset: Int = 0, limit: Int = 45): Flow<Resource<WasmerCategoryOffsetResult>> = flow {
+    fun getCategoryMovies(slug: String, offset: Int = 0, limit: Int = 45): Flow<Resource<CategoryOffsetResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getCategoryMovies(slug, offset, limit) })
     }
 
-    fun getCategories(): Flow<Resource<List<WasmerCategory>>> = flow {
+    fun getCategories(): Flow<Resource<List<Category>>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getCategories() })
     }
@@ -127,7 +127,7 @@ class MovieRepository @Inject constructor(
         }.also { emit(it) }
     }
 
-    /** Live TV channels — paginated, category-filtered (Wasmer Hub v1 API) */
+    /** Live TV channels — paginated, category-filtered (v1 API) */
     fun getTvStreams(
         category: String? = null,
         offset: Int = 0,

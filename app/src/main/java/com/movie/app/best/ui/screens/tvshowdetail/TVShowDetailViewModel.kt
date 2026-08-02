@@ -7,11 +7,11 @@ import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.LikeItem
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerComment
-import com.movie.app.best.data.model.WasmerDownloadLink
-import com.movie.app.best.data.model.WasmerEpisode
-import com.movie.app.best.data.model.WasmerMovieDetails
-import com.movie.app.best.data.model.WasmerSeason
+import com.movie.app.best.data.model.Comment
+import com.movie.app.best.data.model.DownloadLink
+import com.movie.app.best.data.model.Episode
+import com.movie.app.best.data.model.MovieDetails
+import com.movie.app.best.data.model.Season
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.repository.DownloadRepository
 import com.movie.app.best.data.repository.FirebaseRepository
@@ -530,18 +530,18 @@ class TVShowDetailViewModel @Inject constructor(
 }
 
 data class TVShowDetailUiState(
-    val series: WasmerMovieDetails? = null,
+    val series: MovieDetails? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
 
-    val episodesBySeason: Map<Int, List<WasmerEpisode>> = emptyMap(),
-    val linksByEpisode: Map<Int, List<WasmerDownloadLink>> = emptyMap(),
-    val downloadLinks: List<WasmerDownloadLink> = emptyList(),
-    val comments: List<WasmerComment> = emptyList(),
+    val episodesBySeason: Map<Int, List<Episode>> = emptyMap(),
+    val linksByEpisode: Map<Int, List<DownloadLink>> = emptyMap(),
+    val downloadLinks: List<DownloadLink> = emptyList(),
+    val comments: List<Comment> = emptyList(),
     val screenshots: List<String> = emptyList(),
-    val moreSeasons: List<WasmerSeason> = emptyList(),
+    val moreSeasons: List<Season> = emptyList(),
 
-    val similarMovies: List<com.movie.app.best.data.model.WasmerMovie> = emptyList(),
+    val similarMovies: List<com.movie.app.best.data.model.Movie> = emptyList(),
     val isSimilarLoading: Boolean = false,
     val similarError: String? = null,
 

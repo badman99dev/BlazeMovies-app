@@ -80,11 +80,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.WasmerComment
-import com.movie.app.best.data.model.WasmerDownloadLink
-import com.movie.app.best.data.model.WasmerEpisode
-import com.movie.app.best.data.model.WasmerSeason
-import com.movie.app.best.data.model.WasmerMovieDetails
+import com.movie.app.best.data.model.Comment
+import com.movie.app.best.data.model.DownloadLink
+import com.movie.app.best.data.model.Episode
+import com.movie.app.best.data.model.Season
+import com.movie.app.best.data.model.MovieDetails
 import com.movie.app.best.data.repository.ResolvedMirror
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
@@ -106,9 +106,9 @@ import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestWaiting
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
 import com.movie.app.best.ui.screens.moviedetail.components.ReportWaitingPopup
 import com.movie.app.best.ui.screens.moviedetail.components.ReportResultModal
-import com.movie.app.best.ui.theme.WasmerGreen
-import com.movie.app.best.ui.theme.WasmerPurple
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.SuccessGreen
+import com.movie.app.best.ui.theme.AccentPurple
+import com.movie.app.best.ui.theme.AppRed
 import kotlinx.coroutines.delay
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -145,7 +145,7 @@ fun TVShowDetailScreen(
         )
     }
     var showDownloadSheet by remember { mutableStateOf(false) }
-    var sheetDownloadLinks by remember { mutableStateOf<List<WasmerDownloadLink>>(emptyList()) }
+    var sheetDownloadLinks by remember { mutableStateOf<List<DownloadLink>>(emptyList()) }
     var sheetTitle by remember { mutableStateOf("") }
     var pendingDownload by remember { mutableStateOf<Pair<String, Int?>?>(null) }
 
@@ -186,7 +186,7 @@ fun TVShowDetailScreen(
         }
     }
 
-    fun openEpisodeDownloadSheet(links: List<WasmerDownloadLink>, title: String) {
+    fun openEpisodeDownloadSheet(links: List<DownloadLink>, title: String) {
         sheetDownloadLinks = links
         sheetTitle = title
         showDownloadSheet = true
@@ -347,7 +347,7 @@ fun TVShowDetailScreen(
 
 @Composable
 private fun TVShowDetailContent(
-    series: WasmerMovieDetails,
+    series: MovieDetails,
     uiState: TVShowDetailUiState,
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
@@ -356,7 +356,7 @@ private fun TVShowDetailContent(
     onPostComment: (name: String, msg: String) -> Unit,
     onRequestStream: () -> Unit,
     onStartDownload: (linkUrl: String, linkId: Int?) -> Unit,
-    onOpenEpisodeDownloadSheet: (List<WasmerDownloadLink>, String) -> Unit,
+    onOpenEpisodeDownloadSheet: (List<DownloadLink>, String) -> Unit,
     onResetCommentState: () -> Unit,
     onToggleBookmark: () -> Unit,
     onToggleLike: () -> Unit,
@@ -644,12 +644,12 @@ private fun SectionTitle(title: String) {
 
 @Composable
 private fun EpisodeItem(
-    episode: WasmerEpisode,
-    downloadLinks: List<WasmerDownloadLink>,
+    episode: Episode,
+    downloadLinks: List<DownloadLink>,
     downloadLoadingLinkId: Int?,
     downloadStartedLinkIds: Set<Int>,
     onPlayClick: () -> Unit,
-    onDownloadClick: (List<WasmerDownloadLink>) -> Unit
+    onDownloadClick: (List<DownloadLink>) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -758,8 +758,8 @@ private fun EpisodeItem(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
-                        .background(WasmerRed.copy(alpha = 0.1f))
-                        .border(1.dp, WasmerRed.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                        .background(AppRed.copy(alpha = 0.1f))
+                        .border(1.dp, AppRed.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -773,21 +773,21 @@ private fun EpisodeItem(
                         if (isAnyLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
-                                color = WasmerRed,
+                                color = AppRed,
                                 strokeWidth = 2.dp
                             )
                         } else if (isAnyStarted) {
                             Icon(
                                 Icons.Default.CheckCircle,
                                 contentDescription = null,
-                                tint = WasmerGreen,
+                                tint = SuccessGreen,
                                 modifier = Modifier.size(16.dp)
                             )
                         } else {
                             Icon(
                                 Icons.Default.Download,
                                 contentDescription = "Download",
-                                tint = WasmerRed,
+                                tint = AppRed,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -798,7 +798,7 @@ private fun EpisodeItem(
                                 isAnyStarted -> "Started"
                                 else -> "Download (${downloadLinks.size})"
                             },
-                            color = if (isAnyLoading) Color.White.copy(0.5f) else if (isAnyStarted) WasmerGreen else WasmerRed,
+                            color = if (isAnyLoading) Color.White.copy(0.5f) else if (isAnyStarted) SuccessGreen else AppRed,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -810,7 +810,7 @@ private fun EpisodeItem(
 }
 
 @Composable
-private fun CommentItem(comment: WasmerComment) {
+private fun CommentItem(comment: Comment) {
     Column(modifier = Modifier.padding(vertical = 6.dp)) {
         Text(
             text = comment.userName,
@@ -833,7 +833,7 @@ private fun CommentItem(comment: WasmerComment) {
 
 @Composable
 private fun MoreSeasonCard(
-    season: WasmerSeason,
+    season: Season,
     onClick: () -> Unit
 ) {
     Card(
@@ -941,20 +941,20 @@ private fun TVDownloadSection(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(WasmerRed.copy(alpha = 0.12f)),
+                        .background(AppRed.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
-                            color = WasmerRed,
+                            color = AppRed,
                             strokeWidth = 2.dp
                         )
                     } else {
                         Icon(
                             Icons.Default.Download,
                             contentDescription = null,
-                            tint = WasmerRed,
+                            tint = AppRed,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -979,7 +979,7 @@ private fun TVDownloadSection(
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        color = WasmerRed.copy(0.6f),
+                        color = AppRed.copy(0.6f),
                         strokeWidth = 2.dp
                     )
                 }

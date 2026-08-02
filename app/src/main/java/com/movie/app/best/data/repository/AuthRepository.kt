@@ -9,7 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.gson.Gson
 import com.movie.app.best.data.debug.NetworkLogger
-import com.movie.app.best.data.model.WasmerUser
+import com.movie.app.best.data.model.AppUser
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +24,7 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("wasmer_auth", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("app_auth", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val googleWebClientId = "191496010275-1el0keetbtndhei2sn3ots6le8bta6ln.apps.googleusercontent.com"
     private val firebaseAuth = FirebaseAuth.getInstance()
@@ -34,7 +34,7 @@ class AuthRepository @Inject constructor(
 
     data class AuthEvent(
         val isLoggedIn: Boolean = false,
-        val user: WasmerUser? = null,
+        val user: AppUser? = null,
         val timestamp: Long = System.currentTimeMillis(),
         val initial: Boolean = false
     )
@@ -54,16 +54,16 @@ class AuthRepository @Inject constructor(
 
     fun getToken(): String? = prefs.getString("token", null)
 
-    fun getUser(): WasmerUser? {
+    fun getUser(): AppUser? {
         val json = prefs.getString("user", null) ?: return null
-        return try { gson.fromJson(json, WasmerUser::class.java) } catch (_: Exception) { null }
+        return try { gson.fromJson(json, AppUser::class.java) } catch (_: Exception) { null }
     }
 
     fun isLoggedIn(): Boolean = getToken() != null
 
     fun isVerified(): Boolean = getUser()?.isVerified == 1
 
-    private fun saveAuth(token: String, user: WasmerUser) {
+    private fun saveAuth(token: String, user: AppUser) {
         prefs.edit()
             .putString("token", token)
             .putString("user", gson.toJson(user))
@@ -94,7 +94,7 @@ class AuthRepository @Inject constructor(
 
     data class AuthResult(
         val token: String,
-        val user: WasmerUser,
+        val user: AppUser,
         val needsVerification: Boolean
     )
 
@@ -111,14 +111,14 @@ class AuthRepository @Inject constructor(
             val idToken = user.getIdToken(false).await().token
                 ?: return@withContext Result.failure(Exception("Failed to get token"))
             saveFirebaseIdToken(idToken)
-            val wasmerUser = WasmerUser(
+            val appUser = AppUser(
                 id = 0, username = email.substringBefore("@"), email = email,
                 role = "user", avatarUrl = "", isVerified = 0, createdAt = "",
                 firstName = firstName, lastName = lastName
             )
-            saveAuth(idToken, wasmerUser)
+            saveAuth(idToken, appUser)
             NetworkLogger.logAction("AUTH", "signUp success: uid=${user.uid}")
-            Result.success(AuthResult(token = idToken, user = wasmerUser, needsVerification = true))
+            Result.success(AuthResult(token = idToken, user = appUser, needsVerification = true))
         } catch (e: Exception) {
             NetworkLogger.logAction("AUTH", "signUp failed: ${e.message}")
             val msg = when {
@@ -141,15 +141,15 @@ class AuthRepository @Inject constructor(
             saveFirebaseIdToken(idToken)
             val displayName = user.displayName ?: ""
             val nameParts = displayName.split(" ", limit = 2)
-            val wasmerUser = WasmerUser(
+            val appUser = AppUser(
                 id = 0, username = displayName.ifBlank { email.substringBefore("@") }, email = email,
                 role = "user", avatarUrl = "",
                 isVerified = if (user.isEmailVerified) 1 else 0, createdAt = "",
                 firstName = nameParts.getOrNull(0), lastName = nameParts.getOrNull(1)
             )
-            saveAuth(idToken, wasmerUser)
+            saveAuth(idToken, appUser)
             NetworkLogger.logAction("AUTH", "signIn success: uid=${user.uid} verified=${user.isEmailVerified}")
-            Result.success(AuthResult(token = idToken, user = wasmerUser, needsVerification = !user.isEmailVerified))
+            Result.success(AuthResult(token = idToken, user = appUser, needsVerification = !user.isEmailVerified))
         } catch (e: Exception) {
             NetworkLogger.logAction("AUTH", "signIn failed: ${e.message}")
             val msg = when {
@@ -173,7 +173,7 @@ class AuthRepository @Inject constructor(
             saveFirebaseIdToken(idToken)
             val displayName = user.displayName ?: ""
             val nameParts = displayName.split(" ", limit = 2)
-            val wasmerUser = WasmerUser(
+            val appUser = AppUser(
                 id = 0, username = displayName.ifBlank { user.email?.substringBefore("@") ?: "" },
                 email = user.email ?: "",
                 role = "user", avatarUrl = user.photoUrl?.toString(),
@@ -181,9 +181,9 @@ class AuthRepository @Inject constructor(
                 firstName = nameParts.getOrNull(0),
                 lastName = nameParts.getOrNull(1)
             )
-            saveAuth(idToken, wasmerUser)
+            saveAuth(idToken, appUser)
             NetworkLogger.logAction("AUTH", "googleSignIn success: uid=${user.uid} email=${user.email} name=${user.displayName}")
-            Result.success(AuthResult(token = idToken, user = wasmerUser, needsVerification = false))
+            Result.success(AuthResult(token = idToken, user = appUser, needsVerification = false))
         } catch (e: Exception) {
             NetworkLogger.logAction("AUTH", "googleSignIn failed: ${e.message}")
             Result.failure(Exception(e.message ?: "Google sign-in failed"))
@@ -217,7 +217,7 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun checkAndSyncVerification(): Result<WasmerUser?> = withContext(Dispatchers.IO) {
+    suspend fun checkAndSyncVerification(): Result<AppUser?> = withContext(Dispatchers.IO) {
         try {
             val user = firebaseAuth.currentUser ?: return@withContext Result.success(getUser())
             user.reload().await()

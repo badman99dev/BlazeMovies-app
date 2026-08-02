@@ -49,10 +49,10 @@ import com.movie.app.best.data.model.Zee5DetailResponse
 import com.movie.app.best.data.model.Zee5Item
 import com.movie.app.best.data.model.Zee5Season
 import com.movie.app.best.ui.components.GlassBadge
-import com.movie.app.best.ui.theme.WasmerBlack
-import com.movie.app.best.ui.theme.WasmerCardDark
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppBlack
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 
 @Composable
 fun Zee5DetailScreen(
@@ -114,7 +114,7 @@ fun Zee5DetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         when (detailState) {
             is Zee5DetailState.Loading -> {
@@ -122,7 +122,7 @@ fun Zee5DetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = WasmerRed)
+                    CircularProgressIndicator(color = AppRed)
                 }
             }
             is Zee5DetailState.Error -> {
@@ -133,12 +133,12 @@ fun Zee5DetailScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = (detailState as Zee5DetailState.Error).message,
-                            color = WasmerSubText
+                            color = SecondaryText
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { viewModel.loadDetails(contentId) },
-                            colors = ButtonDefaults.buttonColors(containerColor = WasmerRed)
+                            colors = ButtonDefaults.buttonColors(containerColor = AppRed)
                         ) {
                             Text("Retry")
                         }
@@ -196,13 +196,13 @@ fun Zee5DetailScreen(
                                 is Zee5EpisodesState.Loading -> {
                                     item {
                                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                            CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(24.dp))
+                                            CircularProgressIndicator(color = AppRed, modifier = Modifier.size(24.dp))
                                         }
                                     }
                                 }
                                 is Zee5EpisodesState.Error -> {
                                     item {
-                                        Text(text = (episodesState as Zee5EpisodesState.Error).message, color = WasmerSubText, fontSize = 12.sp, modifier = Modifier.padding(16.dp))
+                                        Text(text = (episodesState as Zee5EpisodesState.Error).message, color = SecondaryText, fontSize = 12.sp, modifier = Modifier.padding(16.dp))
                                     }
                                 }
                                 is Zee5EpisodesState.Success -> {
@@ -225,7 +225,7 @@ fun Zee5DetailScreen(
                                                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(24.dp))
+                                                CircularProgressIndicator(color = AppRed, modifier = Modifier.size(24.dp))
                                             }
                                         }
                                     }
@@ -297,7 +297,7 @@ private fun DetailTabItem(
     Column {
         Text(
             text = text,
-            color = if (selected) WasmerRed else WasmerSubText,
+            color = if (selected) AppRed else SecondaryText,
             fontSize = 15.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             modifier = Modifier.clickable(onClick = onClick)
@@ -309,7 +309,7 @@ private fun DetailTabItem(
                     .width(24.dp)
                     .height(3.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(WasmerRed)
+                    .background(AppRed)
             )
         }
     }
@@ -341,9 +341,9 @@ fun Zee5DetailHero(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            WasmerBlack.copy(alpha = 0.4f),
-                            WasmerBlack.copy(alpha = 0.65f),
-                            WasmerBlack.copy(alpha = 0.95f)
+                            AppBlack.copy(alpha = 0.4f),
+                            AppBlack.copy(alpha = 0.65f),
+                            AppBlack.copy(alpha = 0.95f)
                         )
                     )
                 )
@@ -384,7 +384,7 @@ fun Zee5DetailHero(
                 detail.releaseDate?.let {
                     Text(
                         text = it.take(4),
-                        color = WasmerSubText,
+                        color = SecondaryText,
                         fontSize = 13.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -393,7 +393,7 @@ fun Zee5DetailHero(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .border(0.5.dp, WasmerSubText, RoundedCornerShape(4.dp))
+                            .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
@@ -425,7 +425,7 @@ fun Zee5DetailActions(
         Button(
             onClick = onPlayClick,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = WasmerRed),
+            colors = ButtonDefaults.buttonColors(containerColor = AppRed),
             shape = RoundedCornerShape(8.dp)
         ) {
             Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = Color.White)
@@ -458,7 +458,7 @@ fun Zee5DetailDescription(detail: Zee5DetailResponse) {
             if (desc.length > 120) {
                 TextButton(
                     onClick = { expanded = !expanded },
-                    colors = ButtonDefaults.textButtonColors(contentColor = WasmerRed),
+                    colors = ButtonDefaults.textButtonColors(contentColor = AppRed),
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Text(
@@ -475,7 +475,7 @@ fun Zee5DetailDescription(detail: Zee5DetailResponse) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Cast: ${actors.joinToString(", ")}",
-                    color = WasmerSubText,
+                    color = SecondaryText,
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -488,7 +488,7 @@ fun Zee5DetailDescription(detail: Zee5DetailResponse) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Director: ${directors.joinToString(", ")}",
-                    color = WasmerSubText,
+                    color = SecondaryText,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -512,7 +512,7 @@ fun Zee5SeasonSelector(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(WasmerCardDark)
+                .background(CardDark)
                 .clickable { expanded = true }
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
@@ -538,14 +538,14 @@ fun Zee5SeasonSelector(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(WasmerCardDark)
+            modifier = Modifier.background(CardDark)
         ) {
             seasons.forEach { season ->
                 DropdownMenuItem(
                     text = {
                         Text(
                             text = season.title ?: "Season ${season.seasonNumber}",
-                            color = if (season.id == selectedSeason) WasmerRed else Color.White
+                            color = if (season.id == selectedSeason) AppRed else Color.White
                         )
                     },
                     onClick = {
@@ -588,7 +588,7 @@ fun Zee5EpisodeRow(
                 .width(140.dp)
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(10.dp))
-                .background(WasmerCardDark)
+                .background(CardDark)
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -608,7 +608,7 @@ fun Zee5EpisodeRow(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(WasmerRed.copy(alpha = 0.9f))
+                        .background(AppRed.copy(alpha = 0.9f))
                         .clickable { onClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -664,7 +664,7 @@ fun Zee5EpisodeRow(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = desc,
-                    color = WasmerSubText,
+                    color = SecondaryText,
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -676,7 +676,7 @@ fun Zee5EpisodeRow(
         Icon(
             imageVector = Icons.Filled.Download,
             contentDescription = "Download",
-            tint = WasmerSubText,
+            tint = SecondaryText,
             modifier = Modifier.size(22.dp)
         )
     }

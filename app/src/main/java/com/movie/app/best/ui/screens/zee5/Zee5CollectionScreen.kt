@@ -35,9 +35,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.movie.app.best.ui.components.GlassBadge
 import com.movie.app.best.ui.components.SkeletonBox
-import com.movie.app.best.ui.theme.WasmerBlack
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppBlack
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 
 @Composable
 fun Zee5CollectionScreen(
@@ -66,7 +66,7 @@ fun Zee5CollectionScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header
@@ -124,7 +124,7 @@ fun Zee5CollectionScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
-                                color = WasmerRed,
+                                color = AppRed,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -164,13 +164,13 @@ fun Zee5CollectionScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(WasmerBlack)
+                    .background(AppBlack)
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = uiState.error ?: "Something went wrong",
-                    color = WasmerSubText,
+                    color = SecondaryText,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center
                 )

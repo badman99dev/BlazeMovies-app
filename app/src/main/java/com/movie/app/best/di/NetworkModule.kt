@@ -72,7 +72,7 @@ object NetworkModule {
     @Named("auth")
     fun provideAuthInterceptor(@ApplicationContext context: Context): Interceptor {
         return Interceptor { chain ->
-            val prefs = context.getSharedPreferences("wasmer_auth", Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences("app_auth", Context.MODE_PRIVATE)
             val token = prefs.getString("token", null)
             val request = if (token != null) {
                 chain.request().newBuilder()

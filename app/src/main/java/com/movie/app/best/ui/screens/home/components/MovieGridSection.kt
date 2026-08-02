@@ -8,10 +8,10 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 
 fun LazyListScope.movieGridItems(
-    movies: List<WasmerMovie>,
+    movies: List<Movie>,
     onMovieClick: (String, Boolean) -> Unit
 ) {
     val columns = 3
@@ -30,7 +30,7 @@ fun LazyListScope.movieGridItems(
 
 @Composable
 private fun GridRow(
-    movies: List<WasmerMovie>,
+    movies: List<Movie>,
     rowIdx: Int,
     columns: Int,
     onMovieClick: (String, Boolean) -> Unit

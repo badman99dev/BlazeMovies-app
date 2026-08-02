@@ -24,18 +24,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.ContentModeration
-import com.movie.app.best.data.model.WasmerMovieDetails
+import com.movie.app.best.data.model.MovieDetails
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
-import com.movie.app.best.ui.theme.WasmerAmber
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.Amber
+import com.movie.app.best.ui.theme.AppRed
 
 /**
  * Full-bleed hero image with back button, share, title and meta info overlay.
  */
 @Composable
 fun DetailHeroSection(
-    movie: WasmerMovieDetails,
+    movie: MovieDetails,
     onBackClick: () -> Unit,
     onShareClick: () -> Unit = {},
     onReportClick: () -> Unit = {}
@@ -210,7 +210,7 @@ fun DetailHeroSection(
                     Text(movie.releaseYear, color = Color.White.copy(0.75f), fontSize = 13.sp)
                     Text("  •  ", color = Color.White.copy(0.4f), fontSize = 13.sp)
                 }
-                Icon(Icons.Default.Star, null, tint = WasmerAmber, modifier = Modifier.size(13.dp))
+                Icon(Icons.Default.Star, null, tint = Amber, modifier = Modifier.size(13.dp))
                 Spacer(Modifier.width(3.dp))
                 Text(movie.rating, color = Color.White.copy(0.75f), fontSize = 13.sp)
                 if (movie.runtime.isNotEmpty()) {

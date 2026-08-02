@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.movie.app.best.data.model.WasmerMovieDetails
+import com.movie.app.best.data.model.MovieDetails
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.CelebrationOverlay
 import com.movie.app.best.ui.components.ErrorView
@@ -230,7 +230,7 @@ fun MovieDetailScreen(
 // ─────────────────────────────────────────────────────────
 @Composable
 private fun MovieDetailContent(
-    movie: WasmerMovieDetails,
+    movie: MovieDetails,
     uiState: MovieDetailUiState,
     onBackClick: () -> Unit,
     onPlayClick: (String, String, String, String, String, String) -> Unit,

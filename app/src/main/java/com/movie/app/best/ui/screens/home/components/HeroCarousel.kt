@@ -31,11 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
-import com.movie.app.best.ui.theme.WasmerAmber
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.Amber
+import com.movie.app.best.ui.theme.AppRed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -44,7 +44,7 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HeroCarousel(
-    movies: List<WasmerMovie>,
+    movies: List<Movie>,
     isLoading: Boolean,
     onPlayClick: (slug: String, isSeries: Boolean) -> Unit,
     onInfoClick: (slug: String, isSeries: Boolean) -> Unit
@@ -122,7 +122,7 @@ fun HeroCarousel(
                     modifier = Modifier
                         .size(width = width, height = 6.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(if (selected) WasmerRed else Color.White.copy(alpha = 0.4f))
+                        .background(if (selected) AppRed else Color.White.copy(alpha = 0.4f))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -143,7 +143,7 @@ fun HeroCarousel(
 // ── Single hero slide ─────────────────────────────────────
 @Composable
 private fun HeroSlide(
-    movie: WasmerMovie,
+    movie: Movie,
     onPlayClick: (String, Boolean) -> Unit,
     onInfoClick: (String, Boolean) -> Unit
 ) {
@@ -212,7 +212,7 @@ private fun HeroSlide(
                 if (movie.rating.isNotBlank()) {
                     Icon(
                         Icons.Default.Star, null,
-                        tint = WasmerAmber,
+                        tint = Amber,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(Modifier.width(3.dp))

@@ -56,11 +56,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.movie.app.best.R
-import com.movie.app.best.data.model.WasmerUser
+import com.movie.app.best.data.model.AppUser
 import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.components.PageHeaderIconButton
 import com.movie.app.best.ui.screens.auth.AuthViewModel
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.AppRed
 
 @Composable
 fun ProfileScreen(
@@ -131,7 +131,7 @@ fun ProfileScreen(
 
 @Composable
 private fun LoggedInView(
-    user: WasmerUser,
+    user: AppUser,
     userTier: String,
     needsVerification: Boolean,
     isLoggingOut: Boolean,
@@ -148,7 +148,7 @@ private fun LoggedInView(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            WasmerRed.copy(alpha = 0.12f),
+                            AppRed.copy(alpha = 0.12f),
                             Color.Black
                         )
                     )
@@ -176,7 +176,7 @@ private fun LoggedInView(
                                 .clip(CircleShape)
                                 .background(
                                     Brush.linearGradient(
-                                        colors = listOf(WasmerRed.copy(alpha = 0.5f), WasmerRed.copy(alpha = 0.2f)),
+                                        colors = listOf(AppRed.copy(alpha = 0.5f), AppRed.copy(alpha = 0.2f)),
                                         start = Offset.Zero,
                                         end = Offset(64.dp.value, 64.dp.value)
                                     )
@@ -295,7 +295,7 @@ private fun LoggedInView(
             Icon(
                 imageVector = Icons.Default.Bookmark,
                 contentDescription = null,
-                tint = WasmerRed.copy(alpha = 0.7f),
+                tint = AppRed.copy(alpha = 0.7f),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -390,7 +390,7 @@ private fun LoggedOutView(onLoginClick: () -> Unit) {
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(WasmerRed.copy(alpha = 0.15f), Color.Transparent),
+                        colors = listOf(AppRed.copy(alpha = 0.15f), Color.Transparent),
                         radius = 72.dp.value
                     )
                 ),
@@ -405,7 +405,7 @@ private fun LoggedOutView(onLoginClick: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Sign in to Wasmer Hub",
+            text = "Sign in to BlazeMovies",
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -429,7 +429,7 @@ private fun LoggedOutView(onLoginClick: () -> Unit) {
                 .fillMaxWidth()
                 .height(48.dp),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = WasmerRed)
+            colors = ButtonDefaults.buttonColors(containerColor = AppRed)
         ) {
             Text(
                 text = "Sign In",

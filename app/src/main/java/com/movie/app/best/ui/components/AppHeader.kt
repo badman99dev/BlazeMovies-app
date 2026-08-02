@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.AppRed
 
 @Composable
 fun AppHeader(
@@ -68,14 +68,14 @@ fun AppHeader(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = WasmerRed, fontWeight = FontWeight.Black)) {
-                        append("W")
+                    withStyle(SpanStyle(color = AppRed, fontWeight = FontWeight.Black)) {
+                        append("B")
                     }
                     withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.ExtraBold)) {
-                        append("ASMER ")
+                        append("LAZE ")
                     }
-                    withStyle(SpanStyle(color = WasmerRed, fontWeight = FontWeight.Black)) {
-                        append("HUB")
+                    withStyle(SpanStyle(color = AppRed, fontWeight = FontWeight.Black)) {
+                        append("MOVIES")
                     }
                 },
                 fontSize = 20.sp,
@@ -130,7 +130,7 @@ fun AppHeader(
                             .padding(top = 6.dp, end = 6.dp)
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(WasmerRed)
+                            .background(AppRed)
                     )
                 }
             }

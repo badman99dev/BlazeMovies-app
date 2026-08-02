@@ -58,7 +58,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.ImdbCredit
 import com.movie.app.best.data.model.ImdbTitleDetails
-import com.movie.app.best.ui.theme.WasmerBlack
+import com.movie.app.best.ui.theme.AppBlack
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
 
@@ -123,7 +123,7 @@ fun YoutubeTrailerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         if (!isFullscreen) {
             Row(
@@ -196,7 +196,7 @@ fun YoutubeTrailerScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(WasmerBlack),
+                    .background(AppBlack),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 32.dp)
             ) {
                 when (val s = trailerState) {

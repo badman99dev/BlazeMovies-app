@@ -56,7 +56,7 @@ fun VideoPlayerScreen(
     movieId: String,
     slug: String = "",
     isLive: Boolean = false,
-    contentSource: String = "wasmer",
+    contentSource: String = "api",
     viewModel: VideoPlayerViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val context = LocalContext.current

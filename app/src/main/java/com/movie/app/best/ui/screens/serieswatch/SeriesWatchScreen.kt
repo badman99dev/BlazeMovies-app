@@ -84,10 +84,10 @@ import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.components.GlassBadge
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
 import com.movie.app.best.ui.screens.serieswatch.components.EpisodeCard
-import com.movie.app.best.ui.theme.WasmerBlack
-import com.movie.app.best.ui.theme.WasmerCardDark
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppBlack
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
 import okhttp3.OkHttpClient
@@ -274,7 +274,7 @@ fun SeriesWatchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         if (state.isLoading) {
             Box(
@@ -282,7 +282,7 @@ fun SeriesWatchScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(48.dp))
+                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Loading...",
@@ -382,7 +382,7 @@ fun SeriesWatchScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(WasmerBlack)
+                .background(AppBlack)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             val headerTitle = state.currentEpisode?.title ?: state.titleDetails?.primaryTitle ?: ""
@@ -404,7 +404,7 @@ fun SeriesWatchScreen(
                     year?.let {
                         Text(
                             text = it,
-                            color = WasmerSubText,
+                            color = SecondaryText,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -413,7 +413,7 @@ fun SeriesWatchScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .border(0.5.dp, WasmerSubText, RoundedCornerShape(4.dp))
+                                .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
@@ -427,7 +427,7 @@ fun SeriesWatchScreen(
                     state.currentEpisode?.episodeNo?.let {
                         Text(
                             text = "Episode $it",
-                            color = WasmerSubText,
+                            color = SecondaryText,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -473,7 +473,7 @@ fun SeriesWatchScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(WasmerBlack)
+                    .background(AppBlack)
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -483,13 +483,13 @@ fun SeriesWatchScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .background(if (isSelected) WasmerRed else WasmerCardDark)
+                            .background(if (isSelected) AppRed else CardDark)
                             .clickable { viewModel.selectSeason(seasonNo) }
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = "Season $seasonNo",
-                            color = if (isSelected) Color.White else WasmerSubText,
+                            color = if (isSelected) Color.White else SecondaryText,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
@@ -512,7 +512,7 @@ fun SeriesWatchScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(40.dp))
+                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(40.dp))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("Fetching episodes...", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
                 }
@@ -538,7 +538,7 @@ fun SeriesWatchScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(onClick = { viewModel.selectSeason(state.selectedSeason) }) {
-                        Text("Retry", color = WasmerRed)
+                        Text("Retry", color = AppRed)
                     }
                 }
             }

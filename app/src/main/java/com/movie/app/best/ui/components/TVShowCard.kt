@@ -2,11 +2,11 @@ package com.movie.app.best.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 
 @Composable
 fun TVShowCard(
-    movie: WasmerMovie,
+    movie: Movie,
     onClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {

@@ -3,28 +3,28 @@ package com.movie.app.best.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ── Brand Colors ──────────────────────────────────────────
-val WasmerRed        = Color(0xFFE50914)
-val WasmerDarkRed    = Color(0xFFB81D24)
-val WasmerOrange     = Color(0xFFFF6B00)
+val AppRed        = Color(0xFFE50914)
+val AppDarkRed    = Color(0xFFB81D24)
+val AppOrange     = Color(0xFFFF6B00)
 
 // ── Surface / Background ─────────────────────────────────
-val WasmerBlack      = Color(0xFF000000)
-val WasmerBg         = Color(0xFF0A0A0A)
-val WasmerCardDark   = Color(0xFF1A1A1A)
-val WasmerSurface    = Color(0xFF212121)
-val WasmerDivider    = Color(0xFF2A2A2A)
+val AppBlack      = Color(0xFF000000)
+val AppBg         = Color(0xFF0A0A0A)
+val CardDark   = Color(0xFF1A1A1A)
+val AppSurface    = Color(0xFF212121)
+val AppDivider    = Color(0xFF2A2A2A)
 
 // ── Text ─────────────────────────────────────────────────
-val WasmerText       = Color(0xFFFFFFFF)
-val WasmerSubText    = Color(0xFFB3B3B3)
-val WasmerHint       = Color(0xFF666666)
+val PrimaryText       = Color(0xFFFFFFFF)
+val SecondaryText    = Color(0xFFB3B3B3)
+val HintText       = Color(0xFF666666)
 
 // ── Accent ────────────────────────────────────────────────
-val WasmerGold       = Color(0xFFFFD700)
-val WasmerAmber      = Color(0xFFFFC107)
-val WasmerGreen      = Color(0xFF46D369)
-val WasmerBlue       = Color(0xFF4FC3F7)
-val WasmerPurple     = Color(0xFF7C4DFF)
+val Gold       = Color(0xFFFFD700)
+val Amber      = Color(0xFFFFC107)
+val SuccessGreen      = Color(0xFF46D369)
+val InfoBlue       = Color(0xFF4FC3F7)
+val AccentPurple     = Color(0xFF7C4DFF)
 
 // ── Legacy (kept for compatibility) ─────────────────────
 val Purple80         = Color(0xFFD0BCFF)

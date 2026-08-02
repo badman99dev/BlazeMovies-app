@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Compact page header that mirrors [AppHeader]'s geometry so every
- * category / listing page lines up exactly with Home's WASMER HUB row.
+ * category / listing page lines up exactly with Home's header row.
  *
  * - Relies on MainActivity's global notch-safe black strip for status-bar
  *   inset (no additional statusBarsPadding to avoid double padding).

@@ -9,7 +9,7 @@ import com.movie.app.best.data.model.GemmaExtractionResult
 import com.movie.app.best.data.model.ImdbCertificatesResponse
 import com.movie.app.best.data.model.ImdbTitleDetails
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.remote.GemmaExtractorService
 import com.movie.app.best.data.remote.ImdbApiService
 import com.movie.app.best.data.remote.StreamRequestApiResponse
@@ -340,7 +340,7 @@ data class MovieWatchState(
     val ageRating: String = "",
     val availableLanguages: List<String> = emptyList(),
     val selectedLanguage: String = "Hindi",
-    val similarMovies: List<WasmerMovie> = emptyList(),
+    val similarMovies: List<Movie> = emptyList(),
     val isSimilarLoading: Boolean = false,
     val similarError: String? = null,
     val error: String? = null,

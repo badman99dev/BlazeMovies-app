@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 
 object ModerationSettings {
-    private const val PREFS_NAME = "wasmer_moderation"
+    private const val PREFS_NAME = "app_moderation"
     private const val KEY_ENABLED = "moderation_enabled"
     private const val KEY_MODE = "moderation_mode"
 
@@ -41,19 +41,19 @@ object ModerationSettings {
         cachedMode = getMode(context)
     }
 
-    fun effectiveShouldBlur(movie: com.movie.app.best.data.model.WasmerMovie): Boolean {
+    fun effectiveShouldBlur(movie: com.movie.app.best.data.model.Movie): Boolean {
         if (!cachedEnabled) return false
         if (cachedMode != MODE_BLUR) return false
         return movie.shouldBlurPoster
     }
 
-    fun shouldHide(context: Context, movie: com.movie.app.best.data.model.WasmerMovie): Boolean {
+    fun shouldHide(context: Context, movie: com.movie.app.best.data.model.Movie): Boolean {
         if (!isEnabled(context)) return false
         if (getMode(context) != MODE_HIDE) return false
         return movie.shouldBlurPoster
     }
 
-    fun shouldBlur(context: Context, movie: com.movie.app.best.data.model.WasmerMovie): Boolean {
+    fun shouldBlur(context: Context, movie: com.movie.app.best.data.model.Movie): Boolean {
         if (!isEnabled(context)) return false
         if (getMode(context) != MODE_BLUR) return false
         return movie.shouldBlurPoster
@@ -95,7 +95,7 @@ object ModerationSettings {
         return contentModeration?.get("poster") == "sexual" || contentModeration?.get("screenshots") == "sexual" || contentModeration?.get("storyline") == "sexual"
     }
 
-    fun filterMovies(context: Context, movies: List<com.movie.app.best.data.model.WasmerMovie>): List<com.movie.app.best.data.model.WasmerMovie> {
+    fun filterMovies(context: Context, movies: List<com.movie.app.best.data.model.Movie>): List<com.movie.app.best.data.model.Movie> {
         if (!isEnabled(context) || getMode(context) != MODE_HIDE) return movies
         return movies.filter { !it.shouldBlurPoster }
     }

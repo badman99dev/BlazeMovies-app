@@ -1,10 +1,10 @@
-# Wasmer Hub
+# BlazeMovies
 
 A full-featured Android streaming app built with Jetpack Compose. Browse movies, TV shows, live TV, and Zee5 content — watch in-app with a custom ExoPlayer-based player, complete with IMDb enrichment, downloads, and more.
 
 <p align="center">
   <strong>Current Release: v2.0.1</strong><br>
-  <a href="https://github.com/badman99dev/Wasmer-hub-app/releases">Download APK</a>
+  <a href="https://github.com/badman99dev/BlazeMovies-app/releases">Download APK</a>
 </p>
 
 ---
@@ -57,7 +57,7 @@ A full-featured Android streaming app built with Jetpack Compose. Browse movies,
 | Auth & DB | Firebase Auth + Firestore |
 | Crash Reports | ACRA |
 | Search | MeiliSearch |
-| APIs | Wasmer Hub Backend (PHP/Vercel) + IMDb API (`api.tiffara.com`) |
+| APIs | BlazeMovies Backend (PHP/Vercel) + IMDb API (`api.tiffara.com`) |
 | Build | GitHub Actions (3-mode: test / minor / major) |
 
 ---
@@ -94,7 +94,7 @@ A full-featured Android streaming app built with Jetpack Compose. Browse movies,
 ```
 app/src/main/java/com/movie/app/best/
 ├── data/
-│   ├── model/          # Data models (Wasmer, IMDb, Zee5, Auth, Watch, etc.)
+│   ├── model/          # Data models (App, IMDb, Zee5, Auth, Watch, etc.)
 │   ├── remote/         # Retrofit API services (MovieApi, ImdbApi, Zee5Api, AuthApi, BypassApi)
 │   ├── repository/     # Data repositories
 │   ├── settings/       # App settings
@@ -149,7 +149,7 @@ Trigger manually via GitHub Actions UI with `workflow_dispatch`, or auto-trigger
 ## Configuration
 
 ### Backend API
-The app connects to the Wasmer Hub backend (PHP hosted on Vercel):
+The app connects to the BlazeMovies backend (PHP hosted on Vercel):
 
 ```kotlin
 // app/build.gradle.kts
@@ -166,8 +166,8 @@ https://api.tiffara.com
 
 | Component | Repo | Tech |
 |-----------|------|------|
-| **Backend** | [badman99dev/Wasmer-hub-](https://github.com/badman99dev/Wasmer-hub-) | PHP / Vercel |
-| **Android App** | [badman99dev/Wasmer-hub-app](https://github.com/badman99dev/Wasmer-hub-app) | Kotlin / Compose |
+| **Backend** | [badman99dev/BlazeMovies](https://github.com/badman99dev/BlazeMovies) | PHP / Vercel |
+| **Android App** | [badman99dev/BlazeMovies-app](https://github.com/badman99dev/BlazeMovies-app) | Kotlin / Compose |
 | **Telegram Bot** | [badman99dev/Wasmer-hub-messenger](https://github.com/badman99dev/Wasmer-hub-messenger) | Python / Render |
 
 ---
@@ -184,13 +184,13 @@ https://api.tiffara.com
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/badman99dev/Wasmer-hub-app.git
+git clone https://github.com/badman99dev/BlazeMovies-app.git
 ```
 2. Open in Android Studio
 3. Sync Gradle
 4. Run on emulator or device
 
-Or download the latest APK from [Releases](https://github.com/badman99dev/Wasmer-hub-app/releases).
+Or download the latest APK from [Releases](https://github.com/badman99dev/BlazeMovies-app/releases).
 
 ---
 

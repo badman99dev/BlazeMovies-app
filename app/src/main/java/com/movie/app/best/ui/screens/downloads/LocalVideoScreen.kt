@@ -44,7 +44,7 @@ fun LocalVideoScreen(
     onPlayVideo: (path: String, title: String) -> Unit
 ) {
     val context = LocalContext.current
-    var videos by remember { mutableStateOf(scanWasmerHubVideos(context)) }
+    var videos by remember { mutableStateOf(scanBlazeMoviesVideos(context)) }
 
     Column(
         modifier = Modifier.fillMaxSize().background(Color.Black)
@@ -62,7 +62,7 @@ fun LocalVideoScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("No videos found", color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Download/WasmerHub/", color = Color.White.copy(alpha = 0.3f), fontSize = 12.sp)
+                    Text("Download/BlazeMovies/", color = Color.White.copy(alpha = 0.3f), fontSize = 12.sp)
                 }
             }
         } else {

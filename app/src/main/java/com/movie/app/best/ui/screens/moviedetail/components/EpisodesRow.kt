@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.AppRed
 
 /**
  * Series episodes tappable row — navigates to series detail screen.
@@ -50,7 +50,7 @@ fun EpisodesRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Default.PlayCircle, null,
-                tint     = WasmerRed,
+                tint     = AppRed,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(Modifier.width(10.dp))

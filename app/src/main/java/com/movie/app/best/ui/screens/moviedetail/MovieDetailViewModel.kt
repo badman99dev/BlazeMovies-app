@@ -7,11 +7,11 @@ import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.LikeItem
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerContentDetailResponse
+import com.movie.app.best.data.model.ContentDetailResponse
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.debug.NetworkLogger
-import com.movie.app.best.data.model.WasmerDownloadLink
-import com.movie.app.best.data.model.WasmerMovieDetails
+import com.movie.app.best.data.model.DownloadLink
+import com.movie.app.best.data.model.MovieDetails
 import com.movie.app.best.data.repository.DownloadRepository
 import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.repository.MovieRepository
@@ -555,17 +555,17 @@ class MovieDetailViewModel @Inject constructor(
 }
 
 data class MovieDetailUiState(
-    val movie: WasmerMovieDetails? = null,
+    val movie: MovieDetails? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
 
-    val downloadLinks: List<WasmerDownloadLink> = emptyList(),
-    val comments: List<com.movie.app.best.data.model.WasmerComment> = emptyList(),
+    val downloadLinks: List<DownloadLink> = emptyList(),
+    val comments: List<com.movie.app.best.data.model.Comment> = emptyList(),
     val screenshots: List<String> = emptyList(),
-    val categories: List<com.movie.app.best.data.model.WasmerCategorySimple> = emptyList(),
-    val allMovies: List<com.movie.app.best.data.model.WasmerMovie> = emptyList(),
+    val categories: List<com.movie.app.best.data.model.CategorySimple> = emptyList(),
+    val allMovies: List<com.movie.app.best.data.model.Movie> = emptyList(),
 
-    val similarMovies: List<com.movie.app.best.data.model.WasmerMovie> = emptyList(),
+    val similarMovies: List<com.movie.app.best.data.model.Movie> = emptyList(),
     val isSimilarLoading: Boolean = false,
     val similarError: String? = null,
 

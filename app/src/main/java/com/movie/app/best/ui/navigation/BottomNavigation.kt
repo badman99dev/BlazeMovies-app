@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.AppRed
 
 sealed class BottomNavItem(
     val route: String,
@@ -127,12 +127,12 @@ private fun NavItem(
         label = "iconScale"
     )
     val iconTint by animateColorAsState(
-        targetValue = if (selected) WasmerRed else Color(0xFF777777),
+        targetValue = if (selected) AppRed else Color(0xFF777777),
         animationSpec = tween(220),
         label = "iconTint"
     )
     val labelTint by animateColorAsState(
-        targetValue = if (selected) WasmerRed else Color(0xFF666666),
+        targetValue = if (selected) AppRed else Color(0xFF666666),
         animationSpec = tween(220),
         label = "labelTint"
     )
@@ -172,8 +172,8 @@ private fun NavItem(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                WasmerRed.copy(alpha = 0.28f * glowAlpha),
-                                WasmerRed.copy(alpha = 0.10f * glowAlpha),
+                                AppRed.copy(alpha = 0.28f * glowAlpha),
+                                AppRed.copy(alpha = 0.10f * glowAlpha),
                                 Color.Transparent
                             )
                         ),
@@ -210,7 +210,7 @@ private fun NavItem(
             modifier = Modifier
                 .size(width = 16.dp, height = 2.5.dp)
                 .background(
-                    WasmerRed.copy(alpha = pillAlpha),
+                    AppRed.copy(alpha = pillAlpha),
                     RoundedCornerShape(50)
                 )
         )

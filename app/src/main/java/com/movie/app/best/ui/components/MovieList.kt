@@ -19,11 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 
 @Composable
 fun MovieList(
-    movies: List<WasmerMovie>,
+    movies: List<Movie>,
     isLoading: Boolean,
     error: String?,
     onMovieClick: (String) -> Unit,

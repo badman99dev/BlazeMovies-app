@@ -3,8 +3,8 @@ package com.movie.app.best.ui.screens.categories
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerCategory
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Category
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -66,7 +66,7 @@ class CategoriesViewModel @Inject constructor(
 }
 
 data class CategoriesUiState(
-    val categories: List<WasmerCategory> = emptyList(),
+    val categories: List<Category> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -129,7 +129,7 @@ class CategoryPageViewModel @Inject constructor(
 }
 
 data class CategoryPageUiState(
-    val movies: List<WasmerMovie> = emptyList(),
+    val movies: List<Movie> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val currentOffset: Int = 0,

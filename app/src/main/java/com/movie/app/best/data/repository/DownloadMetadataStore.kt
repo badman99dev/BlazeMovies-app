@@ -21,7 +21,7 @@ class DownloadMetadataStore @Inject constructor(
 ) {
     private val gson = Gson()
     private val prefs by lazy {
-        context.getSharedPreferences("wasmer_download_meta", Context.MODE_PRIVATE)
+        context.getSharedPreferences("app_download_meta", Context.MODE_PRIVATE)
     }
 
     private val appDataDir by lazy {

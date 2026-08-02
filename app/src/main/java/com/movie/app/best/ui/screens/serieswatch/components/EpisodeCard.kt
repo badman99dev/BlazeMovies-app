@@ -33,9 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.WatchEpisode
-import com.movie.app.best.ui.theme.WasmerCardDark
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 
 @Composable
 fun EpisodeCard(
@@ -45,8 +45,8 @@ fun EpisodeCard(
     modifier: Modifier = Modifier
 ) {
     val titleColor = when {
-        isPlaying -> WasmerRed
-        !episode.available -> WasmerSubText
+        isPlaying -> AppRed
+        !episode.available -> SecondaryText
         else -> Color.White
     }
 
@@ -67,7 +67,7 @@ fun EpisodeCard(
                     .width(140.dp)
                     .aspectRatio(16f / 9f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(WasmerCardDark)
+                    .background(CardDark)
             ) {
                 if (episode.stillImageUrl.isNotEmpty()) {
                     AsyncImage(
@@ -102,7 +102,7 @@ fun EpisodeCard(
                             .align(Alignment.TopStart)
                             .padding(6.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(WasmerRed)
+                            .background(AppRed)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
@@ -171,7 +171,7 @@ fun EpisodeCard(
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = meta,
-                        color = WasmerSubText,
+                        color = SecondaryText,
                         fontSize = 12.sp
                     )
                 }
@@ -192,7 +192,7 @@ fun EpisodeCard(
                 Icon(
                     imageVector = Icons.Filled.Download,
                     contentDescription = "Download",
-                    tint = WasmerSubText,
+                    tint = SecondaryText,
                     modifier = Modifier.size(22.dp)
                 )
             }

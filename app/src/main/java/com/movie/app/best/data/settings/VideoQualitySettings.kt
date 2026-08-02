@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 
 object VideoQualitySettings {
-    private const val PREFS_NAME = "wasmer_video_quality"
+    private const val PREFS_NAME = "app_video_quality"
     private const val KEY_MODE = "video_quality_mode"
 
     const val MODE_AUTO = "auto"

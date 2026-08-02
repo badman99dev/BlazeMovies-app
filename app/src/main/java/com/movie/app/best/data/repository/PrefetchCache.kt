@@ -5,14 +5,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.model.UpdateResponse
-import com.movie.app.best.data.model.WasmerMovie
-import com.movie.app.best.data.model.WasmerNotification
+import com.movie.app.best.data.model.Movie
+import com.movie.app.best.data.model.AppNotification
 
 object PrefetchCache {
-    var slider: List<WasmerMovie>? = null
-    var trending: List<WasmerMovie>? = null
-    var latestUploads: List<WasmerMovie>? = null
-    var notification: WasmerNotification? = null
+    var slider: List<Movie>? = null
+    var trending: List<Movie>? = null
+    var latestUploads: List<Movie>? = null
+    var notification: AppNotification? = null
     var liveChannels: List<UnifiedChannel>? = null
 
     var updateResponse: UpdateResponse? by mutableStateOf(null)

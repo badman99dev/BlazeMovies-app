@@ -22,7 +22,7 @@ import javax.inject.Singleton
 class FirebaseRepository @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("wasmer_library", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("app_library", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val db: FirebaseFirestore
 

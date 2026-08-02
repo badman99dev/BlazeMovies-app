@@ -51,8 +51,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerCategory
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Category
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.repository.MovieRepository
 import com.movie.app.best.ui.components.AppHeader
 import com.movie.app.best.ui.components.CompactPageHeader
@@ -146,7 +146,7 @@ fun CategoriesScreen(
 
 @Composable
 fun CategoryCard(
-    category: WasmerCategory,
+    category: Category,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {

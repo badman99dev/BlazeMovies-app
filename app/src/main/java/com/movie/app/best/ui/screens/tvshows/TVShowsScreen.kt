@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
 import com.movie.app.best.ui.components.SkeletonPosterCard
@@ -168,7 +168,7 @@ fun TVShowsScreen(
 
 @Composable
 fun TVShowGridItem(
-    movie: WasmerMovie,
+    movie: Movie,
     onClick: () -> Unit
 ) {
     Card(

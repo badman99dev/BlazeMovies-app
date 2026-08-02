@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.SecondaryText
 
 /**
  * Section title row — title on left, optional "See All" chevron on right.
@@ -53,14 +53,14 @@ fun SectionHeader(
             ) {
                 Text(
                     text = "See all",
-                    color = WasmerSubText,
+                    color = SecondaryText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = WasmerSubText,
+                    tint = SecondaryText,
                     modifier = Modifier.size(18.dp)
                 )
             }

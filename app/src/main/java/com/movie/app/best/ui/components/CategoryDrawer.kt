@@ -39,14 +39,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
 import com.movie.app.best.BuildConfig
-import com.movie.app.best.data.model.WasmerCategory
+import com.movie.app.best.data.model.Category
 import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.ui.screens.categories.CategoriesViewModel
-import com.movie.app.best.ui.theme.WasmerBg
-import com.movie.app.best.ui.theme.WasmerCardDark
-import com.movie.app.best.ui.theme.WasmerDivider
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppBg
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.AppDivider
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 import androidx.compose.foundation.shape.CircleShape
 
 @Composable
@@ -62,7 +62,7 @@ fun CategoryDrawerContent(
         modifier = Modifier
             .fillMaxHeight()
             .width(280.dp)
-            .background(WasmerBg)
+            .background(AppBg)
     ) {
         Column(
             modifier = Modifier
@@ -94,12 +94,12 @@ fun CategoryDrawerContent(
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(WasmerRed, CircleShape)
+                            .background(AppRed, CircleShape)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Update Available",
-                        color = WasmerRed,
+                        color = AppRed,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -113,7 +113,7 @@ fun CategoryDrawerContent(
             }
         }
 
-        HorizontalDivider(color = WasmerDivider, thickness = 1.dp)
+        HorizontalDivider(color = AppDivider, thickness = 1.dp)
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -127,7 +127,7 @@ fun CategoryDrawerContent(
             Icon(
                 imageVector = Icons.Default.Category,
                 contentDescription = null,
-                tint = WasmerRed,
+                tint = AppRed,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(14.dp))
@@ -139,7 +139,7 @@ fun CategoryDrawerContent(
             )
         }
 
-        HorizontalDivider(color = WasmerDivider, thickness = 0.5.dp)
+        HorizontalDivider(color = AppDivider, thickness = 0.5.dp)
 
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -150,7 +150,7 @@ fun CategoryDrawerContent(
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(28.dp))
+                CircularProgressIndicator(color = AppRed, modifier = Modifier.size(28.dp))
             }
         } else {
             LazyColumn(
@@ -170,7 +170,7 @@ fun CategoryDrawerContent(
 
 @Composable
 private fun DrawerCategoryItem(
-    category: WasmerCategory,
+    category: Category,
     onClick: () -> Unit
 ) {
     Row(
@@ -191,13 +191,13 @@ private fun DrawerCategoryItem(
                 loading = {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier
                         .size(40.dp)
-                        .background(WasmerCardDark)) {
+                        .background(CardDark)) {
                         Icon(
                             imageVector = if (category.categoryName.contains("series", ignoreCase = true) ||
                                 category.categoryName.contains("tv", ignoreCase = true))
                                 Icons.Default.Tv else Icons.Default.Movie,
                             contentDescription = null,
-                            tint = WasmerSubText,
+                            tint = SecondaryText,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -205,11 +205,11 @@ private fun DrawerCategoryItem(
                 error = {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier
                         .size(40.dp)
-                        .background(WasmerCardDark)) {
+                        .background(CardDark)) {
                         Icon(
                             imageVector = Icons.Default.BrokenImage,
                             contentDescription = null,
-                            tint = WasmerSubText,
+                            tint = SecondaryText,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -220,7 +220,7 @@ private fun DrawerCategoryItem(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(WasmerCardDark),
+                    .background(CardDark),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -228,7 +228,7 @@ private fun DrawerCategoryItem(
                         category.categoryName.contains("tv", ignoreCase = true))
                         Icons.Default.Tv else Icons.Default.Movie,
                     contentDescription = null,
-                    tint = WasmerSubText,
+                    tint = SecondaryText,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -246,7 +246,7 @@ private fun DrawerCategoryItem(
             )
             Text(
                 text = "${category.count} items",
-                color = WasmerSubText,
+                color = SecondaryText,
                 fontSize = 11.sp
             )
         }

@@ -18,13 +18,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.data.model.WasmerComment
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.data.model.Comment
+import com.movie.app.best.ui.theme.AppRed
 import kotlinx.coroutines.delay
 
 @Composable
 fun CommentsSection(
-    comments: List<WasmerComment>,
+    comments: List<Comment>,
     isPosting: Boolean,
     posted: Boolean,
     error: String?,
@@ -122,7 +122,7 @@ fun CommentsSection(
                         enabled  = !isPosting && name.isNotBlank() && message.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
                         shape    = RoundedCornerShape(8.dp),
-                        colors   = ButtonDefaults.buttonColors(containerColor = WasmerRed)
+                        colors   = ButtonDefaults.buttonColors(containerColor = AppRed)
                     ) {
                         if (isPosting) {
                             CircularProgressIndicator(Modifier.size(18.dp), Color.White, strokeWidth = 2.dp)
@@ -141,7 +141,7 @@ fun CommentsSection(
 }
 
 @Composable
-private fun CommentCard(comment: WasmerComment) {
+private fun CommentCard(comment: Comment) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape    = RoundedCornerShape(10.dp),
@@ -154,12 +154,12 @@ private fun CommentCard(comment: WasmerComment) {
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(WasmerRed.copy(0.25f)),
+                        .background(AppRed.copy(0.25f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text       = comment.userName.take(1).uppercase(),
-                        color      = WasmerRed,
+                        color      = AppRed,
                         fontSize   = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -188,7 +188,7 @@ private fun commentFieldColors() = TextFieldDefaults.colors(
     unfocusedContainerColor = Color.DarkGray.copy(0.2f),
     focusedContainerColor   = Color.DarkGray.copy(0.2f),
     unfocusedIndicatorColor = Color.White.copy(0.1f),
-    focusedIndicatorColor   = WasmerRed
+    focusedIndicatorColor   = AppRed
 )
 
 private fun timeAgo(dateStr: String): String {

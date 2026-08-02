@@ -129,7 +129,7 @@ jobs:
         if: ${{ github.event.inputs.build_mode == 'test' || github.event.inputs.build_mode == '' || github.event_name == 'push' }}
         uses: actions/upload-artifact@v4
         with:
-          name: WasmerHub-APK
+          name: BlazeMovies-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
@@ -210,19 +210,19 @@ jobs:
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: Rename APK to wasmer-hub.apk
+      - name: Rename APK to blazemovies.apk
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         run: |
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
-          cp "$APK_PATH" wasmer-hub.apk
-          ls -la wasmer-hub.apk
+          cp "$APK_PATH" blazemovies.apk
+          ls -la blazemovies.apk
 
       - name: Upload APK as Artifact (minor/major)
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         uses: actions/upload-artifact@v4
         with:
-          name: wasmer-hub-apk
-          path: wasmer-hub.apk
+          name: blazemovies-apk
+          path: blazemovies.apk
           retention-days: 30
 
       - name: Upload APK to tempserv (minor/major)
@@ -232,8 +232,8 @@ jobs:
             https://tempserv.cmdnode.xyz/api/upload \
             -F "mode=file" \
             -F "expiry=6hr" \
-            -F "paths=[\"wasmer-hub.apk\"]" \
-            -F "files=@wasmer-hub.apk")
+            -F "paths=[\"blazemovies.apk\"]" \
+            -F "files=@blazemovies.apk")
           echo "TEMPSERV_RESPONSE=$RESP"
           DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "PARSE_ERROR")
           echo "===APK_LINK=== $DL_LINK"
@@ -300,12 +300,12 @@ jobs:
 
           echo "Release created: ID=$RELEASE_ID, Tag=$TAG"
 
-          # Upload wasmer-hub.apk
+          # Upload blazemovies.apk
           curl -s -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary @wasmer-hub.apk \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=wasmer-hub.apk"
+            --data-binary @blazemovies.apk \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=blazemovies.apk"
 
           # Upload release.json
           curl -s -X POST \
@@ -314,4 +314,4 @@ jobs:
             --data-binary @release.json \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=release.json"
 
-          echo "✅ Release $TAG created with wasmer-hub.apk + release.json"
+          echo "✅ Release $TAG created with blazemovies.apk + release.json"

@@ -3,8 +3,8 @@ package com.movie.app.best.ui.screens.player
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import com.movie.app.best.data.model.WasmerEpisode
-import com.movie.app.best.data.model.WasmerSeason
+import com.movie.app.best.data.model.Episode
+import com.movie.app.best.data.model.Season
 import com.movie.app.best.data.repository.LibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,8 +20,8 @@ data class VideoPlayerUiState(
     val title: String = "",
     val selectedSeason: Int = 1,
     val selectedEpisode: Int = 1,
-    val seasons: List<WasmerSeason> = emptyList(),
-    val episodes: List<WasmerEpisode> = emptyList(),
+    val seasons: List<Season> = emptyList(),
+    val episodes: List<Episode> = emptyList(),
     val youtubeId: String = ""
 )
 
@@ -56,11 +56,11 @@ class VideoPlayerViewModel @Inject constructor(
         }
     }
 
-    fun setSeasons(seasons: List<WasmerSeason>) {
+    fun setSeasons(seasons: List<Season>) {
         _uiState.update { it.copy(seasons = seasons) }
     }
 
-    fun setEpisodes(episodes: List<WasmerEpisode>) {
+    fun setEpisodes(episodes: List<Episode>) {
         _uiState.update { it.copy(episodes = episodes) }
     }
 

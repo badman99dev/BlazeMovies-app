@@ -3,7 +3,7 @@ package com.movie.app.best.ui.screens.notification
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerNotification
+import com.movie.app.best.data.model.AppNotification
 import com.movie.app.best.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,7 +56,7 @@ class NotificationViewModel @Inject constructor(
 }
 
 data class NotificationUiState(
-    val notification: WasmerNotification? = null,
+    val notification: AppNotification? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )

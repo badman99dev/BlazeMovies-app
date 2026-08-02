@@ -3,8 +3,8 @@ package com.movie.app.best.ui.screens.tvshows
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerCategory
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Category
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,7 +71,7 @@ class TVShowsViewModel @Inject constructor(
 }
 
 data class TVShowsUiState(
-    val tvShows: List<WasmerMovie> = emptyList(),
+    val tvShows: List<Movie> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val currentOffset: Int = 0,

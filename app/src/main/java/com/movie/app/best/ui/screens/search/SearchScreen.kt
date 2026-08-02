@@ -458,7 +458,7 @@ fun SearchResultsView(
 
 @Composable
 fun MeiliResultCard(hit: MeiliHit, onClick: () -> Unit) {
-    val movie = remember(hit) { hit.toWasmerMovie() }
+    val movie = remember(hit) { hit.toMovie() }
     Box(
         modifier = Modifier
             .fillMaxWidth()

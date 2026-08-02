@@ -17,15 +17,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.data.model.WasmerNotification
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.data.model.AppNotification
+import com.movie.app.best.ui.theme.AppRed
 
 /**
  * Slide-down notification banner shown at top of HomeScreen.
  */
 @Composable
 fun NotificationBanner(
-    notification: WasmerNotification,
+    notification: AppNotification,
     visible: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
@@ -56,7 +56,7 @@ fun NotificationBanner(
                     .width(3.dp)
                     .height(36.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(WasmerRed)
+                    .background(AppRed)
             )
 
             Row(
@@ -79,7 +79,7 @@ fun NotificationBanner(
                     Spacer(Modifier.width(8.dp))
                     TextButton(
                         onClick = {},
-                        colors = ButtonDefaults.textButtonColors(contentColor = WasmerRed),
+                        colors = ButtonDefaults.textButtonColors(contentColor = AppRed),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(

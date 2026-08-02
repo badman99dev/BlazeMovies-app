@@ -3,7 +3,7 @@ package com.movie.app.best.ui.screens.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.movie.app.best.data.model.WasmerUser
+import com.movie.app.best.data.model.AppUser
 import com.movie.app.best.data.repository.AuthRepository
 import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.repository.MyListRefreshState
@@ -17,7 +17,7 @@ import javax.inject.Inject
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
-    val user: WasmerUser? = null,
+    val user: AppUser? = null,
     val error: String? = null,
     val successMessage: String? = null,
     val needsVerification: Boolean = false,

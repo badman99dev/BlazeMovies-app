@@ -72,7 +72,7 @@ class DownloadsViewModel @Inject constructor(
 
     private fun buildUnifiedList(downloads: List<DownloadModel>?): List<UnifiedDownloadItem> {
         val allMeta = repository.getAllMetadata()
-        val scannedVideos = scanWasmerHubVideos(context)
+        val scannedVideos = scanBlazeMoviesVideos(context)
         val result = mutableListOf<UnifiedDownloadItem>()
         val seenKetchIds = mutableSetOf<Int>()
 
@@ -296,7 +296,7 @@ class DownloadsViewModel @Inject constructor(
                     fileName = fileName,
                     filePath = Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_DOWNLOADS
-                    ).path + "/WasmerHub/$fileName",
+                    ).path + "/BlazeMovies/$fileName",
                     ketchId = ketchId,
                     isZip = true,
                     contentType = "series",

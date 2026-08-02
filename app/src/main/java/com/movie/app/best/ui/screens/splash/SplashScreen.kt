@@ -63,8 +63,8 @@ fun SplashScreen(onSplashScreenFinish: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.foundation.Image(
-            painter = painterResource(id = R.drawable.wasmer_logo),
-            contentDescription = "Wasmer Hub",
+            painter = painterResource(id = R.drawable.app_logo),
+            contentDescription = "BlazeMovies",
             modifier = Modifier
                 .size(200.dp)
                 .scale(scale.value)

@@ -2,7 +2,7 @@ package com.movie.app.best.data.model
 
 import com.google.gson.annotations.SerializedName
 
-data class WasmerUser(
+data class AppUser(
     val id: Int,
     val username: String,
     val email: String,
@@ -23,7 +23,7 @@ data class AuthResponse(
 
 data class AuthData(
     val token: String,
-    val user: WasmerUser,
+    val user: AppUser,
     @SerializedName("verification_required") val verificationRequired: Boolean? = null,
     @SerializedName("verification_hint") val verificationHint: String? = null
 )

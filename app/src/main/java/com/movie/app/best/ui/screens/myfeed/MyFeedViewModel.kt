@@ -3,7 +3,7 @@ package com.movie.app.best.ui.screens.myfeed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +16,7 @@ import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 data class MyFeedUiState(
-    val movies: List<WasmerMovie> = emptyList(),
+    val movies: List<Movie> = emptyList(),
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,

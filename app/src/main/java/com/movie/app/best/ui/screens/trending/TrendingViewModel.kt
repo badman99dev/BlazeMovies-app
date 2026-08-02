@@ -3,7 +3,7 @@ package com.movie.app.best.ui.screens.trending
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class TrendingUiState(
-    val popularMovies: List<WasmerMovie> = emptyList(),
+    val popularMovies: List<Movie> = emptyList(),
     val isPopularLoading: Boolean = false,
     val isPopularLoadingMore: Boolean = false,
     val popularError: String? = null,

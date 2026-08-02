@@ -23,7 +23,7 @@ data class MeiliHit(
     val ratingStr: String get() = if (rating > 0) String.format("%.1f", rating) else ""
     val highlightedTitle: String get() = formatted?.get("title") ?: title
 
-    fun toWasmerMovie(): WasmerMovie = WasmerMovie(
+    fun toMovie(): Movie = Movie(
         id = id,
         slug = slug,
         title = title,

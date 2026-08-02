@@ -42,15 +42,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.movie.app.best.data.model.DownloadPhase
-import com.movie.app.best.data.model.WasmerDownloadLink
+import com.movie.app.best.data.model.DownloadLink
 import com.movie.app.best.data.repository.ResolvedMirror
-import com.movie.app.best.ui.theme.WasmerGreen
-import com.movie.app.best.ui.theme.WasmerPurple
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.SuccessGreen
+import com.movie.app.best.ui.theme.AccentPurple
+import com.movie.app.best.ui.theme.AppRed
 
 @Composable
 fun DownloadBottomSheetContent(
-    downloadLinks: List<WasmerDownloadLink>,
+    downloadLinks: List<DownloadLink>,
     downloadLoadingLinkId: Int?,
     downloadPhase: DownloadPhase,
     downloadProgress: Int,
@@ -215,10 +215,10 @@ private fun DownloadStatusPopup(
     )
 
     val accentColor = when (phase) {
-        DownloadPhase.COMPLETE -> WasmerGreen
-        DownloadPhase.FAILED -> WasmerRed
+        DownloadPhase.COMPLETE -> SuccessGreen
+        DownloadPhase.FAILED -> AppRed
         DownloadPhase.CANCELLED -> Color(0xFFFB923C)
-        else -> WasmerGreen
+        else -> SuccessGreen
     }
 
     val title = when (phase) {
@@ -235,7 +235,7 @@ private fun DownloadStatusPopup(
         DownloadPhase.INITIALIZING -> "Preparing poster and metadata..."
         DownloadPhase.DOWNLOADING -> if (isZip) "ZIP downloading in background" else "File is downloading in background"
         DownloadPhase.EXTRACTING -> "Preparing episodes"
-        DownloadPhase.COMPLETE -> if (isZip) "Episodes ready to play" else "File saved to Downloads/WasmerHub"
+        DownloadPhase.COMPLETE -> if (isZip) "Episodes ready to play" else "File saved to Downloads/BlazeMovies"
         DownloadPhase.CANCELLED -> "Download was cancelled"
         DownloadPhase.FAILED -> failureReason ?: "An error occurred during download"
         else -> ""
@@ -418,7 +418,7 @@ private fun DownloadStatusPopup(
 
 @Composable
 private fun DownloadLinkBottomSheetItem(
-    link: WasmerDownloadLink,
+    link: DownloadLink,
     isLoading: Boolean,
     mirrors: List<ResolvedMirror>?,
     isExpanded: Boolean,
@@ -458,20 +458,20 @@ private fun DownloadLinkBottomSheetItem(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(WasmerRed.copy(alpha = 0.12f)),
+                    .background(AppRed.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
-                        color = WasmerRed,
+                        color = AppRed,
                         strokeWidth = 2.dp
                     )
                 } else {
                     Icon(
                         Icons.Default.Download,
                         null,
-                        tint = WasmerRed,
+                        tint = AppRed,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -505,7 +505,7 @@ private fun DownloadLinkBottomSheetItem(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(WasmerPurple.copy(alpha = 0.2f))
+                                    .background(AccentPurple.copy(alpha = 0.2f))
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
@@ -523,7 +523,7 @@ private fun DownloadLinkBottomSheetItem(
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),
-                    color = WasmerRed.copy(alpha = 0.6f),
+                    color = AppRed.copy(alpha = 0.6f),
                     strokeWidth = 2.dp
                 )
             } else if (mirrors != null && mirrors.size > 1) {
@@ -628,7 +628,7 @@ private fun MirrorItem(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(WasmerPurple.copy(alpha = 0.2f))
+                    .background(AccentPurple.copy(alpha = 0.2f))
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
@@ -655,12 +655,12 @@ private fun MirrorItem(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(WasmerGreen.copy(alpha = 0.15f))
+                    .background(SuccessGreen.copy(alpha = 0.15f))
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
                     "Resume",
-                    color = WasmerGreen,
+                    color = SuccessGreen,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold
                 )

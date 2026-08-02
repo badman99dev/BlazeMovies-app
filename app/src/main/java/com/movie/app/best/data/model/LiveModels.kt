@@ -14,7 +14,7 @@ data class BroadcastResponse(
     val channels: List<LiveChannel>
 )
 
-// TVStream API response (Wasmer Hub v1)
+// TVStream API response (v1 API)
 data class TvStreamChannel(
     val id: String = "",
     val name: String = "",

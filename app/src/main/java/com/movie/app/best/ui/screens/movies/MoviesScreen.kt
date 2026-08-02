@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.WasmerCategory
-import com.movie.app.best.data.model.WasmerMovie
+import com.movie.app.best.data.model.Category
+import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.BlurredContent
 import com.movie.app.best.ui.components.SkeletonPosterCard
@@ -177,7 +177,7 @@ fun MoviesScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(uiState.movies, key = { it.slug }) { movie ->
-                            WasmerMovieGridItem(
+                            MovieGridItem(
                                 movie = movie,
                                 onClick = { onContentClick(movie.slug, movie.isSeries) }
                             )
@@ -191,7 +191,7 @@ fun MoviesScreen(
 
 @Composable
 fun CategoryChipsRow(
-    categories: List<WasmerCategory>,
+    categories: List<Category>,
     selectedSlug: String?,
     onSelect: (String?) -> Unit
 ) {
@@ -242,8 +242,8 @@ fun CategoryChip(
 }
 
 @Composable
-fun WasmerMovieGridItem(
-    movie: WasmerMovie,
+fun MovieGridItem(
+    movie: Movie,
     onClick: () -> Unit
 ) {
     Card(

@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.DownloadPhase
-import com.movie.app.best.ui.theme.WasmerGreen
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.SuccessGreen
+import com.movie.app.best.ui.theme.AppRed
 import java.io.File
 
 @Composable
@@ -75,10 +75,10 @@ fun DownloadStatusChip(
         exit = slideOutVertically(tween(200), targetOffsetY = { it / 4 }) + fadeOut(tween(150))
     ) {
         val accentColor = when (phase) {
-            DownloadPhase.COMPLETE -> WasmerGreen
-            DownloadPhase.FAILED -> WasmerRed
+            DownloadPhase.COMPLETE -> SuccessGreen
+            DownloadPhase.FAILED -> AppRed
             DownloadPhase.CANCELLED -> Color(0xFFFB923C)
-            else -> if (isZip) Color(0xFFB388FF) else WasmerGreen
+            else -> if (isZip) Color(0xFFB388FF) else SuccessGreen
         }
 
         val infiniteTransition = rememberInfiniteTransition(label = "chip")
@@ -103,7 +103,7 @@ fun DownloadStatusChip(
             DownloadPhase.INITIALIZING -> "Preparing download"
             DownloadPhase.DOWNLOADING -> if (isZip) "ZIP pack downloading" else "File downloading in background"
             DownloadPhase.EXTRACTING -> "Unpacking episodes from archive"
-            DownloadPhase.COMPLETE -> if (isZip) "Episodes extracted & ready" else "Saved to Downloads/WasmerHub"
+            DownloadPhase.COMPLETE -> if (isZip) "Episodes extracted & ready" else "Saved to Downloads/BlazeMovies"
             DownloadPhase.CANCELLED -> "Download was cancelled"
             DownloadPhase.FAILED -> failureReason ?: "An error occurred"
             else -> ""

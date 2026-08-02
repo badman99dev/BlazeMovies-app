@@ -46,10 +46,10 @@ import com.movie.app.best.data.model.Zee5Bucket
 import com.movie.app.best.data.model.Zee5Item
 import com.movie.app.best.ui.components.GlassBadge
 import com.movie.app.best.ui.components.SkeletonBox
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerBlack
-import com.movie.app.best.ui.theme.WasmerCardDark
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.AppBlack
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.SecondaryText
 import com.movie.app.best.util.formatDurationSeconds
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -83,7 +83,7 @@ fun Zee5Screen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header with ZEE5 branding
@@ -111,13 +111,13 @@ fun Zee5Screen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = state.message,
-                                color = WasmerSubText,
+                                color = SecondaryText,
                                 fontSize = 14.sp
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Button(
                                 onClick = { viewModel.loadTab(currentTab) },
-                                colors = ButtonDefaults.buttonColors(containerColor = WasmerRed)
+                                colors = ButtonDefaults.buttonColors(containerColor = AppRed)
                             ) {
                                 Text("Retry")
                             }
@@ -178,7 +178,7 @@ fun Zee5Screen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         CircularProgressIndicator(
-                                            color = WasmerRed,
+                                            color = AppRed,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
@@ -254,8 +254,8 @@ fun Zee5TabBar(
                 modifier = Modifier
                     .clip(RoundedCornerShape(24.dp))
                     .background(
-                        if (isSelected) WasmerRed
-                        else WasmerCardDark
+                        if (isSelected) AppRed
+                        else CardDark
                     )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -265,7 +265,7 @@ fun Zee5TabBar(
             ) {
                 Text(
                     text = label,
-                    color = if (isSelected) Color.White else WasmerSubText,
+                    color = if (isSelected) Color.White else SecondaryText,
                     fontSize = 14.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                 )
@@ -324,8 +324,8 @@ fun Zee5HeroCarousel(
                                     Color.Black.copy(alpha = 0.25f),
                                     Color.Transparent,
                                     Color.Transparent,
-                                    WasmerBlack.copy(alpha = 0.85f),
-                                    WasmerBlack.copy(alpha = 0.98f)
+                                    AppBlack.copy(alpha = 0.85f),
+                                    AppBlack.copy(alpha = 0.98f)
                                 ),
                                 startY = 0f,
                                 endY = Float.POSITIVE_INFINITY
@@ -369,7 +369,7 @@ fun Zee5HeroCarousel(
                     if (metaInfo.isNotBlank()) {
                         Text(
                             text = metaInfo,
-                            color = WasmerSubText,
+                            color = SecondaryText,
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -379,7 +379,7 @@ fun Zee5HeroCarousel(
 
                     Button(
                         onClick = { onItemClick(item) },
-                        colors = ButtonDefaults.buttonColors(containerColor = WasmerRed),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppRed),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(40.dp)
                     ) {
@@ -417,7 +417,7 @@ fun Zee5HeroCarousel(
                             .height(6.dp)
                             .clip(RoundedCornerShape(50))
                             .background(
-                                if (isSelected) WasmerRed
+                                if (isSelected) AppRed
                                 else Color.White.copy(alpha = 0.4f)
                             )
                     )
@@ -464,7 +464,7 @@ fun Zee5Rail(
                 ) {
                     Text(
                         text = "See All",
-                        color = WasmerRed,
+                        color = AppRed,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -472,7 +472,7 @@ fun Zee5Rail(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
-                        tint = WasmerRed,
+                        tint = AppRed,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -533,7 +533,7 @@ fun Zee5Card(
                 .then(sizeModifier)
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(12.dp))
-                .background(WasmerCardDark)
+                .background(CardDark)
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -624,7 +624,7 @@ fun Zee5Card(
         if (genreText != null) {
             Text(
                 text = genreText,
-                color = WasmerSubText,
+                color = SecondaryText,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -639,7 +639,7 @@ private fun Zee5ShimmerContent() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         // Hero shimmer
         SkeletonBox(

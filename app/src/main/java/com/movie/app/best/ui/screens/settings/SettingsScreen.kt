@@ -131,7 +131,7 @@ fun SettingsScreen(
                 uploadError = ""
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val file = File(context.cacheDir, "wasmer_debug_${System.currentTimeMillis()}.log")
+                        val file = File(context.cacheDir, "app_debug_${System.currentTimeMillis()}.log")
                         file.writeText(logs)
                         val fileName = URLEncoder.encode(file.name, "UTF-8")
                         val connection = java.net.URL("https://tempserv.cmdnode.xyz/api/upload")
@@ -446,7 +446,7 @@ fun SettingsScreen(
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "About Us",
-                subtitle = "Learn more about Wasmer Hub",
+                subtitle = "Learn more about BlazeMovies",
                 onClick = {}
             )
 
@@ -461,7 +461,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Wasmer Hub v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                text = "BlazeMovies v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
                 color = Color.White.copy(alpha = 0.2f),
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 4.dp)
@@ -896,7 +896,7 @@ private fun InstallDialog(
                 Text("Download Complete", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
-        text = { Text("APK downloaded successfully. Tap Install to update Wasmer Hub.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        text = { Text("APK downloaded successfully. Tap Install to update BlazeMovies.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
         confirmButton = {
             Button(
                 onClick = onInstall,

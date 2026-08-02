@@ -87,7 +87,7 @@ sealed class Screen(val route: String) {
         }
     }
     object VideoPlayer : Screen("videoPlayer?playerUrl={playerUrl}&streamUrl={streamUrl}&title={title}&youtubeId={youtubeId}&movieId={movieId}&slug={slug}&isLive={isLive}&contentSource={contentSource}") {
-        fun createRoute(playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String = "", slug: String = "", isLive: Boolean = false, contentSource: String = "wasmer"): String {
+        fun createRoute(playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String = "", slug: String = "", isLive: Boolean = false, contentSource: String = "api"): String {
             return "videoPlayer?playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&streamUrl=${URLEncoder.encode(streamUrl, "UTF-8")}&title=${Uri.encode(title)}&youtubeId=${URLEncoder.encode(youtubeId, "UTF-8")}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&slug=${URLEncoder.encode(slug, "UTF-8")}&isLive=$isLive&contentSource=${URLEncoder.encode(contentSource, "UTF-8")}"
         }
     }
@@ -401,7 +401,7 @@ fun AppNavigation(
                 navArgument("movieId") { type = NavType.StringType; defaultValue = "" },
                 navArgument("slug") { type = NavType.StringType; defaultValue = "" },
                 navArgument("isLive") { type = NavType.BoolType; defaultValue = false },
-                navArgument("contentSource") { type = NavType.StringType; defaultValue = "wasmer" }
+                navArgument("contentSource") { type = NavType.StringType; defaultValue = "api" }
             )
         ) { backStackEntry ->
             val playerUrl = backStackEntry.arguments?.getString("playerUrl") ?: ""
@@ -411,7 +411,7 @@ fun AppNavigation(
             val movieId = backStackEntry.arguments?.getString("movieId") ?: ""
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
             val isLive = backStackEntry.arguments?.getBoolean("isLive") ?: false
-            val contentSource = backStackEntry.arguments?.getString("contentSource") ?: "wasmer"
+            val contentSource = backStackEntry.arguments?.getString("contentSource") ?: "api"
 
             VideoPlayerScreen(
                 onBackClick = { navController.popBackStack() },

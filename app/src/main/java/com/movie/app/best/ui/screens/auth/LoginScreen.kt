@@ -80,7 +80,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.painterResource
 import com.movie.app.best.R
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.AppRed
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.common.api.ApiException
@@ -153,7 +153,7 @@ fun LoginScreen(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            WasmerRed.copy(alpha = 0.15f),
+                            AppRed.copy(alpha = 0.15f),
                             Color.Transparent
                         )
                     )
@@ -261,9 +261,9 @@ fun LoginScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = WasmerRed,
+                            focusedBorderColor = AppRed,
                             unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                            cursorColor = WasmerRed,
+                            cursorColor = AppRed,
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         ),
@@ -281,9 +281,9 @@ fun LoginScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = WasmerRed,
+                            focusedBorderColor = AppRed,
                             unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                            cursorColor = WasmerRed,
+                            cursorColor = AppRed,
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         ),
@@ -309,9 +309,9 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = WasmerRed,
+                    focusedBorderColor = AppRed,
                     unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                    cursorColor = WasmerRed,
+                    cursorColor = AppRed,
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White
                 ),
@@ -354,9 +354,9 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = WasmerRed,
+                        focusedBorderColor = AppRed,
                         unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                        cursorColor = WasmerRed,
+                        cursorColor = AppRed,
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White
                     ),
@@ -395,7 +395,7 @@ fun LoginScreen(
                         ) {
                             Text(
                                 text = "Forgot Password?",
-                                color = WasmerRed.copy(alpha = 0.8f),
+                                color = AppRed.copy(alpha = 0.8f),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -483,7 +483,7 @@ fun LoginScreen(
                         }
                     },
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WasmerRed),
+                colors = ButtonDefaults.buttonColors(containerColor = AppRed),
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = 6.dp,
                     pressedElevation = 0.dp
@@ -561,7 +561,7 @@ fun LoginScreen(
                     TextButton(onClick = { viewModel.exitForgotPassword() }) {
                         Text(
                             text = "Sign In",
-                            color = WasmerRed,
+                            color = AppRed,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -575,7 +575,7 @@ fun LoginScreen(
                     TextButton(onClick = { viewModel.toggleMode() }) {
                         Text(
                             text = if (uiState.isRegisterMode) "Sign In" else "Sign Up",
-                            color = WasmerRed,
+                            color = AppRed,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
                         )

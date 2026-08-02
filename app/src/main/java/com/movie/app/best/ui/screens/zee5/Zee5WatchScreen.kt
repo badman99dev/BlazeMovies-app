@@ -57,10 +57,10 @@ import com.movie.app.best.data.model.Zee5Item
 import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.components.GlassBadge
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
-import com.movie.app.best.ui.theme.WasmerBlack
-import com.movie.app.best.ui.theme.WasmerCardDark
-import com.movie.app.best.ui.theme.WasmerRed
-import com.movie.app.best.ui.theme.WasmerSubText
+import com.movie.app.best.ui.theme.AppBlack
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
 import okhttp3.OkHttpClient
@@ -255,7 +255,7 @@ fun Zee5WatchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(WasmerBlack)
+            .background(AppBlack)
     ) {
         Box(
             modifier = Modifier
@@ -307,7 +307,7 @@ fun Zee5WatchScreen(
 
                     if (state.isFetchingStream) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(48.dp))
+                            CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Loading...",
@@ -329,7 +329,7 @@ fun Zee5WatchScreen(
                                 zee5PlayerErrorRetryCount = 0
                                 state.currentEpisode?.let { viewModel.onEpisodeClick(it) }
                             }) {
-                                Text("Retry", color = WasmerRed)
+                                Text("Retry", color = AppRed)
                             }
                         }
                     }
@@ -340,7 +340,7 @@ fun Zee5WatchScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(WasmerBlack)
+                .background(AppBlack)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             val title = state.currentEpisode?.title ?: state.detail?.title
@@ -360,7 +360,7 @@ fun Zee5WatchScreen(
                     state.detail?.releaseDate?.let {
                         Text(
                             text = it.take(4),
-                            color = WasmerSubText,
+                            color = SecondaryText,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -369,7 +369,7 @@ fun Zee5WatchScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .border(0.5.dp, WasmerSubText, RoundedCornerShape(4.dp))
+                                .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
@@ -383,7 +383,7 @@ fun Zee5WatchScreen(
                     state.detail?.languages?.firstOrNull()?.let { lang ->
                         Text(
                             text = lang,
-                            color = WasmerSubText,
+                            color = SecondaryText,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -391,7 +391,7 @@ fun Zee5WatchScreen(
                     state.currentEpisode?.episodeNumber?.let {
                         Text(
                             text = "Episode $it",
-                            color = WasmerSubText,
+                            color = SecondaryText,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -419,7 +419,7 @@ fun Zee5WatchScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(WasmerBlack)
+                    .background(AppBlack)
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -429,13 +429,13 @@ fun Zee5WatchScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .background(if (isSelected) WasmerRed else WasmerCardDark)
+                            .background(if (isSelected) AppRed else CardDark)
                             .clickable { season.id?.let { viewModel.selectSeason(it) } }
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = season.title ?: "Season ${season.seasonNumber}",
-                            color = if (isSelected) Color.White else WasmerSubText,
+                            color = if (isSelected) Color.White else SecondaryText,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
@@ -459,7 +459,7 @@ fun Zee5WatchScreen(
                         modifier = Modifier.fillMaxSize().padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No episodes available", color = WasmerSubText, fontSize = 14.sp)
+                        Text("No episodes available", color = SecondaryText, fontSize = 14.sp)
                     }
                 } else {
                     LazyColumn(
@@ -483,7 +483,7 @@ fun Zee5WatchScreen(
                                         .padding(16.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(color = WasmerRed, modifier = Modifier.size(24.dp))
+                                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(24.dp))
                                 }
                             }
                         }
@@ -519,7 +519,7 @@ fun Zee5WatchScreen(
                         modifier = Modifier.fillMaxSize().padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No recommendations available", color = WasmerSubText, fontSize = 14.sp)
+                        Text("No recommendations available", color = SecondaryText, fontSize = 14.sp)
                     }
                 }
             }
@@ -541,7 +541,7 @@ fun Zee5WatchEpisodeCard(
         label = "watch_ep_press"
     )
 
-    val titleColor = if (isPlaying) WasmerRed else Color.White
+    val titleColor = if (isPlaying) AppRed else Color.White
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -562,7 +562,7 @@ fun Zee5WatchEpisodeCard(
                     .width(140.dp)
                     .aspectRatio(16f / 9f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(WasmerCardDark)
+                    .background(CardDark)
             ) {
                 val thumbUrl = episode.effectiveLandscapeUrl ?: episode.effectiveImageUrl
                 if (thumbUrl != null) {
@@ -594,7 +594,7 @@ fun Zee5WatchEpisodeCard(
                             .align(Alignment.TopStart)
                             .padding(6.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(WasmerRed)
+                            .background(AppRed)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text("NOW PLAYING", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black)
@@ -640,7 +640,7 @@ fun Zee5WatchEpisodeCard(
 
                 if (meta.isNotEmpty()) {
                     Spacer(Modifier.height(4.dp))
-                    Text(meta, color = WasmerSubText, fontSize = 12.sp)
+                    Text(meta, color = SecondaryText, fontSize = 12.sp)
                 }
 
                 if (!episode.description.isNullOrBlank()) {
@@ -658,7 +658,7 @@ fun Zee5WatchEpisodeCard(
             Icon(
                 imageVector = Icons.Filled.Download,
                 contentDescription = "Download",
-                tint = WasmerSubText,
+                tint = SecondaryText,
                 modifier = Modifier.size(22.dp)
             )
         }

@@ -75,9 +75,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.movie.app.best.ui.theme.WasmerGreen
-import com.movie.app.best.ui.theme.WasmerPurple
-import com.movie.app.best.ui.theme.WasmerRed
+import com.movie.app.best.ui.theme.SuccessGreen
+import com.movie.app.best.ui.theme.AccentPurple
+import com.movie.app.best.ui.theme.AppRed
 import java.io.File
 
 data class LocalVideoFile(
@@ -97,11 +97,11 @@ internal fun formatFileSize(bytes: Long): String {
     }
 }
 
-fun scanWasmerHubVideos(context: Context): List<LocalVideoFile> {
+fun scanBlazeMoviesVideos(context: Context): List<LocalVideoFile> {
     val videoExts = setOf("mp4", "mkv", "avi", "webm", "mov", "flv", "3gp", "ts", "m4v")
     val dir = java.io.File(
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-        "WasmerHub"
+        "BlazeMovies"
     )
     if (!dir.exists() || !dir.isDirectory) return emptyList()
 
@@ -317,7 +317,7 @@ fun DownloadsScreen(
                             text = "READY TO PLAY",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = WasmerGreen,
+                            color = SuccessGreen,
                             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                         )
                     }
@@ -397,11 +397,11 @@ private fun UnifiedDownloadCard(
     onDelete: () -> Unit
 ) {
     val accentColor = when (item.phase) {
-        UnifiedDownloadPhase.COMPLETE -> WasmerGreen
-        UnifiedDownloadPhase.FAILED -> WasmerRed
+        UnifiedDownloadPhase.COMPLETE -> SuccessGreen
+        UnifiedDownloadPhase.FAILED -> AppRed
         UnifiedDownloadPhase.PAUSED -> Color(0xFFFFA000)
-        UnifiedDownloadPhase.EXTRACTING -> WasmerPurple
-        UnifiedDownloadPhase.DOWNLOADING -> if (item.isZip) WasmerPurple else MaterialTheme.colorScheme.primary
+        UnifiedDownloadPhase.EXTRACTING -> AccentPurple
+        UnifiedDownloadPhase.DOWNLOADING -> if (item.isZip) AccentPurple else MaterialTheme.colorScheme.primary
     }
 
     val statusText = when (item.phase) {
