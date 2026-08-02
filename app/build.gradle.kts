@@ -41,11 +41,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://wasmer-hub.vercel.app/v1/\"")
+            buildConfigField("String", "BASE_URL", "\"https://blazemovies.vercel.app/v1/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://wasmer-hub.vercel.app/v1/\"")
+            buildConfigField("String", "BASE_URL", "\"https://blazemovies.vercel.app/v1/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
     }

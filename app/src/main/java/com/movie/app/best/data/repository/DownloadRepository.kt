@@ -146,7 +146,7 @@ class DownloadRepository @Inject constructor(
 
         val headers = HashMap<String, String>().apply {
             put("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
-            put("Referer", "https://wasmer-hub.vercel.app/")
+            put("Referer", "https://blazemovies.vercel.app/")
             put("Accept", "*/*")
         }
 
@@ -174,7 +174,7 @@ class DownloadRepository @Inject constructor(
 
         val headers = HashMap<String, String>().apply {
             put("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
-            put("Referer", "https://wasmer-hub.vercel.app/")
+            put("Referer", "https://blazemovies.vercel.app/")
             put("Accept", "*/*")
         }
 

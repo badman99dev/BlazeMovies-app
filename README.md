@@ -153,7 +153,7 @@ The app connects to the BlazeMovies backend (PHP hosted on Vercel):
 
 ```kotlin
 // app/build.gradle.kts
-buildConfigField("String", "BASE_URL", "\"https://wasmer-hub.vercel.app/v1/\"")
+buildConfigField("String", "BASE_URL", "\"https://blazemovies.vercel.app/v1/\"")
 ```
 
 ### IMDb API
