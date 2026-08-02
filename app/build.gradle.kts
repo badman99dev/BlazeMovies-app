@@ -13,7 +13,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.wasmer.hub"
+        applicationId = "com.blazemovies.app"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

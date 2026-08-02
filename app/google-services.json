@@ -7,6 +7,43 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:191496010275:android:5bfd0c3ed1faa3a7894f96",
+        "android_client_info": {
+          "package_name": "com.blazemovies.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "191496010275-m0lpqrgp5gt8truliodu8nlaama3llq8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.blazemovies.app",
+            "certificate_hash": "8fb5bed29d07540be3e56d101b95728c4655f16f"
+          }
+        },
+        {
+          "client_id": "191496010275-1el0keetbtndhei2sn3ots6le8bta6ln.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSNUJkzYly72bN3Z0NaNNiJiaTli02iUk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "191496010275-1el0keetbtndhei2sn3ots6le8bta6ln.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:191496010275:android:71711904d15b0332894f96",
         "android_client_info": {
           "package_name": "com.wasmer.hub"
