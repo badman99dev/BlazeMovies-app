@@ -322,6 +322,8 @@ fun TVShowDetailScreen(
                     downloadLinks = sheetDownloadLinks,
                     downloadLoadingLinkId = uiState.downloadLoadingLinkId,
                     downloadLogs = uiState.downloadLogs,
+                    expandedLogsLinkId = uiState.expandedLogsLinkId,
+                    onToggleLogs = { linkId -> viewModel.toggleLogs(linkId) },
                     downloadPhase = uiState.downloadPhase,
                     downloadProgress = uiState.downloadProgress,
                     downloadError = uiState.downloadError,

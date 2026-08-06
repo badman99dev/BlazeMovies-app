@@ -197,9 +197,21 @@ class MovieDetailViewModel @Inject constructor(
         val slug = movie?.slug ?: ""
         val posterUrl = movie?.posterUrl ?: ""
         viewModelScope.launch {
-            _uiState.update { it.copy(downloadLoadingLinkId = linkId, downloadError = null, downloadPhase = DownloadPhase.NONE, downloadTitle = title, downloadLogs = emptyList()) }
+            _uiState.update {
+                it.copy(
+                    downloadLoadingLinkId = linkId,
+                    downloadError = null,
+                    downloadPhase = DownloadPhase.NONE,
+                    downloadTitle = title,
+                    downloadLogs = it.downloadLogs + (linkId to emptyList()),
+                    expandedLogsLinkId = linkId
+                )
+            }
             downloadRepository.resolveDownloadUrls(linkUrl, onLog = { line ->
-                _uiState.update { it.copy(downloadLogs = (it.downloadLogs + line).takeLast(200)) }
+                _uiState.update { state ->
+                    val prev = state.downloadLogs[linkId] ?: emptyList()
+                    state.copy(downloadLogs = state.downloadLogs + (linkId to (prev + line).takeLast(200)))
+                }
             }).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
@@ -349,6 +361,12 @@ class MovieDetailViewModel @Inject constructor(
     fun toggleExpandLink(linkId: Int?) {
         _uiState.update {
             it.copy(expandedLinkId = if (it.expandedLinkId == linkId) null else linkId)
+        }
+    }
+
+    fun toggleLogs(linkId: Int?) {
+        _uiState.update {
+            it.copy(expandedLogsLinkId = if (it.expandedLogsLinkId == linkId) null else linkId)
         }
     }
 
@@ -585,7 +603,8 @@ data class MovieDetailUiState(
     val downloadLoadingLinkId: Int? = null,
     val downloadStarted: Boolean = false,
     val downloadError: String? = null,
-    val downloadLogs: List<String> = emptyList(),
+    val downloadLogs: Map<Int?, List<String>> = emptyMap(),
+    val expandedLogsLinkId: Int? = null,
     val resolvedMirrors: Map<Int?, List<ResolvedMirror>> = emptyMap(),
     val expandedLinkId: Int? = null,
     val downloadPhase: DownloadPhase = DownloadPhase.NONE,

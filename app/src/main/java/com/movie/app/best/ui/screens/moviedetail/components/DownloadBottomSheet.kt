@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -66,7 +67,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 fun DownloadBottomSheetContent(
     downloadLinks: List<DownloadLink>,
     downloadLoadingLinkId: Int?,
-    downloadLogs: List<String> = emptyList(),
+    downloadLogs: Map<Int?, List<String>> = emptyMap(),
+    expandedLogsLinkId: Int? = null,
+    onToggleLogs: (Int?) -> Unit = {},
     downloadPhase: DownloadPhase,
     downloadProgress: Int,
     downloadError: String?,
@@ -175,7 +178,9 @@ fun DownloadBottomSheetContent(
                         DownloadLinkBottomSheetItem(
                             link = link,
                             isLoading = downloadLoadingLinkId == link.id,
-                            logs = if (downloadLoadingLinkId == link.id) downloadLogs else emptyList(),
+                            logs = downloadLogs[link.id] ?: emptyList(),
+                            logsExpanded = expandedLogsLinkId == link.id,
+                            onToggleLogs = { onToggleLogs(link.id) },
                             mirrors = resolvedMirrors[link.id],
                             isExpanded = expandedLinkId == link.id,
                             onDownload = { onStartDownload(link.linkUrl, link.id) },
@@ -437,6 +442,8 @@ private fun DownloadLinkBottomSheetItem(
     link: DownloadLink,
     isLoading: Boolean,
     logs: List<String> = emptyList(),
+    logsExpanded: Boolean = false,
+    onToggleLogs: () -> Unit = {},
     mirrors: List<ResolvedMirror>?,
     isExpanded: Boolean,
     onDownload: () -> Unit,
@@ -490,6 +497,32 @@ private fun DownloadLinkBottomSheetItem(
                         null,
                         tint = AppRed,
                         modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            if (logs.isNotEmpty()) {
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (logsExpanded) AccentPurple.copy(alpha = 0.25f)
+                            else Color.White.copy(alpha = 0.06f)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onToggleLogs
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (logsExpanded) Icons.Default.KeyboardArrowUp else Icons.Filled.Article,
+                        contentDescription = "View logs",
+                        tint = if (logsExpanded) Color(0xFFB388FF) else Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }
@@ -560,7 +593,7 @@ private fun DownloadLinkBottomSheetItem(
             }
         }
 
-        if (logs.isNotEmpty()) {
+        if (logsExpanded && logs.isNotEmpty()) {
             ProcessLogsPanel(logs = logs)
         }
 
