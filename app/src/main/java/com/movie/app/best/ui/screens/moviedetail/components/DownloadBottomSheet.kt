@@ -18,25 +18,36 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,11 +58,15 @@ import com.movie.app.best.data.repository.ResolvedMirror
 import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.ui.theme.AccentPurple
 import com.movie.app.best.ui.theme.AppRed
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.LocalClipboardManager
 
 @Composable
 fun DownloadBottomSheetContent(
     downloadLinks: List<DownloadLink>,
     downloadLoadingLinkId: Int?,
+    downloadLogs: List<String> = emptyList(),
     downloadPhase: DownloadPhase,
     downloadProgress: Int,
     downloadError: String?,
@@ -160,6 +175,7 @@ fun DownloadBottomSheetContent(
                         DownloadLinkBottomSheetItem(
                             link = link,
                             isLoading = downloadLoadingLinkId == link.id,
+                            logs = if (downloadLoadingLinkId == link.id) downloadLogs else emptyList(),
                             mirrors = resolvedMirrors[link.id],
                             isExpanded = expandedLinkId == link.id,
                             onDownload = { onStartDownload(link.linkUrl, link.id) },
@@ -420,6 +436,7 @@ private fun DownloadStatusPopup(
 private fun DownloadLinkBottomSheetItem(
     link: DownloadLink,
     isLoading: Boolean,
+    logs: List<String> = emptyList(),
     mirrors: List<ResolvedMirror>?,
     isExpanded: Boolean,
     onDownload: () -> Unit,
@@ -543,6 +560,10 @@ private fun DownloadLinkBottomSheetItem(
             }
         }
 
+        if (logs.isNotEmpty()) {
+            ProcessLogsPanel(logs = logs)
+        }
+
         AnimatedVisibility(
             visible = isExpanded && mirrors != null && mirrors.size > 1,
             enter = expandVertically(tween(200)) + fadeIn(tween(200)),
@@ -560,6 +581,150 @@ private fun DownloadLinkBottomSheetItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProcessLogsPanel(logs: List<String>) {
+    var expanded by rememberSaveable { mutableStateOf(true) }
+    var copied by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+    val listState = rememberLazyListState()
+    val infiniteTransition = rememberInfiniteTransition(label = "logPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "logPulseAlpha"
+    )
+
+    LaunchedEffect(logs.size) {
+        if (logs.isNotEmpty()) listState.animateScrollToItem(logs.size - 1)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF050507))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { expanded = !expanded }
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(AppRed.copy(alpha = pulseAlpha))
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "PROCESS LOGS",
+                color = Color(0xFF71717A),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp
+            )
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0xFF18181B))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = logs.size.toString(),
+                    color = Color(0xFFA1A1AA),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (copied) {
+                    Text(
+                        text = "Copied!",
+                        color = SuccessGreen,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                IconButton(
+                    onClick = {
+                        clipboard.setText(AnnotatedString(logs.joinToString("\n")))
+                        copied = true
+                    },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy logs",
+                        tint = Color(0xFF71717A),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = Color(0xFF3F3F46),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(tween(200)) + fadeIn(tween(200)),
+            exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 180.dp)
+                    .background(Color(0xFF050507))
+            ) {
+                items(logs) { line ->
+                    SelectionContainer {
+                        Text(
+                            text = line,
+                            color = logLineColor(line),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            lineHeight = 15.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 12.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun logLineColor(line: String): Color {
+    return when {
+        Regex("❌|error|fail|Error").containsMatchIn(line) -> Color(0xFFEF4444)
+        Regex("💎|✅|BINGO|success|Jackpot").containsMatchIn(line) -> Color(0xFF22C55E)
+        Regex("⚠️|warn").containsMatchIn(line) -> Color(0xFFEAB308)
+        else -> Color(0xFF71717A)
     }
 }
 

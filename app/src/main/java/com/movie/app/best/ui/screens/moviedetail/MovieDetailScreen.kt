@@ -154,6 +154,7 @@ fun MovieDetailScreen(
                 DownloadBottomSheetContent(
                     downloadLinks = uiState.downloadLinks,
                     downloadLoadingLinkId = uiState.downloadLoadingLinkId,
+                    downloadLogs = uiState.downloadLogs,
                     downloadPhase = uiState.downloadPhase,
                     downloadProgress = uiState.downloadProgress,
                     downloadError = uiState.downloadError,

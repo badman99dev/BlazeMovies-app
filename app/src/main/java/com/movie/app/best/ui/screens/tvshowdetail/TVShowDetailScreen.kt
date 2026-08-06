@@ -321,6 +321,7 @@ fun TVShowDetailScreen(
                 DownloadBottomSheetContent(
                     downloadLinks = sheetDownloadLinks,
                     downloadLoadingLinkId = uiState.downloadLoadingLinkId,
+                    downloadLogs = uiState.downloadLogs,
                     downloadPhase = uiState.downloadPhase,
                     downloadProgress = uiState.downloadProgress,
                     downloadError = uiState.downloadError,

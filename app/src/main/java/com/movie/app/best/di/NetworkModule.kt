@@ -117,10 +117,16 @@ object NetworkModule {
     @Provides
     @Singleton
     @Named("bypass")
-    fun provideBypassRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
+    fun provideBypassRetrofit(gson: com.google.gson.Gson): Retrofit {
+        val bypassClient = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(180, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(DebugInterceptor())
+            .build()
         return Retrofit.Builder()
-            .baseUrl("https://wasmer-link-v1.vercel.app/")
-            .client(okHttpClient)
+            .baseUrl("https://dl-agent.badman993944.workers.dev/")
+            .client(bypassClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }

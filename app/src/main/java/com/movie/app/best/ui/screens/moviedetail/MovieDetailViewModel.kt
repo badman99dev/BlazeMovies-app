@@ -197,8 +197,10 @@ class MovieDetailViewModel @Inject constructor(
         val slug = movie?.slug ?: ""
         val posterUrl = movie?.posterUrl ?: ""
         viewModelScope.launch {
-            _uiState.update { it.copy(downloadLoadingLinkId = linkId, downloadError = null, downloadPhase = DownloadPhase.NONE, downloadTitle = title) }
-            downloadRepository.resolveDownloadUrls(linkUrl).collect { result ->
+            _uiState.update { it.copy(downloadLoadingLinkId = linkId, downloadError = null, downloadPhase = DownloadPhase.NONE, downloadTitle = title, downloadLogs = emptyList()) }
+            downloadRepository.resolveDownloadUrls(linkUrl, onLog = { line ->
+                _uiState.update { it.copy(downloadLogs = (it.downloadLogs + line).takeLast(200)) }
+            }).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
                     is Resource.Success -> {
@@ -583,6 +585,7 @@ data class MovieDetailUiState(
     val downloadLoadingLinkId: Int? = null,
     val downloadStarted: Boolean = false,
     val downloadError: String? = null,
+    val downloadLogs: List<String> = emptyList(),
     val resolvedMirrors: Map<Int?, List<ResolvedMirror>> = emptyMap(),
     val expandedLinkId: Int? = null,
     val downloadPhase: DownloadPhase = DownloadPhase.NONE,
