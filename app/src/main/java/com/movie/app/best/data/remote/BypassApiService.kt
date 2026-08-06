@@ -8,7 +8,7 @@ import retrofit2.http.Streaming
 
 interface BypassApiService {
     @Streaming
-    @POST("")
+    @POST("/")
     suspend fun bypassUrl(@Body request: BypassRequest): ResponseBody
 }
 
