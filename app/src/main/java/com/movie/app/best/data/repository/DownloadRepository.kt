@@ -278,13 +278,17 @@ class DownloadRepository @Inject constructor(
         return id
     }
 
-    fun retryDownloadWithCookie(ketchId: Int, cookieHeader: String): Int? {
+    fun retryDownloadWithUrl(
+        ketchId: Int,
+        directUrl: String,
+        cookies: String? = null,
+        originUrl: String? = null
+    ): Int? {
         val allMeta = getAllMetadata()
         val meta = allMeta.find { it.ketchId == ketchId } ?: return null
-        val url = meta.url.ifBlank { return null }
 
-        val safeFileName = sanitizeFileName(meta?.fileName ?: extractFileNameFromUrl(url))
-        val isZip = meta?.isZip ?: false
+        val safeFileName = sanitizeFileName(meta.fileName.ifBlank { extractFileNameFromUrl(directUrl) })
+        val isZip = meta.isZip
         val downloadPath = if (isZip) {
             File(context.cacheDir, "app_zips").apply { if (!exists()) mkdirs() }.path
         } else {
@@ -300,26 +304,29 @@ class DownloadRepository @Inject constructor(
 
         val headers = HashMap<String, String>().apply {
             put("User-Agent", DOWNLOAD_USER_AGENT)
-            put("Referer", "https://blazemovies.vercel.app/")
+            put("Referer", originUrl ?: "https://blazemovies.vercel.app/")
             put("Accept", "*/*")
-            put("Cookie", cookieHeader)
+            if (cookies != null) put("Cookie", cookies)
         }
 
         val newId = ketch.download(
-            url = url,
+            url = directUrl,
             path = downloadPath,
             fileName = safeFileName,
             tag = "app_download",
             headers = headers
         )
 
-        if (meta != null) {
-            val metaKey = meta.slug + (meta.episodeLabel ?: "")
-            metadataStore.updateMetadata(metaKey) {
-                it.copy(ketchId = newId, status = "downloading", url = url, filePath = filePath)
-            }
+        val metaKey = meta.slug + (meta.episodeLabel ?: "")
+        metadataStore.updateMetadata(metaKey) {
+            it.copy(
+                ketchId = newId,
+                status = "downloading",
+                url = directUrl,
+                filePath = filePath
+            )
         }
-        NetworkLogger.logAction("DOWNLOAD_RETRY_BYPASS", "oldId=$ketchId newId=$newId host=${hostOf(url)}")
+        NetworkLogger.logAction("DOWNLOAD_RETRY_DIRECT", "oldId=$ketchId newId=$newId host=${hostOf(directUrl)}")
         return newId
     }
 

@@ -382,13 +382,20 @@ class MovieDetailViewModel @Inject constructor(
         _uiState.update { it.copy(downloadBypassLogs = (it.downloadBypassLogs + line).takeLast(200)) }
     }
 
-    fun onBypassSolved(cookie: String) {
+    fun onBypassSolved(result: com.movie.app.best.util.cf.ModuleResult) {
         val ketchId = _uiState.value.downloadKetchId ?: return
         val bypassMetaKey = _uiState.value.downloadBypassMetaKey
         val bypassUrl = _uiState.value.downloadBypassUrl ?: ""
         viewModelScope.launch {
-            if (bypassUrl.isNotBlank()) downloadRepository.cacheCookieForUrl(bypassUrl, cookie)
-            val newId = downloadRepository.retryDownloadWithCookie(ketchId, cookie)
+            if (bypassUrl.isNotBlank() && result.cookies != null) {
+                downloadRepository.cacheCookieForUrl(bypassUrl, result.cookies)
+            }
+            val newId = downloadRepository.retryDownloadWithUrl(
+                ketchId,
+                result.directUrl,
+                result.cookies,
+                originUrl = bypassUrl.ifBlank { null }
+            )
             _uiState.update {
                 it.copy(
                     downloadPhase = if (newId != null) DownloadPhase.DOWNLOADING else DownloadPhase.FAILED,

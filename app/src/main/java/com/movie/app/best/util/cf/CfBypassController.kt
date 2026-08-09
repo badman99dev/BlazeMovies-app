@@ -10,6 +10,28 @@ import java.net.URL
 
 class CfBypassController(private val activity: Activity) {
 
+    private val moduleRegistry = ModuleRegistry()
+
+    suspend fun solveAndExtractDirectUrl(
+        jackpotUrl: String,
+        onLog: (String) -> Unit
+    ): ModuleResult? {
+        val cookieHeader = solve(jackpotUrl, onLog) ?: run {
+            onLog("❌ Cloudflare solve failed — cannot extract direct URL")
+            return null
+        }
+        onLog("🍪 cf_clearance stored in CookieManager")
+
+        val module = moduleRegistry.findMatch(jackpotUrl)
+        return if (module != null) {
+            onLog("🎭 Module matched: ${module.tag}")
+            module.scrape(activity, jackpotUrl, onLog)
+        } else {
+            onLog("🔗 No host module — generic redirect follower")
+            RedirectFollower().follow(activity, jackpotUrl, onLog)
+        }
+    }
+
     suspend fun solve(
         jackpotUrl: String,
         onLog: (String) -> Unit

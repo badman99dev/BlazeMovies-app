@@ -184,7 +184,7 @@ fun MovieDetailScreen(
         CfBypassHost(
             bypassUrl = uiState.downloadBypassUrl,
             onLog = { line -> viewModel.appendBypassLog(line) },
-            onSolved = { cookie -> viewModel.onBypassSolved(cookie) },
+            onSolved = { result -> viewModel.onBypassSolved(result) },
             onFailed = { viewModel.onBypassFailed() }
         )
 

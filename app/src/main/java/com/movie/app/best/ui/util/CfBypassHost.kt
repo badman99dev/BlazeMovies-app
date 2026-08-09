@@ -44,13 +44,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.movie.app.best.ui.theme.AccentPurple
 import com.movie.app.best.util.cf.CfBypassController
+import com.movie.app.best.util.cf.ModuleResult
 import com.movie.app.best.util.findActivity
 
 @Composable
 fun CfBypassHost(
     bypassUrl: String?,
     onLog: (String) -> Unit,
-    onSolved: (String) -> Unit,
+    onSolved: (ModuleResult) -> Unit,
     onFailed: () -> Unit
 ) {
     val context = LocalContext.current
@@ -69,8 +70,8 @@ fun CfBypassHost(
         }
         onLog("🛡 Cloudflare challenge detected — bypassing…")
         val controller = CfBypassController(activity as Activity)
-        val cookie = controller.solve(url) { line -> onLog(line) }
-        if (cookie != null) onSolved(cookie) else onFailed()
+        val result = controller.solveAndExtractDirectUrl(url) { line -> onLog(line) }
+        if (result != null) onSolved(result) else onFailed()
     }
 }
 

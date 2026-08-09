@@ -352,7 +352,7 @@ fun DownloadsScreen(
                 CfBypassHost(
                     bypassUrl = bypass.url,
                     onLog = { line -> viewModel.appendBypassLog(ketchId, line) },
-                    onSolved = { cookie -> viewModel.onBypassSolved(ketchId, cookie) },
+                    onSolved = { result -> viewModel.onBypassSolved(ketchId, result) },
                     onFailed = { viewModel.onBypassFailed(ketchId) }
                 )
             }

@@ -443,11 +443,18 @@ class DownloadsViewModel @Inject constructor(
         refreshUiState()
     }
 
-    fun onBypassSolved(ketchId: Int, cookie: String) {
+    fun onBypassSolved(ketchId: Int, result: com.movie.app.best.util.cf.ModuleResult) {
         val url = bypassingIds.remove(ketchId) ?: ""
         viewModelScope.launch {
-            if (url.isNotBlank()) repository.cacheCookieForUrl(url, cookie)
-            val newId = repository.retryDownloadWithCookie(ketchId, cookie)
+            if (url.isNotBlank() && result.cookies != null) {
+                repository.cacheCookieForUrl(url, result.cookies)
+            }
+            val newId = repository.retryDownloadWithUrl(
+                ketchId,
+                result.directUrl,
+                result.cookies,
+                originUrl = url.ifBlank { null }
+            )
             bypassLogs.remove(ketchId)
             if (newId != null) processedKetchIds.remove(ketchId)
             refreshUiState()
