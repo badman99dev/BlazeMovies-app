@@ -62,6 +62,7 @@ import com.movie.app.best.ui.theme.AppRed
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.LocalClipboardManager
+import com.movie.app.best.ui.util.BypassingCloudflarePopup
 
 @Composable
 fun DownloadBottomSheetContent(
@@ -83,6 +84,7 @@ fun DownloadBottomSheetContent(
     onGoToDownloads: () -> Unit = {},
     isZip: Boolean = false,
     extractionProgress: Int = 0,
+    bypassLogs: List<String> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -147,7 +149,8 @@ fun DownloadBottomSheetContent(
                 failureReason = downloadFailureReason,
                 onGoToDownloads = onGoToDownloads,
                 isZip = isZip,
-                extractionProgress = extractionProgress
+                extractionProgress = extractionProgress,
+                bypassLogs = bypassLogs
             )
         }
 
@@ -213,8 +216,13 @@ private fun DownloadStatusPopup(
     failureReason: String?,
     onGoToDownloads: () -> Unit,
     isZip: Boolean = false,
-    extractionProgress: Int = 0
+    extractionProgress: Int = 0,
+    bypassLogs: List<String> = emptyList()
 ) {
+    if (phase == DownloadPhase.BYPASSING) {
+        BypassingCloudflarePopup(logs = bypassLogs)
+        return
+    }
     val infiniteTransition = rememberInfiniteTransition(label = "capsule")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,

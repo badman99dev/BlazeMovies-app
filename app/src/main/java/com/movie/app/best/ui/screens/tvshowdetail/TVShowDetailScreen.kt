@@ -100,6 +100,7 @@ import com.movie.app.best.ui.screens.moviedetail.components.ExpandableDescriptio
 import com.movie.app.best.ui.screens.moviedetail.components.CastSection
 import com.movie.app.best.ui.screens.moviedetail.components.TrailersRow
 import com.movie.app.best.ui.screens.moviedetail.components.DownloadBottomSheetContent
+import com.movie.app.best.ui.util.CfBypassHost
 import com.movie.app.best.ui.screens.moviedetail.components.DownloadStatusChip
 import com.movie.app.best.ui.screens.moviedetail.components.ReportDrawer
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestWaitingPopup
@@ -341,10 +342,18 @@ fun TVShowDetailScreen(
                         onGoToDownloads()
                     },
                     isZip = uiState.downloadIsZip,
-                    extractionProgress = uiState.downloadExtractionProgress
+                    extractionProgress = uiState.downloadExtractionProgress,
+                    bypassLogs = uiState.downloadBypassLogs
                 )
             }
         }
+
+        CfBypassHost(
+            bypassUrl = uiState.downloadBypassUrl,
+            onLog = { line -> viewModel.appendBypassLog(line) },
+            onSolved = { cookie -> viewModel.onBypassSolved(cookie) },
+            onFailed = { viewModel.onBypassFailed() }
+        )
     }
 }
 

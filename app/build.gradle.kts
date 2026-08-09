@@ -95,6 +95,9 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
+
+    // Cloudflare bypass solver (on-device cf_clearance acquisition)
+    implementation(libs.cflib)
     
     // Image loading
     implementation(libs.coil.compose)

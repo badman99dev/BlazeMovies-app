@@ -28,6 +28,7 @@ import com.movie.app.best.ui.components.SkeletonDetailPage
 import com.movie.app.best.ui.components.StorylineWarningBadge
 import com.movie.app.best.ui.screens.moviedetail.components.*
 import com.movie.app.best.data.model.DownloadPhase
+import com.movie.app.best.ui.util.CfBypassHost
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -174,10 +175,18 @@ fun MovieDetailScreen(
                         onGoToDownloads()
                     },
                     isZip = uiState.downloadIsZip,
-                    extractionProgress = uiState.downloadExtractionProgress
+                    extractionProgress = uiState.downloadExtractionProgress,
+                    bypassLogs = uiState.downloadBypassLogs
                 )
             }
         }
+
+        CfBypassHost(
+            bypassUrl = uiState.downloadBypassUrl,
+            onLog = { line -> viewModel.appendBypassLog(line) },
+            onSolved = { cookie -> viewModel.onBypassSolved(cookie) },
+            onFailed = { viewModel.onBypassFailed() }
+        )
 
         if (uiState.showReportDrawer) {
             androidx.compose.material3.ModalBottomSheet(

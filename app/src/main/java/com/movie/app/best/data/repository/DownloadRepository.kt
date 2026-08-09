@@ -27,9 +27,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import okhttp3.ResponseBody
 import java.io.File
+import java.net.URL
 import java.util.Collections
 import javax.inject.Inject
 import javax.inject.Singleton
+
+const val DOWNLOAD_USER_AGENT =
+    "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
+
+private data class CachedCookie(val header: String, val expiresAtMs: Long)
 
 data class ResolvedMirror(
     val jackpot: String,
@@ -60,6 +66,32 @@ class DownloadRepository @Inject constructor(
 ) {
 
     private val extractingKeys = Collections.synchronizedSet(mutableSetOf<String>())
+    private val cookieCache = Collections.synchronizedMap(mutableMapOf<String, CachedCookie>())
+
+    private fun hostOf(url: String): String? = runCatching { URL(url).host }.getOrNull()
+
+    fun cookieHeaderForUrl(url: String): String? {
+        val host = hostOf(url) ?: return null
+        val cached = cookieCache[host] ?: return null
+        if (System.currentTimeMillis() > cached.expiresAtMs) {
+            cookieCache.remove(host)
+            return null
+        }
+        return cached.header
+    }
+
+    fun cacheCookieForUrl(url: String, header: String) {
+        val host = hostOf(url) ?: return
+        cookieCache[host] = CachedCookie(header, System.currentTimeMillis() + 1_700_000L)
+    }
+
+    fun isCloudflareFailure(reason: String?): Boolean {
+        if (reason.isNullOrBlank()) return false
+        val r = reason.lowercase()
+        return r.contains("403") || r.contains("forbidden") ||
+            r.contains("cloudflare") || r.contains("just a moment")
+    }
+
     fun resolveDownloadUrls(linkUrl: String, onLog: (String) -> Unit = {}): Flow<Resource<List<ResolvedMirror>>> = flow {
         emit(Resource.Loading())
         try {
@@ -192,14 +224,17 @@ class DownloadRepository @Inject constructor(
             contentType = contentType,
             episodeId = episodeId,
             episodeLabel = episodeLabel,
-            status = "initializing"
+            status = "initializing",
+            url = mirror.jackpot,
+            bypassAttempts = 0
         )
         metadataStore.saveMetadata(metadata)
 
         val headers = HashMap<String, String>().apply {
-            put("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
+            put("User-Agent", DOWNLOAD_USER_AGENT)
             put("Referer", "https://blazemovies.vercel.app/")
             put("Accept", "*/*")
+            cookieHeaderForUrl(mirror.jackpot)?.let { put("Cookie", it) }
         }
 
         val id = ketch.download(
@@ -225,9 +260,10 @@ class DownloadRepository @Inject constructor(
         ).apply { if (!exists()) mkdirs() }.path
 
         val headers = HashMap<String, String>().apply {
-            put("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
+            put("User-Agent", DOWNLOAD_USER_AGENT)
             put("Referer", "https://blazemovies.vercel.app/")
             put("Accept", "*/*")
+            cookieHeaderForUrl(url)?.let { put("Cookie", it) }
         }
 
         val id = ketch.download(
@@ -240,6 +276,51 @@ class DownloadRepository @Inject constructor(
 
         NetworkLogger.logAction("DOWNLOAD_QUEUED", "id=$id file=$actualFileName")
         return id
+    }
+
+    fun retryDownloadWithCookie(ketchId: Int, cookieHeader: String): Int? {
+        val allMeta = getAllMetadata()
+        val meta = allMeta.find { it.ketchId == ketchId } ?: return null
+        val url = meta.url.ifBlank { return null }
+
+        val safeFileName = sanitizeFileName(meta?.fileName ?: extractFileNameFromUrl(url))
+        val isZip = meta?.isZip ?: false
+        val downloadPath = if (isZip) {
+            File(context.cacheDir, "app_zips").apply { if (!exists()) mkdirs() }.path
+        } else {
+            File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "BlazeMovies"
+            ).apply { if (!exists()) mkdirs() }.path
+        }
+        val filePath = File(downloadPath, safeFileName).path
+
+        try { ketch.cancel(ketchId) } catch (_: Exception) {}
+        try { ketch.clearDb(ketchId) } catch (_: Exception) {}
+
+        val headers = HashMap<String, String>().apply {
+            put("User-Agent", DOWNLOAD_USER_AGENT)
+            put("Referer", "https://blazemovies.vercel.app/")
+            put("Accept", "*/*")
+            put("Cookie", cookieHeader)
+        }
+
+        val newId = ketch.download(
+            url = url,
+            path = downloadPath,
+            fileName = safeFileName,
+            tag = "app_download",
+            headers = headers
+        )
+
+        if (meta != null) {
+            val metaKey = meta.slug + (meta.episodeLabel ?: "")
+            metadataStore.updateMetadata(metaKey) {
+                it.copy(ketchId = newId, status = "downloading", url = url, filePath = filePath)
+            }
+        }
+        NetworkLogger.logAction("DOWNLOAD_RETRY_BYPASS", "oldId=$ketchId newId=$newId host=${hostOf(url)}")
+        return newId
     }
 
     fun observeDownloads(): Flow<List<DownloadModel>> {

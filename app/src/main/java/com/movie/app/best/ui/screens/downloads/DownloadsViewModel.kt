@@ -39,15 +39,22 @@ data class UnifiedDownloadItem(
     val slug: String,
     val failureReason: String?,
     val episodeCount: Int,
-    val extractionProgress: Int = 0
+    val extractionProgress: Int = 0,
+    val bypassUrl: String? = null
 )
 
 enum class UnifiedDownloadPhase {
-    DOWNLOADING, PAUSED, EXTRACTING, COMPLETE, FAILED
+    DOWNLOADING, PAUSED, BYPASSING, EXTRACTING, COMPLETE, FAILED
 }
+
+data class BypassItem(
+    val url: String,
+    val logs: List<String> = emptyList()
+)
 
 data class DownloadsUiState(
     val unifiedDownloads: List<UnifiedDownloadItem> = emptyList(),
+    val bypassing: Map<Int, BypassItem> = emptyMap(),
     val isResolving: Boolean = false,
     val resolveError: String? = null,
     val resolveSuccess: Boolean = false,
@@ -64,6 +71,8 @@ class DownloadsViewModel @Inject constructor(
     val uiState: StateFlow<DownloadsUiState> = _uiState.asStateFlow()
 
     private val processedKetchIds = mutableSetOf<Int>()
+    private val bypassingIds = mutableMapOf<Int, String>()
+    private val bypassLogs = mutableMapOf<Int, MutableList<String>>()
 
     init {
         rescanDownloads()
@@ -87,9 +96,10 @@ class DownloadsViewModel @Inject constructor(
                 val isZip = meta?.isZip ?: false
                 val phase = when (dl.status) {
                     Status.PAUSED -> UnifiedDownloadPhase.PAUSED
-                    Status.FAILED -> UnifiedDownloadPhase.FAILED
+                    Status.FAILED -> if (dl.id in bypassingIds) UnifiedDownloadPhase.BYPASSING else UnifiedDownloadPhase.FAILED
                     else -> UnifiedDownloadPhase.DOWNLOADING
                 }
+                val bypassUrl = if (phase == UnifiedDownloadPhase.BYPASSING) bypassingIds[dl.id] else null
                 result.add(
                     UnifiedDownloadItem(
                         id = "ketch_${dl.id}",
@@ -106,8 +116,9 @@ class DownloadsViewModel @Inject constructor(
                         filePath = meta?.filePath ?: "",
                         extractPath = meta?.extractPath,
                         slug = meta?.slug ?: "",
-                        failureReason = if (dl.status == Status.FAILED) dl.failureReason else null,
-                        episodeCount = 0
+                        failureReason = if (dl.status == Status.FAILED && phase != UnifiedDownloadPhase.BYPASSING) dl.failureReason else null,
+                        episodeCount = 0,
+                        bypassUrl = bypassUrl
                     )
                 )
             }
@@ -225,9 +236,10 @@ class DownloadsViewModel @Inject constructor(
             when (item.phase) {
                 UnifiedDownloadPhase.DOWNLOADING -> 0
                 UnifiedDownloadPhase.PAUSED -> 1
-                UnifiedDownloadPhase.FAILED -> 2
-                UnifiedDownloadPhase.EXTRACTING -> 3
-                UnifiedDownloadPhase.COMPLETE -> 4
+                UnifiedDownloadPhase.BYPASSING -> 2
+                UnifiedDownloadPhase.FAILED -> 3
+                UnifiedDownloadPhase.EXTRACTING -> 4
+                UnifiedDownloadPhase.COMPLETE -> 5
             }
         }
     }
@@ -243,8 +255,11 @@ class DownloadsViewModel @Inject constructor(
 
     private fun refreshUiState(downloads: List<DownloadModel>? = null) {
         val unified = buildUnifiedList(downloads)
+        val bypassing = bypassingIds.map { (id, url) ->
+            id to BypassItem(url, bypassLogs[id]?.toList() ?: emptyList())
+        }.toMap()
         _uiState.update {
-            it.copy(unifiedDownloads = unified)
+            it.copy(unifiedDownloads = unified, bypassing = bypassing)
         }
     }
 
@@ -262,6 +277,26 @@ class DownloadsViewModel @Inject constructor(
                             repository.saveMetadataDirect(metaKey, meta.copy(status = "extracting"))
                         }
                         checkAndExtractZip(dl.id, dl.fileName)
+                    }
+                }
+
+                downloads.filter { it.status == Status.FAILED }.forEach { dl ->
+                    if (dl.id !in bypassingIds && dl.id !in processedKetchIds) {
+                        val meta = repository.getAllMetadata().find { it.ketchId == dl.id }
+                        val url = meta?.url
+                        val alreadyBypassed = (meta?.bypassAttempts ?: 0) >= 1
+                        if (!alreadyBypassed && !url.isNullOrBlank() &&
+                            repository.isCloudflareFailure(dl.failureReason)
+                        ) {
+                            processedKetchIds.add(dl.id)
+                            if (meta != null) {
+                                val metaKey = meta.slug + (meta.episodeLabel ?: "")
+                                repository.saveMetadataDirect(metaKey, meta.copy(bypassAttempts = 1))
+                            }
+                            bypassingIds[dl.id] = url
+                            bypassLogs[dl.id] = mutableListOf()
+                            com.movie.app.best.data.debug.NetworkLogger.logAction("CF_BYPASS_TRIGGER_DL", "ketchId=${dl.id} host=$url")
+                        }
                     }
                 }
 
@@ -400,4 +435,28 @@ class DownloadsViewModel @Inject constructor(
     fun cancelDownload(id: Int) { repository.cancelDownload(id) }
     fun retryDownload(id: Int) { repository.retryDownload(id) }
     fun deleteDownload(id: Int) { repository.deleteDownload(id) }
+
+    fun appendBypassLog(ketchId: Int, line: String) {
+        val logs = bypassLogs.getOrPut(ketchId) { mutableListOf() }
+        logs.add(line)
+        if (logs.size > 200) logs.subList(0, logs.size - 200).clear()
+        refreshUiState()
+    }
+
+    fun onBypassSolved(ketchId: Int, cookie: String) {
+        val url = bypassingIds.remove(ketchId) ?: ""
+        viewModelScope.launch {
+            if (url.isNotBlank()) repository.cacheCookieForUrl(url, cookie)
+            val newId = repository.retryDownloadWithCookie(ketchId, cookie)
+            bypassLogs.remove(ketchId)
+            if (newId != null) processedKetchIds.remove(ketchId)
+            refreshUiState()
+        }
+    }
+
+    fun onBypassFailed(ketchId: Int) {
+        bypassingIds.remove(ketchId)
+        bypassLogs.remove(ketchId)
+        refreshUiState()
+    }
 }

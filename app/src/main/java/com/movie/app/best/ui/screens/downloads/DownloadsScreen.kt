@@ -78,6 +78,7 @@ import coil.compose.AsyncImage
 import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.ui.theme.AccentPurple
 import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.util.CfBypassHost
 import java.io.File
 
 data class LocalVideoFile(
@@ -190,10 +191,12 @@ fun DownloadsScreen(
     val downloadingItems = unified.filter {
         it.phase == UnifiedDownloadPhase.DOWNLOADING ||
         it.phase == UnifiedDownloadPhase.PAUSED ||
+        it.phase == UnifiedDownloadPhase.BYPASSING ||
         it.phase == UnifiedDownloadPhase.FAILED ||
         it.phase == UnifiedDownloadPhase.EXTRACTING
     }
     val readyItems = unified.filter { it.phase == UnifiedDownloadPhase.COMPLETE }
+    val bypassingItems = uiState.bypassing
 
     Column(
         modifier = Modifier
@@ -343,6 +346,17 @@ fun DownloadsScreen(
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
+
+        bypassingItems.forEach { (ketchId, bypass) ->
+            if (bypass.url.isNotBlank()) {
+                CfBypassHost(
+                    bypassUrl = bypass.url,
+                    onLog = { line -> viewModel.appendBypassLog(ketchId, line) },
+                    onSolved = { cookie -> viewModel.onBypassSolved(ketchId, cookie) },
+                    onFailed = { viewModel.onBypassFailed(ketchId) }
+                )
+            }
+        }
     }
 
     showDeleteDialog?.let { item ->
@@ -399,6 +413,7 @@ private fun UnifiedDownloadCard(
     val accentColor = when (item.phase) {
         UnifiedDownloadPhase.COMPLETE -> SuccessGreen
         UnifiedDownloadPhase.FAILED -> AppRed
+        UnifiedDownloadPhase.BYPASSING -> AccentPurple
         UnifiedDownloadPhase.PAUSED -> Color(0xFFFFA000)
         UnifiedDownloadPhase.EXTRACTING -> AccentPurple
         UnifiedDownloadPhase.DOWNLOADING -> if (item.isZip) AccentPurple else MaterialTheme.colorScheme.primary
@@ -407,6 +422,7 @@ private fun UnifiedDownloadCard(
     val statusText = when (item.phase) {
         UnifiedDownloadPhase.DOWNLOADING -> "Downloading ${item.progress}%"
         UnifiedDownloadPhase.PAUSED -> "Paused ${item.progress}%"
+        UnifiedDownloadPhase.BYPASSING -> "Bypassing Cloudflare…"
         UnifiedDownloadPhase.EXTRACTING -> "Unpacking ${item.extractionProgress}%"
         UnifiedDownloadPhase.COMPLETE -> "Ready to Play"
         UnifiedDownloadPhase.FAILED -> "Download Failed"
@@ -419,6 +435,7 @@ private fun UnifiedDownloadCard(
             if (sizeText.isNotEmpty()) "$speed  •  $sizeText" else speed
         }
         UnifiedDownloadPhase.PAUSED -> if (item.totalBytes > 0) "${formatFileSize(item.downloadedBytes)} / ${formatFileSize(item.totalBytes)}" else "Paused"
+        UnifiedDownloadPhase.BYPASSING -> "Solving Cloudflare challenge"
         UnifiedDownloadPhase.EXTRACTING -> "Preparing episodes"
         UnifiedDownloadPhase.COMPLETE -> if (item.isZip) "${item.episodeCount} episodes ready" else formatFileSize(item.totalBytes)
         UnifiedDownloadPhase.FAILED -> item.failureReason ?: "An error occurred"
@@ -556,6 +573,13 @@ private fun UnifiedDownloadCard(
                             IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
                                 Icon(Icons.Default.Close, "Cancel", tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
                             }
+                        }
+                        UnifiedDownloadPhase.BYPASSING -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = accentColor,
+                                strokeWidth = 2.dp
+                            )
                         }
                         UnifiedDownloadPhase.FAILED -> {
                             IconButton(onClick = onRetry, modifier = Modifier.size(32.dp)) {

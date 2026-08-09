@@ -312,8 +312,28 @@ class TVShowDetailViewModel @Inject constructor(
                         }
                     }
                     DownloadPhase.FAILED -> {
-                        _uiState.update {
-                            it.copy(downloadPhase = DownloadPhase.FAILED, downloadFailureReason = statusInfo.failureReason, downloadStarted = false)
+                        val reason = statusInfo.failureReason
+                        val meta = downloadRepository.getMetadata(metaKey)
+                        val url = meta?.url
+                        val alreadyBypassed = (meta?.bypassAttempts ?: 0) >= 1
+                        if (downloadRepository.isCloudflareFailure(reason) && !alreadyBypassed && !url.isNullOrBlank()) {
+                            meta?.let { downloadRepository.saveMetadataDirect(metaKey, it.copy(bypassAttempts = 1)) }
+                            _uiState.update {
+                                it.copy(
+                                    downloadPhase = DownloadPhase.BYPASSING,
+                                    downloadBypassUrl = url,
+                                    downloadBypassLogs = emptyList(),
+                                    downloadBypassMetaKey = metaKey,
+                                    downloadKetchId = ketchId,
+                                    downloadStarted = true,
+                                    downloadFailureReason = reason
+                                )
+                            }
+                            com.movie.app.best.data.debug.NetworkLogger.logAction("CF_BYPASS_TRIGGER_TV", "ketchId=$ketchId host=$url")
+                        } else {
+                            _uiState.update {
+                                it.copy(downloadPhase = DownloadPhase.FAILED, downloadFailureReason = reason, downloadStarted = false)
+                            }
                         }
                     }
                     DownloadPhase.DOWNLOADING -> {
@@ -330,6 +350,45 @@ class TVShowDetailViewModel @Inject constructor(
                     else -> {}
                 }
             }
+        }
+    }
+
+    fun appendBypassLog(line: String) {
+        _uiState.update { it.copy(downloadBypassLogs = (it.downloadBypassLogs + line).takeLast(200)) }
+    }
+
+    fun onBypassSolved(cookie: String) {
+        val ketchId = _uiState.value.downloadKetchId ?: return
+        val bypassMetaKey = _uiState.value.downloadBypassMetaKey
+        val bypassUrl = _uiState.value.downloadBypassUrl ?: ""
+        viewModelScope.launch {
+            if (bypassUrl.isNotBlank()) downloadRepository.cacheCookieForUrl(bypassUrl, cookie)
+            val newId = downloadRepository.retryDownloadWithCookie(ketchId, cookie)
+            _uiState.update {
+                it.copy(
+                    downloadPhase = if (newId != null) DownloadPhase.DOWNLOADING else DownloadPhase.FAILED,
+                    downloadBypassUrl = null,
+                    downloadBypassLogs = emptyList(),
+                    downloadBypassMetaKey = "",
+                    downloadKetchId = newId,
+                    downloadStarted = newId != null,
+                    downloadError = if (newId == null) "Bypass retry failed" else null
+                )
+            }
+            if (newId != null && bypassMetaKey.isNotBlank()) observeDownloadStatus(newId, bypassMetaKey)
+        }
+    }
+
+    fun onBypassFailed() {
+        _uiState.update {
+            it.copy(
+                downloadPhase = DownloadPhase.FAILED,
+                downloadBypassUrl = null,
+                downloadBypassLogs = emptyList(),
+                downloadBypassMetaKey = "",
+                downloadStarted = false,
+                downloadFailureReason = "Cloudflare bypass failed — 403"
+            )
         }
     }
 
@@ -594,6 +653,9 @@ data class TVShowDetailUiState(
     val downloadTitle: String = "",
     val downloadStartedLinkIds: Set<Int> = emptySet(),
     val downloadExtractionProgress: Int = 0,
+    val downloadBypassUrl: String? = null,
+    val downloadBypassLogs: List<String> = emptyList(),
+    val downloadBypassMetaKey: String = "",
 
     val isBookmarked: Boolean = false,
     val isLiked: Boolean = false,
