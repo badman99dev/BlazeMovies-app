@@ -453,7 +453,8 @@ class DownloadsViewModel @Inject constructor(
                 ketchId,
                 result.directUrl,
                 result.cookies,
-                originUrl = url.ifBlank { null }
+                originUrl = url.ifBlank { null },
+                fileNameOverride = result.fileName
             )
             bypassLogs.remove(ketchId)
             if (newId != null) processedKetchIds.remove(ketchId)

@@ -369,7 +369,8 @@ class TVShowDetailViewModel @Inject constructor(
                 ketchId,
                 result.directUrl,
                 result.cookies,
-                originUrl = bypassUrl.ifBlank { null }
+                originUrl = bypassUrl.ifBlank { null },
+                fileNameOverride = result.fileName
             )
             _uiState.update {
                 it.copy(

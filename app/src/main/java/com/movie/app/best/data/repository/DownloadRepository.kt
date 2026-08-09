@@ -282,13 +282,19 @@ class DownloadRepository @Inject constructor(
         ketchId: Int,
         directUrl: String,
         cookies: String? = null,
-        originUrl: String? = null
+        originUrl: String? = null,
+        fileNameOverride: String? = null
     ): Int? {
         val allMeta = getAllMetadata()
         val meta = allMeta.find { it.ketchId == ketchId } ?: return null
 
-        val safeFileName = sanitizeFileName(meta.fileName.ifBlank { extractFileNameFromUrl(directUrl) })
-        val isZip = meta.isZip
+        val safeFileName = sanitizeFileName(
+            if (!fileNameOverride.isNullOrBlank() && fileNameOverride.contains("."))
+                fileNameOverride
+            else
+                meta.fileName.ifBlank { extractFileNameFromUrl(directUrl) }
+        )
+        val isZip = isZipFileName(safeFileName)
         val downloadPath = if (isZip) {
             File(context.cacheDir, "app_zips").apply { if (!exists()) mkdirs() }.path
         } else {
@@ -323,10 +329,12 @@ class DownloadRepository @Inject constructor(
                 ketchId = newId,
                 status = "downloading",
                 url = directUrl,
-                filePath = filePath
+                fileName = safeFileName,
+                filePath = filePath,
+                isZip = isZip
             )
         }
-        NetworkLogger.logAction("DOWNLOAD_RETRY_DIRECT", "oldId=$ketchId newId=$newId host=${hostOf(directUrl)}")
+        NetworkLogger.logAction("DOWNLOAD_RETRY_DIRECT", "oldId=$ketchId newId=$newId host=${hostOf(directUrl)} file=$safeFileName")
         return newId
     }
 
