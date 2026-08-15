@@ -86,6 +86,7 @@ class CategoryPageViewModel @Inject constructor(
     private var currentCategorySlug: String? = null
 
     fun loadMovies(categorySlug: String, offset: Int = 0) {
+        if (categorySlug == currentCategorySlug && offset == 0 && _uiState.value.movies.isNotEmpty()) return
         currentCategorySlug = categorySlug
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
