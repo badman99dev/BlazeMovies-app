@@ -22,7 +22,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import okhttp3.Authenticator
 import okhttp3.Interceptor
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.Route
+import com.google.firebase.auth.FirebaseAuth
+import com.google.android.gms.tasks.Tasks
 import javax.inject.Named
 
 @Module
@@ -72,8 +78,7 @@ object NetworkModule {
     @Named("auth")
     fun provideAuthInterceptor(@ApplicationContext context: Context): Interceptor {
         return Interceptor { chain ->
-            val prefs = context.getSharedPreferences("app_auth", Context.MODE_PRIVATE)
-            val token = prefs.getString("token", null)
+            val token = getLiveFirebaseToken(context)
             val request = if (token != null) {
                 chain.request().newBuilder()
                     .header("Authorization", "Bearer $token")
@@ -85,18 +90,31 @@ object NetworkModule {
         }
     }
 
+    private fun getLiveFirebaseToken(context: Context): String? {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            try {
+                return Tasks.await(user.getIdToken(false), 30, TimeUnit.SECONDS)?.token
+            } catch (_: Exception) {}
+        }
+        return context.getSharedPreferences("app_auth", Context.MODE_PRIVATE)
+            .getString("token", null)
+    }
+
     @Provides
     @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
         @Named("userAgent") userAgentInterceptor: Interceptor,
-        @Named("auth") authInterceptor: Interceptor
+        @Named("auth") authInterceptor: Interceptor,
+        @ApplicationContext context: Context
     ): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(userAgentInterceptor)
             .addInterceptor(loggingInterceptor)
             .addInterceptor(DebugInterceptor())
+            .authenticator(FirebaseTokenAuthenticator(context))
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -210,5 +228,22 @@ object NetworkModule {
         zee5Api: com.movie.app.best.data.remote.Zee5ApiService
     ): Zee5TokenRepository {
         return Zee5TokenRepository(zee5Api)
+    }
+}
+
+class FirebaseTokenAuthenticator(
+    @ApplicationContext private val context: Context
+) : Authenticator {
+    override fun authenticate(route: Route?, response: Response): Request? {
+        if (response.priorResponse != null) return null
+        val user = FirebaseAuth.getInstance().currentUser ?: return null
+        val fresh = try {
+            Tasks.await(user.getIdToken(true), 30, TimeUnit.SECONDS)?.token
+        } catch (_: Exception) { null } ?: return null
+        context.getSharedPreferences("app_auth", Context.MODE_PRIVATE)
+            .edit().putString("token", fresh).apply()
+        return response.request.newBuilder()
+            .header("Authorization", "Bearer $fresh")
+            .build()
     }
 }
