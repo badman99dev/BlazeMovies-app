@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,8 +44,25 @@ import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+
+private const val MAX_AUTO_RETRIES = 5
+private const val AUTO_RETRY_DELAY_MS = 2000L
+
+private fun PlaybackException.isTransient(): Boolean = when (errorCode) {
+    PlaybackException.ERROR_CODE_SOURCE,
+    PlaybackException.ERROR_CODE_TIMEOUT,
+    PlaybackException.ERROR_CODE_TIMEOUT_WITH_INTERRUPTION,
+    PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+    PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE,
+    PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+    PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW -> true
+    else -> false
+}
 
 @Composable
 fun VideoPlayerScreen(
@@ -212,28 +230,37 @@ fun VideoPlayerScreen(
     }
 
     var playerError by remember { mutableStateOf<String?>(null) }
-    var zee5RetryCount by remember { mutableStateOf(0) }
-
-    val isZee5Content = contentSource == "zee5"
+    var autoRetryCount by remember { mutableStateOf(0) }
+    var isAutoRetrying by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
-                if (isZee5Content && zee5RetryCount < 2) {
-                    zee5RetryCount++
-                    exoPlayer?.let { player ->
-                        player.setMediaItem(MediaItem.fromUri(effectiveUrl))
-                        player.prepare()
-                        player.playWhenReady = true
+                if (error.isTransient() && autoRetryCount < MAX_AUTO_RETRIES) {
+                    autoRetryCount++
+                    isAutoRetrying = true
+                    coroutineScope.launch {
+                        delay(AUTO_RETRY_DELAY_MS)
+                        try {
+                            exoPlayer?.let { player ->
+                                player.setMediaItem(MediaItem.fromUri(effectiveUrl))
+                                player.prepare()
+                                player.playWhenReady = true
+                            }
+                        } catch (_: Exception) {}
                     }
                     return
                 }
-                
+
+                isAutoRetrying = false
                 playerError = error.message ?: "Playback error"
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
                     playerError = null
+                    autoRetryCount = 0
+                    isAutoRetrying = false
                 }
                 activity?.let {
                     val state = exoPlayer?.playbackState ?: Player.STATE_IDLE
@@ -302,6 +329,12 @@ fun VideoPlayerScreen(
                 title = title,
                 isLive = isLive,
             )
+            if (isAutoRetrying) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center).size(72.dp),
+                    color = Color.White,
+                )
+            }
         } else if (playerError != null) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -316,7 +349,8 @@ fun VideoPlayerScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 TextButton(onClick = {
                     playerError = null
-                    zee5RetryCount = 0
+                    autoRetryCount = 0
+                    isAutoRetrying = false
                     exoPlayer?.let { player ->
                         player.setMediaItem(MediaItem.fromUri(effectiveUrl))
                         player.prepare()

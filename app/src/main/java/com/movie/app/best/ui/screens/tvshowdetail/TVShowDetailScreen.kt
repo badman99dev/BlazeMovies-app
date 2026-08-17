@@ -394,7 +394,9 @@ private fun TVShowDetailContent(
             com.movie.app.best.ui.screens.moviedetail.components.DetailHeroSection(
                 movie = series,
                 onBackClick = onBackClick,
-                onReportClick = onReportClick
+                onReportClick = onReportClick,
+                forceBlur = true,
+                minimal = true
             )
             Column(
                 modifier = Modifier

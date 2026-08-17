@@ -272,7 +272,9 @@ private fun MovieDetailContent(
             DetailHeroSection(
                 movie       = movie,
                 onBackClick = onBackClick,
-                onReportClick = onReportClick
+                onReportClick = onReportClick,
+                forceBlur   = true,
+                minimal     = true
             )
             Column(
                 modifier = Modifier

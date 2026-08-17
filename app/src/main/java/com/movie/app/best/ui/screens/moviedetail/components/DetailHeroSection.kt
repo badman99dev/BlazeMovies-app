@@ -38,10 +38,12 @@ fun DetailHeroSection(
     movie: MovieDetails,
     onBackClick: () -> Unit,
     onShareClick: () -> Unit = {},
-    onReportClick: () -> Unit = {}
+    onReportClick: () -> Unit = {},
+    forceBlur: Boolean = false,
+    minimal: Boolean = false
 ) {
     val context = LocalContext.current
-    val shouldBlur = ModerationSettings.shouldBlurDetail(context, movie.contentModeration)
+    val shouldBlur = forceBlur || ModerationSettings.shouldBlurDetail(context, movie.contentModeration)
 
     Box(
         modifier = Modifier
@@ -142,7 +144,7 @@ fun DetailHeroSection(
         }
 
         // Quality badge (top-right below back button)
-        if (movie.qualityLabel.isNotEmpty()) {
+        if (!minimal && movie.qualityLabel.isNotEmpty()) {
             val bgColor = when {
                 movie.qualityLabel.contains("4K", ignoreCase = true) -> Color(0xFFFFD700).copy(alpha = 0.25f)
                 movie.qualityLabel.contains("UHD", ignoreCase = true) -> Color(0xFF00E5FF).copy(alpha = 0.2f)
@@ -192,7 +194,7 @@ fun DetailHeroSection(
             )
 
             // Original title
-            if (movie.originalTitle.isNotEmpty() && movie.originalTitle != movie.title) {
+            if (!minimal && movie.originalTitle.isNotEmpty() && movie.originalTitle != movie.title) {
                 Text(
                     text     = movie.originalTitle,
                     color    = Color.White.copy(alpha = 0.45f),
@@ -202,20 +204,22 @@ fun DetailHeroSection(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            if (!minimal) {
+                Spacer(Modifier.height(8.dp))
 
-            // Meta row
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (movie.releaseYear.isNotEmpty()) {
-                    Text(movie.releaseYear, color = Color.White.copy(0.75f), fontSize = 13.sp)
-                    Text("  •  ", color = Color.White.copy(0.4f), fontSize = 13.sp)
-                }
-                Icon(Icons.Default.Star, null, tint = Amber, modifier = Modifier.size(13.dp))
-                Spacer(Modifier.width(3.dp))
-                Text(movie.rating, color = Color.White.copy(0.75f), fontSize = 13.sp)
-                if (movie.runtime.isNotEmpty()) {
-                    Text("  •  ", color = Color.White.copy(0.4f), fontSize = 13.sp)
-                    Text(movie.runtime, color = Color.White.copy(0.75f), fontSize = 13.sp)
+                // Meta row
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (movie.releaseYear.isNotEmpty()) {
+                        Text(movie.releaseYear, color = Color.White.copy(0.75f), fontSize = 13.sp)
+                        Text("  •  ", color = Color.White.copy(0.4f), fontSize = 13.sp)
+                    }
+                    Icon(Icons.Default.Star, null, tint = Amber, modifier = Modifier.size(13.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text(movie.rating, color = Color.White.copy(0.75f), fontSize = 13.sp)
+                    if (movie.runtime.isNotEmpty()) {
+                        Text("  •  ", color = Color.White.copy(0.4f), fontSize = 13.sp)
+                        Text(movie.runtime, color = Color.White.copy(0.75f), fontSize = 13.sp)
+                    }
                 }
             }
         }
