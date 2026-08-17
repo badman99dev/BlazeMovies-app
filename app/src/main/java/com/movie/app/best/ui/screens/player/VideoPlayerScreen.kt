@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,9 +54,7 @@ private const val MAX_AUTO_RETRIES = 5
 private const val AUTO_RETRY_DELAY_MS = 2000L
 
 private fun PlaybackException.isTransient(): Boolean = when (errorCode) {
-    PlaybackException.ERROR_CODE_SOURCE,
     PlaybackException.ERROR_CODE_TIMEOUT,
-    PlaybackException.ERROR_CODE_TIMEOUT_WITH_INTERRUPTION,
     PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
     PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
     PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
