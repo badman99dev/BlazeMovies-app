@@ -79,6 +79,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.movie.app.best.FcmService
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.model.UpdateResponse
 import com.movie.app.best.data.repository.PrefetchCache
@@ -269,7 +270,17 @@ fun MainContent(
             withFrameNanos { }
             withFrameNanos { }
             if (navController.currentDestination?.route != Screen.Notifications.route) {
-                navController.handleDeepLink(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+                // Keep home in the back stack (handleDeepLink would create a
+                // root-only stack, breaking the back button: [notifications]
+                // instead of [home, notifications]).
+                if (uri == FcmService.DEEP_LINK_URI) {
+                    navController.navigate(Screen.Notifications.route) {
+                        popUpTo(navController.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                } else {
+                    navController.navigate(Uri.parse(uri))
+                }
             }
             (context as? ComponentActivity)?.setIntent(Intent())
             pendingDeepLink = null
