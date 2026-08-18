@@ -88,7 +88,7 @@ import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun MainScreen(openNotifications: Boolean = false) {
+fun MainScreen(openNotifications: Int = 0) {
     var splashScreenFinished by remember { mutableStateOf(false) }
     var storagePermissionGranted by remember { mutableStateOf(false) }
     var notificationPermissionGranted by remember { mutableStateOf(false) }
@@ -208,7 +208,7 @@ fun MainScreen(openNotifications: Boolean = false) {
 @Composable
 fun MainContent(
     onUpdateClick: () -> Unit = {},
-    openNotifications: Boolean = false
+    openNotifications: Int = 0
 ) {
     val context = LocalContext.current
     val authViewModel: AuthViewModel = hiltViewModel()

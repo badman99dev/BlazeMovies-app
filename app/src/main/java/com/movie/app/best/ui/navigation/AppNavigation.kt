@@ -105,7 +105,7 @@ fun AppNavigation(
     navController: NavHostController,
     isOnline: Boolean = true,
     onMenuClick: () -> Unit = {},
-    openNotifications: Boolean = false,
+    openNotifications: Int = 0,
     modifier: Modifier = Modifier
 ) {
     fun navigateToContent(slug: String, isSeries: Boolean) {
@@ -117,8 +117,10 @@ fun AppNavigation(
     }
 
     LaunchedEffect(openNotifications) {
-        if (openNotifications) {
-            navController.navigate(Screen.Notifications.route)
+        if (openNotifications > 0) {
+            navController.navigate(Screen.Notifications.route) {
+                launchSingleTop = true
+            }
         }
     }
 
