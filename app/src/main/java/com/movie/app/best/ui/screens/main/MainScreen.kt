@@ -8,6 +8,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.Uri
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -225,17 +226,25 @@ fun MainContent(
     val scope = rememberCoroutineScope()
 
     // Deep-link handling (FCM notification tap -> notifications panel).
-    // Cold start: launching intent is processed on first ON_RESUME.
-    // Warm start: onNewIntent() -> setIntent() -> ON_RESUME fires again with the new intent.
+    // Two sources:
+    //  1. Foreground: FcmService posts notification with ACTION_VIEW deep link.
+    //  2. Background/killed: system tray notification tap -> launcher intent,
+    //     FCM data payload lands in intent extras (deep_link key).
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val activity = context as? ComponentActivity
                 val intent = activity?.intent
+                var deepLinkUri: String? = null
                 if (intent?.action == Intent.ACTION_VIEW && intent.data != null) {
+                    deepLinkUri = intent.data.toString()
+                } else {
+                    deepLinkUri = intent?.getStringExtra("deep_link")
+                }
+                if (deepLinkUri != null) {
                     if (navController.currentDestination?.route != Screen.Notifications.route) {
-                        navController.handleDeepLink(intent)
+                        navController.handleDeepLink(Intent(Intent.ACTION_VIEW, Uri.parse(deepLinkUri)))
                     }
                     activity.setIntent(Intent())
                 }
