@@ -230,28 +230,42 @@ fun MainContent(
     //  1. Foreground: FcmService posts notification with ACTION_VIEW deep link.
     //  2. Background/killed: system tray notification tap -> launcher intent,
     //     FCM data payload lands in intent extras (deep_link key).
+    // Navigation runs in LaunchedEffect (post-frame) to avoid the material3
+    // ModalNavigationDrawer "offset read before initialized" crash when a
+    // destination swap races the drawer's first layout pass.
+    var pendingDeepLink by remember { mutableStateOf<String?>(null) }
+
+    fun extractDeepLink(intent: Intent?): String? {
+        if (intent?.action == Intent.ACTION_VIEW && intent.data != null) return intent.data.toString()
+        return intent?.getStringExtra("deep_link")
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
+        val activity = context as? ComponentActivity
+
+        // Cold start / already running: splash may have outlived the first
+        // ON_RESUME, so also check the current intent at registration time.
+        pendingDeepLink = extractDeepLink(activity?.intent)
+
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val activity = context as? ComponentActivity
-                val intent = activity?.intent
-                var deepLinkUri: String? = null
-                if (intent?.action == Intent.ACTION_VIEW && intent.data != null) {
-                    deepLinkUri = intent.data.toString()
-                } else {
-                    deepLinkUri = intent?.getStringExtra("deep_link")
-                }
-                if (deepLinkUri != null) {
-                    if (navController.currentDestination?.route != Screen.Notifications.route) {
-                        navController.handleDeepLink(Intent(Intent.ACTION_VIEW, Uri.parse(deepLinkUri)))
-                    }
-                    activity?.setIntent(Intent())
-                }
+                pendingDeepLink = extractDeepLink(activity?.intent)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(pendingDeepLink) {
+        val uri = pendingDeepLink
+        if (uri != null) {
+            if (navController.currentDestination?.route != Screen.Notifications.route) {
+                navController.handleDeepLink(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+            }
+            (context as? ComponentActivity)?.setIntent(Intent())
+            pendingDeepLink = null
+        }
     }
 
     val connectivityManager = remember {
