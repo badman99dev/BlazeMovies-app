@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -28,20 +27,8 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    // Nonce: har notification tap pe increment hota hai (cold + warm dono handle).
-    // AppNavigation mein LaunchedEffect(nonce) har change pe fire karta hai.
-    private val openNotificationNonce = mutableStateOf(0)
-
-    private fun consumeNotificationIntent(intent: Intent?) {
-        if (intent?.getBooleanExtra(FcmService.EXTRA_OPEN_NOTIFICATIONS, false) == true) {
-            openNotificationNonce.value++
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        consumeNotificationIntent(intent)
         setContent {
             MovieAppTheme {
                 Surface(
@@ -63,7 +50,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         Box(modifier = Modifier.weight(1f)) {
-                            MainScreen(openNotifications = openNotificationNonce.value)
+                            MainScreen()
                         }
                     }
                 }
@@ -71,9 +58,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Deep links (FCM notification tap) warm start pe yahin se aate hain;
+    // MainContent ka ON_RESUME observer updated intent ko process karta hai.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        consumeNotificationIntent(intent)
     }
 }

@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -22,7 +23,7 @@ class FcmService : FirebaseMessagingService() {
     companion object {
         const val CHANNEL_ID = "blazemovies_alerts"
         const val TOPIC_BROADCASTS = "blazemovies_alerts"
-        const val EXTRA_OPEN_NOTIFICATIONS = "openNotifications"
+        const val DEEP_LINK_URI = "blazemovies://notifications"
     }
 
     override fun onNewToken(token: String) {
@@ -62,9 +63,8 @@ class FcmService : FirebaseMessagingService() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(EXTRA_OPEN_NOTIFICATIONS, true)
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK_URI)).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
 
         val pendingIntent = PendingIntent.getActivity(

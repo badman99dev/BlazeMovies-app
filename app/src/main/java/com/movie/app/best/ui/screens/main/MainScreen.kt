@@ -3,11 +3,13 @@ package com.movie.app.best.ui.screens.main
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -64,11 +66,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -88,7 +93,7 @@ import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun MainScreen(openNotifications: Int = 0) {
+fun MainScreen() {
     var splashScreenFinished by remember { mutableStateOf(false) }
     var storagePermissionGranted by remember { mutableStateOf(false) }
     var notificationPermissionGranted by remember { mutableStateOf(false) }
@@ -191,7 +196,7 @@ fun MainScreen(openNotifications: Int = 0) {
                 else -> {}
             }
 
-            MainContent(onUpdateClick = { showUpdateDialog = true }, openNotifications = openNotifications)
+            MainContent(onUpdateClick = { showUpdateDialog = true })
         } else {
             if (updateResp != null && !updateResp.updateAvailable) {
                 val prefs = remember { context.getSharedPreferences("update_cache", android.content.Context.MODE_PRIVATE) }
@@ -199,7 +204,7 @@ fun MainScreen(openNotifications: Int = 0) {
                     prefs.edit().remove("last_prompt_time").apply()
                 }
             }
-            MainContent(onUpdateClick = { showUpdateDialog = true }, openNotifications = openNotifications)
+            MainContent(onUpdateClick = { showUpdateDialog = true })
         }
     }
 }
@@ -207,8 +212,7 @@ fun MainScreen(openNotifications: Int = 0) {
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainContent(
-    onUpdateClick: () -> Unit = {},
-    openNotifications: Int = 0
+    onUpdateClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val authViewModel: AuthViewModel = hiltViewModel()
@@ -219,6 +223,27 @@ fun MainContent(
     var prevLoggedIn by remember { mutableStateOf(authState.isLoggedIn) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // Deep-link handling (FCM notification tap -> notifications panel).
+    // Cold start: launching intent is processed on first ON_RESUME.
+    // Warm start: onNewIntent() -> setIntent() -> ON_RESUME fires again with the new intent.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val activity = context as? ComponentActivity
+                val intent = activity?.intent
+                if (intent?.action == Intent.ACTION_VIEW && intent.data != null) {
+                    if (navController.currentDestination?.route != Screen.Notifications.route) {
+                        navController.handleDeepLink(intent)
+                    }
+                    activity.setIntent(Intent())
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val connectivityManager = remember {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -323,8 +348,7 @@ fun MainContent(
                 AppNavigation(
                     navController = navController,
                     isOnline = isConnected,
-                    onMenuClick = { scope.launch { drawerState.open() } },
-                    openNotifications = openNotifications
+                    onMenuClick = { scope.launch { drawerState.open() } }
                 )
 
                 AnimatedVisibility(

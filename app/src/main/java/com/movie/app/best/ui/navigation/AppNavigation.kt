@@ -11,7 +11,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -19,6 +18,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
+import com.movie.app.best.FcmService
 import com.movie.app.best.ui.screens.categories.CategoriesScreen
 import com.movie.app.best.ui.screens.categories.CategoryPageScreen
 import com.movie.app.best.ui.screens.downloads.DownloadsScreen
@@ -105,7 +106,6 @@ fun AppNavigation(
     navController: NavHostController,
     isOnline: Boolean = true,
     onMenuClick: () -> Unit = {},
-    openNotifications: Int = 0,
     modifier: Modifier = Modifier
 ) {
     fun navigateToContent(slug: String, isSeries: Boolean) {
@@ -113,14 +113,6 @@ fun AppNavigation(
             navController.navigate(Screen.SeriesDetail.createRoute(slug))
         } else {
             navController.navigate(Screen.MovieDetail.createRoute(slug))
-        }
-    }
-
-    LaunchedEffect(openNotifications) {
-        if (openNotifications > 0) {
-            navController.navigate(Screen.Notifications.route) {
-                launchSingleTop = true
-            }
         }
     }
 
@@ -611,7 +603,10 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Notifications.route) {
+        composable(
+            route = Screen.Notifications.route,
+            deepLinks = listOf(navDeepLink { uriPattern = FcmService.DEEP_LINK_URI })
+        ) {
             NotificationScreen(
                 onBackClick = { navController.popBackStack() }
             )

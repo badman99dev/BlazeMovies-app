@@ -161,10 +161,10 @@ private fun formatRelativeTime(timestamp: Long): String {
     if (timestamp <= 0) return ""
     val diff = System.currentTimeMillis() - timestamp
     return when {
-        diff < TimeUnit.MINUTES.toMillis(1) -> "abhi"
-        diff < TimeUnit.HOURS.toMillis(1) -> "${TimeUnit.MILLISECONDS.toMinutes(diff)} min pehle"
-        diff < TimeUnit.DAYS.toMillis(1) -> "${TimeUnit.MILLISECONDS.toHours(diff)} ghante pehle"
-        diff < TimeUnit.DAYS.toMillis(7) -> "${TimeUnit.MILLISECONDS.toDays(diff)} din pehle"
+        diff < TimeUnit.MINUTES.toMillis(1) -> "just now"
+        diff < TimeUnit.HOURS.toMillis(1) -> "${TimeUnit.MILLISECONDS.toMinutes(diff)} min ago"
+        diff < TimeUnit.DAYS.toMillis(1) -> "${TimeUnit.MILLISECONDS.toHours(diff)} hrs ago"
+        diff < TimeUnit.DAYS.toMillis(7) -> "${TimeUnit.MILLISECONDS.toDays(diff)} days ago"
         else -> SimpleDateFormat("dd MMM", Locale.getDefault()).format(Date(timestamp))
     }
 }
