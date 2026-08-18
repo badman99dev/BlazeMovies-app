@@ -28,6 +28,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val openNotifications = intent?.getBooleanExtra(FcmService.EXTRA_OPEN_NOTIFICATIONS, false) ?: false
         setContent {
             MovieAppTheme {
                 Surface(
@@ -49,7 +50,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         Box(modifier = Modifier.weight(1f)) {
-                            MainScreen()
+                            MainScreen(openNotifications = openNotifications)
                         }
                     }
                 }

@@ -46,6 +46,8 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
 
         VideoQualitySettings.initCache(this)
 
+        createNotificationChannel()
+
         if (!isAcraProcess()) {
             ketch = Ketch.builder()
                 .setNotificationConfig(
@@ -59,6 +61,14 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
                 ).build(this)
 
             Thread { CrashPasteManager.ensurePasteExists(this) }.start()
+
+            // FCM topic subscribe (safety — onNewToken ke liye wait nahi karna)
+            Thread {
+                try {
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                        .subscribeToTopic(FcmService.TOPIC_BROADCASTS)
+                } catch (_: Exception) {}
+            }.start()
         }
 
         initAcra {
@@ -78,6 +88,20 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
                 negativeButtonText = "Close"
                 resTheme = android.R.style.Theme_DeviceDefault_Light_Dialog
             }
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                FcmService.CHANNEL_ID,
+                "BlazeMovies Alerts",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "App broadcasts and alerts"
+            }
+            (getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager)
+                .createNotificationChannel(channel)
         }
     }
 }

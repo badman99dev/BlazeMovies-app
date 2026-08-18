@@ -88,9 +88,10 @@ import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun MainScreen() {
+fun MainScreen(openNotifications: Boolean = false) {
     var splashScreenFinished by remember { mutableStateOf(false) }
     var storagePermissionGranted by remember { mutableStateOf(false) }
+    var notificationPermissionGranted by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val updateViewModel: UpdateViewModel = hiltViewModel()
 
@@ -98,6 +99,12 @@ fun MainScreen() {
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         storagePermissionGranted = granted
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        notificationPermissionGranted = granted
     }
 
     if (!splashScreenFinished) {
@@ -109,6 +116,14 @@ fun MainScreen() {
             }
         } else {
             storagePermissionGranted = true
+        }
+
+        if (!notificationPermissionGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            LaunchedEffect(Unit) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            notificationPermissionGranted = true
         }
 
         val updateResp = PrefetchCache.updateResponse
@@ -307,7 +322,8 @@ fun MainContent(
                 AppNavigation(
                     navController = navController,
                     isOnline = isConnected,
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    openNotifications = openNotifications
                 )
 
                 AnimatedVisibility(

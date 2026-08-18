@@ -11,6 +11,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -103,6 +105,7 @@ fun AppNavigation(
     navController: NavHostController,
     isOnline: Boolean = true,
     onMenuClick: () -> Unit = {},
+    openNotifications: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     fun navigateToContent(slug: String, isSeries: Boolean) {
@@ -110,6 +113,12 @@ fun AppNavigation(
             navController.navigate(Screen.SeriesDetail.createRoute(slug))
         } else {
             navController.navigate(Screen.MovieDetail.createRoute(slug))
+        }
+    }
+
+    LaunchedEffect(openNotifications) {
+        if (openNotifications) {
+            navController.navigate(Screen.Notifications.route)
         }
     }
 

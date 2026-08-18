@@ -93,3 +93,15 @@ data class LikeItem(
         "contentModeration" to contentModeration
     )
 }
+
+data class FirebaseNotification(
+    val title: String,
+    val body: String,
+    val sentAt: Long = System.currentTimeMillis()
+) {
+    fun toMap(): Map<String, Any?> = mapOf(
+        "title" to title,
+        "body" to body,
+        "sentAt" to sentAt
+    )
+}

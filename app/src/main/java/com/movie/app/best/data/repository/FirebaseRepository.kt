@@ -9,6 +9,7 @@ import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.gson.Gson
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
+import com.movie.app.best.data.model.FirebaseNotification
 import com.movie.app.best.data.model.FirebaseUserProfile
 import com.movie.app.best.data.model.LikeItem
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -456,4 +457,54 @@ class FirebaseRepository @Inject constructor(
         val json = filePrefs.getString("progress", null) ?: return emptyList()
         return try { gson.fromJson(json, Array<FileProgressItem>::class.java).toList() } catch (_: Exception) { emptyList() }
     }
+
+    // ── Notifications ─────────────────────────────────────────
+
+    suspend fun getNotifications(): List<FirebaseNotification> = withContext(Dispatchers.IO) {
+        val doc = userDoc()
+        if (doc != null) {
+            try {
+                val cutoff = System.currentTimeMillis() - 14L * 24 * 60 * 60 * 1000
+                val snap = doc.collection("notifications")
+                    .whereGreaterThanOrEqualTo("sentAt", cutoff)
+                    .orderBy("sentAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(50)
+                    .get()
+                    .await()
+                val items = snap.documents.mapNotNull { d ->
+                    val m = d.data ?: return@mapNotNull null
+                    FirebaseNotification(
+                        title = m["title"] as? String ?: "",
+                        body = m["body"] as? String ?: "",
+                        sentAt = (m["sentAt"] as? Number)?.toLong() ?: 0
+                    )
+                }
+                if (items.isNotEmpty()) {
+                    return@withContext items
+                }
+            } catch (_: Exception) {}
+        }
+        getLocalNotifications()
+    }
+
+    fun saveLocalNotification(title: String, body: String, sentAt: Long = System.currentTimeMillis()) {
+        val list = getLocalNotifications().toMutableList()
+        list.removeAll { it.title == title && it.sentAt == sentAt }
+        list.add(0, FirebaseNotification(title = title, body = body, sentAt = sentAt))
+        if (list.size > 50) list.subList(50, list.size).clear()
+        prefs.edit().putString("notifications", gson.toJson(list)).apply()
+    }
+
+    fun getLocalNotifications(): List<FirebaseNotification> {
+        val json = prefs.getString("notifications", null) ?: return emptyList()
+        val all = try { gson.fromJson(json, Array<FirebaseNotification>::class.java).toList() } catch (_: Exception) { emptyList() }
+        val cutoff = System.currentTimeMillis() - 3L * 24 * 60 * 60 * 1000
+        val fresh = all.filter { it.sentAt >= cutoff }.sortedByDescending { it.sentAt }.take(50)
+        if (fresh.size != all.size) {
+            prefs.edit().putString("notifications", gson.toJson(fresh)).apply()
+        }
+        return fresh
+    }
+
+    fun isLoggedIn(): Boolean = FirebaseAuth.getInstance().currentUser != null
 }

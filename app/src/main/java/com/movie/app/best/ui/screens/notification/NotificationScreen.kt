@@ -12,33 +12,38 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.movie.app.best.data.model.AppNotification
+import com.movie.app.best.data.model.FirebaseNotification
 import com.movie.app.best.ui.theme.AppRed
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun NotificationScreen(
     onBackClick: () -> Unit,
-    onBtnLinkClick: (String) -> Unit = {},
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,7 +55,16 @@ fun NotificationScreen(
     ) {
         com.movie.app.best.ui.components.CompactPageHeader(
             title = "Notifications",
-            onBackClick = onBackClick
+            onBackClick = onBackClick,
+            actions = {
+                IconButton(onClick = { viewModel.loadNotifications() }) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+            }
         )
 
         when {
@@ -62,11 +76,9 @@ fun NotificationScreen(
                     CircularProgressIndicator(color = AppRed)
                 }
             }
-            uiState.notification != null -> {
-                val notif = uiState.notification!!
-                ActiveNotificationCard(
-                    notification = notif,
-                    onBtnLinkClick = onBtnLinkClick
+            uiState.notifications.isNotEmpty() -> {
+                NotificationList(
+                    notifications = uiState.notifications
                 )
             }
             else -> {
@@ -77,96 +89,83 @@ fun NotificationScreen(
 }
 
 @Composable
-private fun ActiveNotificationCard(
-    notification: AppNotification,
-    onBtnLinkClick: (String) -> Unit
-) {
-    val accentColor = when (notification.type) {
-        "critical" -> Color(0xFFFF5252)
-        "alert" -> Color(0xFFFFD740)
-        "success" -> Color(0xFF69F0AE)
-        else -> Color(0xFF448AFF)
+private fun NotificationList(notifications: List<FirebaseNotification>) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 16.dp,
+            vertical = 8.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(notifications, key = { "${it.title}-${it.sentAt}" }) { notification ->
+            NotificationRow(notification = notification)
+        }
     }
-    val accentBg = accentColor.copy(alpha = 0.08f)
+}
 
-    Column(
+@Composable
+private fun NotificationRow(notification: FirebaseNotification) {
+    Row(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF161616))
+            .padding(14.dp),
+        verticalAlignment = Alignment.Top
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(accentBg, Color(0xFF1A1A1A))
-                    )
-                )
-                .padding(20.dp)
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(AppRed.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
         ) {
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(accentColor)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = notification.type.replaceFirstChar { it.uppercase() },
-                        color = accentColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        text = "LIVE",
-                        color = AppRed,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 1.sp
-                    )
-                }
-
-                Spacer(Modifier.height(16.dp))
-
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = null,
+                tint = AppRed,
+                modifier = Modifier.size(19.dp)
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = notification.content,
+                    text = notification.title,
                     color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 22.sp
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
-
-                if (notification.btnText.isNotBlank()) {
-                    Spacer(Modifier.height(16.dp))
-                    TextButton(
-                        onClick = {
-                            if (notification.btnLink.isNotBlank()) {
-                                onBtnLinkClick(notification.btnLink)
-                            }
-                        },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(accentColor.copy(alpha = 0.15f))
-                    ) {
-                        Text(
-                            text = notification.btnText,
-                            color = accentColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                        )
-                    }
-                }
+                Text(
+                    text = formatRelativeTime(notification.sentAt),
+                    color = Color.White.copy(alpha = 0.35f),
+                    fontSize = 11.sp
+                )
+            }
+            if (notification.body.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = notification.body,
+                    color = Color.White.copy(alpha = 0.65f),
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp
+                )
             }
         }
+    }
+}
+
+private fun formatRelativeTime(timestamp: Long): String {
+    if (timestamp <= 0) return ""
+    val diff = System.currentTimeMillis() - timestamp
+    return when {
+        diff < TimeUnit.MINUTES.toMillis(1) -> "abhi"
+        diff < TimeUnit.HOURS.toMillis(1) -> "${TimeUnit.MILLISECONDS.toMinutes(diff)} min pehle"
+        diff < TimeUnit.DAYS.toMillis(1) -> "${TimeUnit.MILLISECONDS.toHours(diff)} ghante pehle"
+        diff < TimeUnit.DAYS.toMillis(7) -> "${TimeUnit.MILLISECONDS.toDays(diff)} din pehle"
+        else -> SimpleDateFormat("dd MMM", Locale.getDefault()).format(Date(timestamp))
     }
 }
 
@@ -192,7 +191,7 @@ private fun EmptyNotificationState() {
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "When there's an alert, it will show up here",
+                text = "When there's a broadcast, it will show up here",
                 color = Color.White.copy(alpha = 0.25f),
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center

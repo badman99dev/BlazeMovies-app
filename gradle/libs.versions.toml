@@ -63,6 +63,7 @@ androidx-datastore-preferences = { module = "androidx.datastore:datastore-prefer
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottieCompose" }
 acra-toast = { module = "ch.acra:acra-toast", version.ref = "acra" }
