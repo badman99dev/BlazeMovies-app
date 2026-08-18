@@ -246,7 +246,7 @@ fun MainContent(
                     if (navController.currentDestination?.route != Screen.Notifications.route) {
                         navController.handleDeepLink(Intent(Intent.ACTION_VIEW, Uri.parse(deepLinkUri)))
                     }
-                    activity.setIntent(Intent())
+                    activity?.setIntent(Intent())
                 }
             }
         }
