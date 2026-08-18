@@ -62,6 +62,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -260,6 +261,13 @@ fun MainContent(
     LaunchedEffect(pendingDeepLink) {
         val uri = pendingDeepLink
         if (uri != null) {
+            // LaunchedEffect starts during applyChanges — BEFORE the frame's
+            // layout pass. Swapping destinations in the same frame as the
+            // drawer's first layout crashes material3 AnchoredDraggableState
+            // ("offset read before being initialized"). Wait two frames so
+            // the drawer's initial measure/placement fully settles first.
+            withFrameNanos { }
+            withFrameNanos { }
             if (navController.currentDestination?.route != Screen.Notifications.route) {
                 navController.handleDeepLink(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
             }
