@@ -191,7 +191,7 @@ fun MainScreen(openNotifications: Boolean = false) {
                 else -> {}
             }
 
-            MainContent(onUpdateClick = { showUpdateDialog = true })
+            MainContent(onUpdateClick = { showUpdateDialog = true }, openNotifications = openNotifications)
         } else {
             if (updateResp != null && !updateResp.updateAvailable) {
                 val prefs = remember { context.getSharedPreferences("update_cache", android.content.Context.MODE_PRIVATE) }
@@ -199,7 +199,7 @@ fun MainScreen(openNotifications: Boolean = false) {
                     prefs.edit().remove("last_prompt_time").apply()
                 }
             }
-            MainContent(onUpdateClick = { showUpdateDialog = true })
+            MainContent(onUpdateClick = { showUpdateDialog = true }, openNotifications = openNotifications)
         }
     }
 }
@@ -207,7 +207,8 @@ fun MainScreen(openNotifications: Boolean = false) {
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainContent(
-    onUpdateClick: () -> Unit = {}
+    onUpdateClick: () -> Unit = {},
+    openNotifications: Boolean = false
 ) {
     val context = LocalContext.current
     val authViewModel: AuthViewModel = hiltViewModel()
