@@ -74,7 +74,7 @@ sealed class Screen(val route: String) {
     object Notifications : Screen("notifications")
     object Message : Screen("message?docId={docId}&md={md}&t={t}") {
         fun createRoute(docId: String?, md: String?, t: String?): String =
-            "message?docId=${docId ?: ""}&md=${md?.let { URLEncoder.encode(it, "UTF-8") } ?: ""}&t=${URLEncoder.encode(t ?: "Message", "UTF-8")}"
+            "message?docId=${docId?.let { Uri.encode(it) } ?: ""}&md=${md?.let { Uri.encode(it) } ?: ""}&t=${Uri.encode(t ?: "Message")}"
     }
     object ExtractedSeries : Screen("extractedSeries/{extractPath}/{slug}/{posterPath}") {
         fun createRoute(extractPath: String, slug: String, posterPath: String): String {
@@ -109,7 +109,7 @@ sealed class Screen(val route: String) {
 // Deep-link registry helper: app:// and related URI patterns for a destination
 private fun refLinks(vararg patterns: String) = patterns.map { navDeepLink { uriPattern = it } }
 
-private fun String.encodeNav(): String = URLEncoder.encode(this, "UTF-8")
+private fun String.encodeNav(): String = Uri.encode(this)
 
 @Composable
 fun AppNavigation(
