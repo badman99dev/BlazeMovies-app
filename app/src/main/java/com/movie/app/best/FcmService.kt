@@ -26,7 +26,9 @@ class FcmService : FirebaseMessagingService() {
     companion object {
         const val CHANNEL_ID = "blazemovies_alerts"
         const val TOPIC_BROADCASTS = "blazemovies_alerts"
-        const val DEEP_LINK_URI = "blazemovies://notifications"
+        const val DEEP_LINK_URI = "app://notifications"
+        const val MESSAGE_DEEP_LINK = "firestore://message"
+        const val LEGACY_INBOX_URI = "blazemovies://notifications"
     }
 
     override fun onNewToken(token: String) {
@@ -49,15 +51,25 @@ class FcmService : FirebaseMessagingService() {
         val title = message.notification?.title ?: message.data["title"] ?: return
         val body = message.notification?.body ?: message.data["body"] ?: ""
 
-        showNotification(title, body)
+        // Routing: app:// deep links OR firestore://message (Mail-style markdown page)
+        val deepLink = message.data["deep_link"] ?: DEEP_LINK_URI
+        val refer = message.data["ref"]          // Firestore doc id: "notif/{docId}"
+        val markdown = message.data["message"]   // full markdown (message-type pushes)
+
+        showNotification(title, body, deepLink, refer, markdown)
 
         // Logged-out users ke liye device-local cache (3-day TTL repository handles)
         if (!firebaseRepository.isLoggedIn()) {
-            firebaseRepository.saveLocalNotification(title, body)
+            firebaseRepository.saveLocalNotification(
+                title = title,
+                body = body,
+                refer = if (deepLink == MESSAGE_DEEP_LINK) deepLink else null,
+                message = markdown
+            )
         }
     }
 
-    private fun showNotification(title: String, body: String) {
+    private fun showNotification(title: String, body: String, deepLink: String, ref: String?, markdown: String?) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -71,8 +83,10 @@ class FcmService : FirebaseMessagingService() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK_URI)).apply {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            if (ref != null) putExtra("ref", ref)
+            if (markdown != null) putExtra("message", markdown)
         }
 
         val pendingIntent = PendingIntent.getActivity(

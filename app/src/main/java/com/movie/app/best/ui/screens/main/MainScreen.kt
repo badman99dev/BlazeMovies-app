@@ -262,24 +262,46 @@ fun MainContent(
     LaunchedEffect(pendingDeepLink) {
         val uri = pendingDeepLink
         if (uri != null) {
-            // LaunchedEffect starts during applyChanges — BEFORE the frame's
-            // layout pass. Swapping destinations in the same frame as the
-            // drawer's first layout crashes material3 AnchoredDraggableState
-            // ("offset read before being initialized"). Wait two frames so
-            // the drawer's initial measure/placement fully settles first.
+            // Deep-link routing (FCM tap / system tray):
+            //  app://*        -> registered destinations (content, screens, category)
+            //  firestore://message -> Mail-style markdown page (extras: ref + message)
+            //  unknown        -> notifications panel fallback
             withFrameNanos { }
             withFrameNanos { }
             if (navController.currentDestination?.route != Screen.Notifications.route) {
                 // Keep home in the back stack (handleDeepLink would create a
                 // root-only stack, breaking the back button: [notifications]
                 // instead of [home, notifications]).
-                if (uri == FcmService.DEEP_LINK_URI) {
-                    navController.navigate(Screen.Notifications.route) {
-                        popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true
+                val appUri = (context as? ComponentActivity)?.intent
+                when {
+                    uri == FcmService.MESSAGE_DEEP_LINK -> {
+                        val ref = appUri?.getStringExtra("ref")
+                        val md = appUri?.getStringExtra("message")
+                        navController.navigate(
+                            Screen.Message.createRoute(
+                                docId = ref?.removePrefix("notif/"),
+                                md = md,
+                                t = null
+                            )
+                        ) {
+                            popUpTo(navController.graph.startDestinationId)
+                        }
                     }
-                } else {
-                    navController.navigate(Uri.parse(uri))
+                    uri == FcmService.DEEP_LINK_URI || uri == FcmService.LEGACY_INBOX_URI -> {
+                        navController.navigate(Screen.Notifications.route) {
+                            popUpTo(navController.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    }
+                    else -> {
+                        val ok = runCatching { navController.navigate(Uri.parse(uri)) }.isSuccess
+                        if (!ok) {
+                            navController.navigate(Screen.Notifications.route) {
+                                popUpTo(navController.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                    }
                 }
             }
             (context as? ComponentActivity)?.setIntent(Intent())

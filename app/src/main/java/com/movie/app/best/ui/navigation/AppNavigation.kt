@@ -43,6 +43,7 @@ import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.myfeed.MyFeedScreen
 import com.movie.app.best.ui.screens.auth.LoginScreen
 import com.movie.app.best.ui.screens.profile.ProfileScreen
+import com.movie.app.best.ui.screens.notification.MessageScreen
 import com.movie.app.best.ui.screens.notification.NotificationScreen
 
 sealed class Screen(val route: String) {
@@ -71,6 +72,10 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object LocalVideos : Screen("localVideos")
     object Notifications : Screen("notifications")
+    object Message : Screen("message?docId={docId}&md={md}&t={t}") {
+        fun createRoute(docId: String?, md: String?, t: String?): String =
+            "message?docId=${docId ?: ""}&md=${md?.let { URLEncoder.encode(it, "UTF-8") } ?: ""}&t=${URLEncoder.encode(t ?: "Message", "UTF-8")}"
+    }
     object ExtractedSeries : Screen("extractedSeries/{extractPath}/{slug}/{posterPath}") {
         fun createRoute(extractPath: String, slug: String, posterPath: String): String {
             return "extractedSeries/${Uri.encode(extractPath)}/${Uri.encode(slug)}/${Uri.encode(posterPath)}"
@@ -100,6 +105,11 @@ sealed class Screen(val route: String) {
         }
     }
 }
+
+// Deep-link registry helper: app:// and related URI patterns for a destination
+private fun refLinks(vararg patterns: String) = patterns.map { navDeepLink { uriPattern = it } }
+
+private fun String.encodeNav(): String = URLEncoder.encode(this, "UTF-8")
 
 @Composable
 fun AppNavigation(
@@ -179,7 +189,7 @@ fun AppNavigation(
             else tabExit(targetState.destination.route, initialState.destination.route, slideDirection(targetState.destination.route, initialState.destination.route))
         }
     ) {
-        composable(Screen.Home.route) {
+        composable(Screen.Home.route, deepLinks = refLinks("app://home")) {
             HomeScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 navController = navController,
@@ -191,6 +201,7 @@ fun AppNavigation(
 
         composable(
             route = Screen.MovieDetail.route,
+            deepLinks = refLinks("app://content/movie/{slug}"),
             arguments = listOf(navArgument("slug") { type = NavType.StringType })
         ) { backStackEntry ->
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
@@ -233,6 +244,7 @@ fun AppNavigation(
 
         composable(
             route = Screen.SeriesDetail.route,
+            deepLinks = refLinks("app://content/series/{slug}"),
             arguments = listOf(navArgument("slug") { type = NavType.StringType })
         ) { backStackEntry ->
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
@@ -317,7 +329,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Search.route) {
+        composable(Screen.Search.route, deepLinks = refLinks("app://search")) {
             SearchScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 onZee5Click = { id -> navController.navigate("zee5_detail/$id") },
@@ -336,7 +348,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.TVShows.route) {
+        composable(Screen.TVShows.route, deepLinks = refLinks("app://tv-shows")) {
             TVShowsScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 navController = navController,
@@ -345,7 +357,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.LiveTv.route) {
+        composable(Screen.LiveTv.route, deepLinks = refLinks("app://live-tv")) {
             LiveTvScreen(
                 onBackClick = { navController.popBackStack() },
                 onChannelClick = { channel ->
@@ -364,7 +376,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Categories.route) {
+        composable(Screen.Categories.route, deepLinks = refLinks("app://categories")) {
             CategoriesScreen(
                 onCategoryClick = { slug, name ->
                     navController.navigate(Screen.CategoryPage.createRoute(slug, name))
@@ -378,9 +390,10 @@ fun AppNavigation(
 
         composable(
             route = Screen.CategoryPage.route,
+            deepLinks = refLinks("app://category/{categorySlug}"),
             arguments = listOf(
                 navArgument("categorySlug") { type = NavType.StringType },
-                navArgument("categoryName") { type = NavType.StringType }
+                navArgument("categoryName") { type = NavType.StringType; nullable = true; defaultValue = "" }
             )
         ) { backStackEntry ->
             val slug = backStackEntry.arguments?.getString("categorySlug") ?: ""
@@ -448,7 +461,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Movies.route) {
+        composable(Screen.Movies.route, deepLinks = refLinks("app://movies")) {
             MoviesScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 navController = navController,
@@ -457,7 +470,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Trending.route) {
+        composable(Screen.Trending.route, deepLinks = refLinks("app://trending")) {
             TrendingScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 navController = navController,
@@ -465,7 +478,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Zee5.route) {
+        composable(Screen.Zee5.route, deepLinks = refLinks("app://zee5", "app://ott")) {
             com.movie.app.best.ui.screens.zee5.Zee5Screen(
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) }
@@ -474,6 +487,7 @@ fun AppNavigation(
 
         composable(
             route = "zee5_detail/{contentId}",
+            deepLinks = refLinks("app://zee5_detail/{contentId}"),
             arguments = listOf(navArgument("contentId") { type = NavType.StringType })
         ) { backStackEntry ->
             val contentId = backStackEntry.arguments?.getString("contentId") ?: ""
@@ -485,6 +499,7 @@ fun AppNavigation(
 
         composable(
             route = "zee5_collection/{collectionId}?title={title}",
+            deepLinks = refLinks("app://zee5_collection/{collectionId}"),
             arguments = listOf(
                 navArgument("collectionId") { type = NavType.StringType },
                 navArgument("title") { type = NavType.StringType; nullable = true; defaultValue = null }
@@ -497,6 +512,7 @@ fun AppNavigation(
 
         composable(
             route = "zee5_watch/{contentId}?epId={epId}&epNum={epNum}",
+            deepLinks = refLinks("app://zee5_watch/{contentId}"),
             arguments = listOf(
                 navArgument("contentId") { type = NavType.StringType },
                 navArgument("epId") { type = NavType.StringType; nullable = true; defaultValue = null },
@@ -511,7 +527,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.LatestUploads.route) {
+        composable(Screen.LatestUploads.route, deepLinks = refLinks("app://latest-uploads")) {
             LatestUploadScreen(
                 onBackClick = { navController.popBackStack() },
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
@@ -519,7 +535,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.MyFeed.route) {
+        composable(Screen.MyFeed.route, deepLinks = refLinks("app://my-feed")) {
             MyFeedScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 navController = navController,
@@ -527,7 +543,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Downloads.route) {
+        composable(Screen.Downloads.route, deepLinks = refLinks("app://downloads")) {
             DownloadsScreen(
                 onLocalVideosClick = { navController.navigate(Screen.LocalVideos.route) },
                 onPlayFile = { path, name ->
@@ -540,7 +556,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Library.route) {
+        composable(Screen.Library.route, deepLinks = refLinks("app://library", "app://my-list")) {
             LibraryScreen(
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 onDownloadsClick = { navController.navigate(Screen.Downloads.route) },
@@ -548,7 +564,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Profile.route) {
+        composable(Screen.Profile.route, deepLinks = refLinks("app://profile")) {
             ProfileScreen(
                 onLoginClick = { navController.navigate(Screen.Login.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
@@ -557,7 +573,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Settings.route) {
+        composable(Screen.Settings.route, deepLinks = refLinks("app://settings")) {
             SettingsScreen(
                 onBackClick = { navController.popBackStack() }
             )
@@ -605,9 +621,43 @@ fun AppNavigation(
 
         composable(
             route = Screen.Notifications.route,
-            deepLinks = listOf(navDeepLink { uriPattern = FcmService.DEEP_LINK_URI })
+            deepLinks = refLinks(FcmService.DEEP_LINK_URI, FcmService.LEGACY_INBOX_URI)
         ) {
             NotificationScreen(
+                onBackClick = { navController.popBackStack() },
+                onNotificationClick = { notif ->
+                    val refer = notif.refer
+                    when {
+                        refer == null -> { /* inbox itself */ }
+                        refer == FcmService.MESSAGE_DEEP_LINK -> {
+                            navController.navigate(
+                                Screen.Message.createRoute(notif.id, notif.message, notif.title)
+                            )
+                        }
+                        refer.startsWith("app://content/movie/") -> {
+                            navController.navigate("movie/${refer.removePrefix("app://content/movie/").encodeNav()}")
+                        }
+                        refer.startsWith("app://content/series/") -> {
+                            navController.navigate("series/${refer.removePrefix("app://content/series/").encodeNav()}")
+                        }
+                        else -> {
+                            runCatching { navController.navigate(Uri.parse(refer)) }
+                        }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = Screen.Message.route,
+            deepLinks = refLinks(FcmService.MESSAGE_DEEP_LINK),
+            arguments = listOf(
+                navArgument("docId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("md") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("t") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) {
+            MessageScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

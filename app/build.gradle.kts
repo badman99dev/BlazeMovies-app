@@ -141,6 +141,7 @@ dependencies {
     // ACRA Crash Reporting
     implementation(libs.acra.toast)
     implementation(libs.acra.dialog)
+    implementation(libs.markdown)
     
     // Testing
     testImplementation(libs.junit)

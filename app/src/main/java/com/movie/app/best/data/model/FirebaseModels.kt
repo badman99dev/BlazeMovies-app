@@ -97,11 +97,16 @@ data class LikeItem(
 data class FirebaseNotification(
     val title: String,
     val body: String,
-    val sentAt: Long = System.currentTimeMillis()
+    val sentAt: Long = System.currentTimeMillis(),
+    val id: String? = null,
+    val refer: String? = null,
+    val message: String? = null
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         "title" to title,
         "body" to body,
         "sentAt" to sentAt
     )
+
+    val isMessageType: Boolean get() = refer == "firestore://message"
 }

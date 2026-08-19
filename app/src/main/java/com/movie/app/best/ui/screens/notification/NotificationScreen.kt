@@ -1,6 +1,7 @@
 package com.movie.app.best.ui.screens.notification
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,6 +47,7 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun NotificationScreen(
     onBackClick: () -> Unit,
+    onNotificationClick: (FirebaseNotification) -> Unit = {},
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -78,7 +82,8 @@ fun NotificationScreen(
             }
             uiState.notifications.isNotEmpty() -> {
                 NotificationList(
-                    notifications = uiState.notifications
+                    notifications = uiState.notifications,
+                    onNotificationClick = onNotificationClick
                 )
             }
             else -> {
@@ -89,7 +94,10 @@ fun NotificationScreen(
 }
 
 @Composable
-private fun NotificationList(notifications: List<FirebaseNotification>) {
+private fun NotificationList(
+    notifications: List<FirebaseNotification>,
+    onNotificationClick: (FirebaseNotification) -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -99,18 +107,25 @@ private fun NotificationList(notifications: List<FirebaseNotification>) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(notifications, key = { "${it.title}-${it.sentAt}" }) { notification ->
-            NotificationRow(notification = notification)
+            NotificationRow(
+                notification = notification,
+                onClick = { onNotificationClick(notification) }
+            )
         }
     }
 }
 
 @Composable
-private fun NotificationRow(notification: FirebaseNotification) {
+private fun NotificationRow(
+    notification: FirebaseNotification,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF161616))
+            .clickable { onClick() }
             .padding(14.dp),
         verticalAlignment = Alignment.Top
     ) {
@@ -118,11 +133,11 @@ private fun NotificationRow(notification: FirebaseNotification) {
             modifier = Modifier
                 .size(38.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(AppRed.copy(alpha = 0.15f)),
+                .background(if (notification.isMessageType) AppRed.copy(alpha = 0.25f) else AppRed.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Notifications,
+                imageVector = if (notification.isMessageType) Icons.Default.Mail else Icons.Default.Notifications,
                 contentDescription = null,
                 tint = AppRed,
                 modifier = Modifier.size(19.dp)
@@ -138,6 +153,15 @@ private fun NotificationRow(notification: FirebaseNotification) {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
+                if (notification.isMessageType) {
+                    Text(
+                        text = "✉️ READ",
+                        color = AppRed,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 6.dp)
+                    )
+                }
                 Text(
                     text = formatRelativeTime(notification.sentAt),
                     color = Color.White.copy(alpha = 0.35f),
@@ -154,6 +178,14 @@ private fun NotificationRow(notification: FirebaseNotification) {
                 )
             }
         }
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.3f),
+            modifier = Modifier
+                .size(18.dp)
+                .align(Alignment.CenterVertically)
+        )
     }
 }
 

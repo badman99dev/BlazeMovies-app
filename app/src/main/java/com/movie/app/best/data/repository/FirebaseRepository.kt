@@ -512,9 +512,12 @@ class FirebaseRepository @Inject constructor(
                 val items = snap.documents.mapNotNull { d ->
                     val m = d.data ?: return@mapNotNull null
                     FirebaseNotification(
+                        id = d.id,
                         title = m["title"] as? String ?: "",
                         body = m["body"] as? String ?: "",
-                        sentAt = (m["sentAt"] as? Number)?.toLong() ?: 0
+                        sentAt = (m["sentAt"] as? Number)?.toLong() ?: 0,
+                        refer = m["refer"] as? String,
+                        message = m["message"] as? String
                     )
                 }
                 if (items.isNotEmpty()) {
@@ -525,10 +528,16 @@ class FirebaseRepository @Inject constructor(
         getLocalNotifications()
     }
 
-    fun saveLocalNotification(title: String, body: String, sentAt: Long = System.currentTimeMillis()) {
+    fun saveLocalNotification(
+        title: String,
+        body: String,
+        sentAt: Long = System.currentTimeMillis(),
+        refer: String? = null,
+        message: String? = null
+    ) {
         val list = getLocalNotifications().toMutableList()
         list.removeAll { it.title == title && it.sentAt == sentAt }
-        list.add(0, FirebaseNotification(title = title, body = body, sentAt = sentAt))
+        list.add(0, FirebaseNotification(title = title, body = body, sentAt = sentAt, refer = refer, message = message))
         if (list.size > 50) list.subList(50, list.size).clear()
         prefs.edit().putString("notifications", gson.toJson(list)).apply()
     }
@@ -545,6 +554,19 @@ class FirebaseRepository @Inject constructor(
     }
 
     fun isLoggedIn(): Boolean = FirebaseAuth.getInstance().currentUser != null
+
+    // Message-type notification: docId = "notif/{docId}" -> users/{uid}/notifications/{docId}
+    suspend fun getNotificationMessage(docId: String): String? = withContext(Dispatchers.IO) {
+        val uid = uid() ?: return@withContext null
+        val id = docId.removePrefix("notif/")
+        try {
+            val doc = db.collection("users").document(uid)
+                .collection("notifications").document(id).get().await()
+            doc.getString("message")?.takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
+        }
+    }
 }
 
 // Composables ke liye — same singleton instance access (manual instantiation avoid)
