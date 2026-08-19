@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.theme.AppRed
-import com.microedu.markdown.MarkdownText
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun MessageScreen(
