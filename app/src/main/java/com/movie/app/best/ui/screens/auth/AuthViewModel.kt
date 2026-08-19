@@ -177,6 +177,8 @@ class AuthViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoggingOut = true)
             kotlinx.coroutines.delay(800)
             MyListRefreshState.markStale()
+            // Device ko "anon" mark karo (token rehta hai) — auth session abhi bhi valid hai
+            firebaseRepository.registerFcmToken(anon = true)
             authRepository.logout()
             _uiState.value = AuthUiState()
         }

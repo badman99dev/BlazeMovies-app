@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface AuthApiService {
 
@@ -36,5 +37,17 @@ interface AuthApiService {
     @GET("auth/profile")
     suspend fun getProfile(
         @Header("Authorization") authHeader: String
+    ): AuthResponse
+
+    // Device registration handshake — binds FCM token + FID to current user
+    // (or marks device "anon" when logged out). Never cached server-side.
+    @GET("register")
+    suspend fun registerDevice(
+        @Query("uid") uid: String?,
+        @Query("fid") fid: String,
+        @Query("device") device: String,
+        @Query("fcm_token") fcmToken: String,
+        @Query("anon") anon: Int? = null,
+        @Header("Authorization") authHeader: String? = null
     ): AuthResponse
 }

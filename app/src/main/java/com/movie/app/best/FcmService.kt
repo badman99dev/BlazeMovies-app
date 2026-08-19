@@ -36,9 +36,10 @@ class FcmService : FirebaseMessagingService() {
             .addOnCompleteListener {
                 android.util.Log.d("FcmService", "Topic subscribe: success=${it.isSuccessful}")
             }
-        // Token rotate hua -> logged-in user ke liye firestore mein update (FID match -> replace wahi device)
-        if (firebaseRepository.isLoggedIn()) {
-            CoroutineScope(Dispatchers.IO).launch { firebaseRepository.registerFcmToken() }
+        // Token rotate hua -> handshake: logged-in = uid binding, warna anon (token save rehta hai)
+        val loggedIn = firebaseRepository.isLoggedIn()
+        CoroutineScope(Dispatchers.IO).launch {
+            firebaseRepository.registerFcmToken(anon = !loggedIn)
         }
     }
 

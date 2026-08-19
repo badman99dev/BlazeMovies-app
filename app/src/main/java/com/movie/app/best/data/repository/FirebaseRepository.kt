@@ -16,6 +16,7 @@ import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.FirebaseNotification
 import com.movie.app.best.data.model.FirebaseUserProfile
 import com.movie.app.best.data.model.LikeItem
+import com.movie.app.best.data.remote.AuthApiService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -25,7 +26,8 @@ import javax.inject.Singleton
 
 @Singleton
 class FirebaseRepository @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext context: Context,
+    private val apiService: AuthApiService
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_library", Context.MODE_PRIVATE)
     private val gson = Gson()
@@ -49,27 +51,31 @@ class FirebaseRepository @Inject constructor(
 
     // ── User Profile ──────────────────────────────────────────
 
-    // FCM token binding: users/{uid}.fcmTokens = [{token, fid, device, lastSeen}]
-    // Same FID (app installation) -> replacement of that device's token (rotation)
-    // New FID -> new device entry
-    suspend fun registerFcmToken() = withContext(Dispatchers.IO) {
-        val uid = uid() ?: return@withContext
+    // FCM token binding handshake via /v1/register.php (never writes Firestore directly).
+    // anon=true -> device marked "anon" (logged-out/guest), token kept for later use.
+    suspend fun registerFcmToken(anon: Boolean = false) {
         try {
-            val fid = try { FirebaseInstallations.getInstance().id.await() } catch (_: Exception) { return@withContext }
-            val token = try { FirebaseMessaging.getInstance().token.await() } catch (_: Exception) { return@withContext }
-            val record = mapOf(
-                "token" to token,
-                "fid" to fid,
-                "device" to Build.MODEL,
-                "lastSeen" to System.currentTimeMillis()
+            val fid = FirebaseInstallations.getInstance().id.await()
+            val token = FirebaseMessaging.getInstance().token.await()
+            if (anon) {
+                apiService.registerDevice(
+                    uid = null,
+                    fid = fid,
+                    device = Build.MODEL,
+                    fcmToken = token,
+                    anon = 1
+                )
+                return
+            }
+            val user = FirebaseAuth.getInstance().currentUser ?: return
+            val jwt = try { user.getIdToken(false).await()?.token } catch (_: Exception) { null } ?: return
+            apiService.registerDevice(
+                uid = user.uid,
+                fid = fid,
+                device = Build.MODEL,
+                fcmToken = token,
+                authHeader = "Bearer $jwt"
             )
-            val docRef = db.collection("users").document(uid)
-            val doc = docRef.get().await()
-            val tokens = (doc.data?.get("fcmTokens") as? List<*>)?.filterIsInstance<Map<String, Any?>>()?.toMutableList()
-                ?: mutableListOf()
-            val idx = tokens.indexOfFirst { it["fid"] == fid }
-            if (idx >= 0) tokens[idx] = record else tokens.add(record)
-            docRef.set(mapOf("fcmTokens" to tokens), SetOptions.merge()).await()
         } catch (_: Exception) {
         }
     }
