@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -113,7 +114,7 @@ fun NotificationScreen(
                     indicator = { state, trigger ->
                         SwipeRefreshIndicator(
                             state = state,
-                            isRefreshing = trigger,
+                            refreshTriggerDistance = 80.dp,
                             backgroundColor = Color(0xFF1A1A1A),
                             contentColor = AppRed
                         )
