@@ -12,6 +12,9 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.movie.app.best.data.repository.FirebaseRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -33,6 +36,10 @@ class FcmService : FirebaseMessagingService() {
             .addOnCompleteListener {
                 android.util.Log.d("FcmService", "Topic subscribe: success=${it.isSuccessful}")
             }
+        // Token rotate hua -> logged-in user ke liye firestore mein update (FID match -> replace wahi device)
+        if (firebaseRepository.isLoggedIn()) {
+            CoroutineScope(Dispatchers.IO).launch { firebaseRepository.registerFcmToken() }
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {

@@ -2,10 +2,14 @@ package com.movie.app.best.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.PersistentCacheSettings
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.installations.FirebaseInstallations
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
@@ -45,6 +49,31 @@ class FirebaseRepository @Inject constructor(
 
     // ── User Profile ──────────────────────────────────────────
 
+    // FCM token binding: users/{uid}.fcmTokens = [{token, fid, device, lastSeen}]
+    // Same FID (app installation) -> replacement of that device's token (rotation)
+    // New FID -> new device entry
+    suspend fun registerFcmToken() = withContext(Dispatchers.IO) {
+        val uid = uid() ?: return@withContext
+        try {
+            val fid = try { FirebaseInstallations.getInstance().id.await() } catch (_: Exception) { return@withContext }
+            val token = try { FirebaseMessaging.getInstance().token.await() } catch (_: Exception) { return@withContext }
+            val record = mapOf(
+                "token" to token,
+                "fid" to fid,
+                "device" to Build.MODEL,
+                "lastSeen" to System.currentTimeMillis()
+            )
+            val docRef = db.collection("users").document(uid)
+            val doc = docRef.get().await()
+            val tokens = (doc.data?.get("fcmTokens") as? List<*>)?.filterIsInstance<Map<String, Any?>>()?.toMutableList()
+                ?: mutableListOf()
+            val idx = tokens.indexOfFirst { it["fid"] == fid }
+            if (idx >= 0) tokens[idx] = record else tokens.add(record)
+            docRef.set(mapOf("fcmTokens" to tokens), SetOptions.merge()).await()
+        } catch (_: Exception) {
+        }
+    }
+
     suspend fun getOrCreateUserProfile(): FirebaseUserProfile? = withContext(Dispatchers.IO) {
         val uid = uid() ?: return@withContext null
         try {
@@ -76,7 +105,7 @@ class FirebaseRepository @Inject constructor(
                     firstName = nameParts.getOrNull(0),
                     lastName = nameParts.getOrNull(1)
                 )
-                db.collection("users").document(uid).set(profile.toMap()).await()
+                db.collection("users").document(uid).set(profile.toMap(), SetOptions.merge()).await()
                 return@withContext profile
             }
         } catch (_: Exception) {

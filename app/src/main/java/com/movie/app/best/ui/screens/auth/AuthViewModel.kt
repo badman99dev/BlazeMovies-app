@@ -38,10 +38,18 @@ class AuthViewModel @Inject constructor(
 
     init {
         refreshAuthState()
+        // Cold start: already logged-in user ke liye FCM token firestore mein bind karo
+        if (authRepository.isLoggedIn()) {
+            viewModelScope.launch { firebaseRepository.registerFcmToken() }
+        }
         viewModelScope.launch {
             authRepository.authEvent.collect { event ->
                 if (!event.initial) {
                     refreshAuthState()
+                    // Fresh login/signup/Google -> token bind
+                    if (event.isLoggedIn) {
+                        firebaseRepository.registerFcmToken()
+                    }
                 }
             }
         }
