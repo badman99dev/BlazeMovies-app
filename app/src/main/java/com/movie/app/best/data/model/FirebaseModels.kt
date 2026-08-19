@@ -100,12 +100,14 @@ data class FirebaseNotification(
     val sentAt: Long = System.currentTimeMillis(),
     val id: String? = null,
     val refer: String? = null,
-    val message: String? = null
+    val message: String? = null,
+    val icon: String? = null
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         "title" to title,
         "body" to body,
-        "sentAt" to sentAt
+        "sentAt" to sentAt,
+        "icon" to icon
     )
 
     val isMessageType: Boolean get() = refer == "firestore://message"

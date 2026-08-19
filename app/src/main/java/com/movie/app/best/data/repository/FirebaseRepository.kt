@@ -517,7 +517,8 @@ class FirebaseRepository @Inject constructor(
                         body = m["body"] as? String ?: "",
                         sentAt = (m["sentAt"] as? Number)?.toLong() ?: 0,
                         refer = m["refer"] as? String,
-                        message = m["message"] as? String
+                        message = m["message"] as? String,
+                        icon = m["icon"] as? String
                     )
                 }
                 if (items.isNotEmpty()) {
@@ -533,11 +534,12 @@ class FirebaseRepository @Inject constructor(
         body: String,
         sentAt: Long = System.currentTimeMillis(),
         refer: String? = null,
-        message: String? = null
+        message: String? = null,
+        icon: String? = null
     ) {
         val list = getLocalNotifications().toMutableList()
         list.removeAll { it.title == title && it.sentAt == sentAt }
-        list.add(0, FirebaseNotification(title = title, body = body, sentAt = sentAt, refer = refer, message = message))
+        list.add(0, FirebaseNotification(title = title, body = body, sentAt = sentAt, refer = refer, message = message, icon = icon))
         if (list.size > 50) list.subList(50, list.size).clear()
         prefs.edit().putString("notifications", gson.toJson(list)).apply()
     }
@@ -554,6 +556,40 @@ class FirebaseRepository @Inject constructor(
     }
 
     fun isLoggedIn(): Boolean = FirebaseAuth.getInstance().currentUser != null
+
+    // Delete one notification: Firestore doc for logged-in users, local prefs otherwise
+    suspend fun deleteNotification(id: String?, title: String, sentAt: Long) = withContext(Dispatchers.IO) {
+        val uid = uid()
+        if (id != null && uid != null) {
+            try {
+                db.collection("users").document(uid)
+                    .collection("notifications").document(id).delete().await()
+                return@withContext
+            } catch (_: Exception) {}
+        }
+        val list = getLocalNotifications().toMutableList()
+        list.removeAll { (it.id != null && it.id == id) || (id == null && it.title == title && it.sentAt == sentAt) }
+        prefs.edit().putString("notifications", gson.toJson(list)).apply()
+    }
+
+    // Delete the user's ENTIRE notification history (Firestore + local)
+    suspend fun clearAllNotifications() = withContext(Dispatchers.IO) {
+        val uid = uid()
+        if (uid != null) {
+            try {
+                val snap = db.collection("users").document(uid)
+                    .collection("notifications").get().await()
+                if (snap.documents.isNotEmpty()) {
+                    snap.documents.chunked(450).forEach { chunk ->
+                        val batch = db.batch()
+                        chunk.forEach { batch.delete(it.reference) }
+                        batch.commit().await()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        prefs.edit().remove("notifications").apply()
+    }
 
     // Message-type notification: docId = "notif/{docId}" -> users/{uid}/notifications/{docId}
     suspend fun getNotificationMessage(docId: String): String? = withContext(Dispatchers.IO) {

@@ -55,6 +55,7 @@ class FcmService : FirebaseMessagingService() {
         val deepLink = message.data["deep_link"] ?: DEEP_LINK_URI
         val refer = message.data["ref"]          // Firestore doc id: "notif/{docId}"
         val markdown = message.data["message"]   // full markdown (message-type pushes)
+        val icon = message.data["icon"]          // badge icon: keyword | emoji | https image
 
         showNotification(title, body, deepLink, refer, markdown)
 
@@ -64,12 +65,13 @@ class FcmService : FirebaseMessagingService() {
                 title = title,
                 body = body,
                 refer = if (deepLink == MESSAGE_DEEP_LINK) deepLink else null,
-                message = markdown
+                message = markdown,
+                icon = icon
             )
         }
     }
 
-    private fun showNotification(title: String, body: String, deepLink: String, ref: String?, markdown: String?) {
+    private fun showNotification(title: String, body: String, deepLink: String, ref: String?, markdown: String?, icon: String? = null) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -87,6 +89,7 @@ class FcmService : FirebaseMessagingService() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             if (ref != null) putExtra("ref", ref)
             if (markdown != null) putExtra("message", markdown)
+            if (icon != null) putExtra("icon", icon)
         }
 
         val pendingIntent = PendingIntent.getActivity(

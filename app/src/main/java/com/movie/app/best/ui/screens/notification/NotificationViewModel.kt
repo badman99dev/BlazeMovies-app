@@ -37,6 +37,24 @@ class NotificationViewModel @Inject constructor(
             }
         }
     }
+
+    fun deleteNotification(notification: FirebaseNotification) {
+        viewModelScope.launch {
+            firebaseRepository.deleteNotification(
+                id = notification.id,
+                title = notification.title,
+                sentAt = notification.sentAt
+            )
+            loadNotifications()
+        }
+    }
+
+    fun clearAllNotifications() {
+        viewModelScope.launch {
+            firebaseRepository.clearAllNotifications()
+            loadNotifications()
+        }
+    }
 }
 
 data class NotificationUiState(
