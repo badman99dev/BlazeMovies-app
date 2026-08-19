@@ -25,13 +25,11 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.movie.app.best.data.model.FirebaseNotification
 import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.theme.AppRed
@@ -92,19 +93,12 @@ fun NotificationScreen(
                         )
                         Spacer(Modifier.width(4.dp))
                     }
-                    IconButton(onClick = { viewModel.loadNotifications() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = Color.White.copy(alpha = 0.7f)
-                        )
-                    }
                 }
             }
         )
 
         when {
-            uiState.isLoading -> {
+            uiState.isLoading && uiState.notifications.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -112,15 +106,29 @@ fun NotificationScreen(
                     CircularProgressIndicator(color = AppRed)
                 }
             }
-            uiState.notifications.isNotEmpty() -> {
-                NotificationList(
-                    notifications = uiState.notifications,
-                    onNotificationClick = onNotificationClick,
-                    onDelete = { viewModel.deleteNotification(it) }
-                )
-            }
             else -> {
-                EmptyNotificationState()
+                SwipeRefresh(
+                    state = rememberSwipeRefreshState(isRefreshing = uiState.isLoading),
+                    onRefresh = { viewModel.loadNotifications() },
+                    indicator = { state, trigger ->
+                        SwipeRefreshIndicator(
+                            state = state,
+                            isRefreshing = trigger,
+                            backgroundColor = Color(0xFF1A1A1A),
+                            contentColor = AppRed
+                        )
+                    }
+                ) {
+                    if (uiState.notifications.isNotEmpty()) {
+                        NotificationList(
+                            notifications = uiState.notifications,
+                            onNotificationClick = onNotificationClick,
+                            onDelete = { viewModel.deleteNotification(it) }
+                        )
+                    } else {
+                        EmptyNotificationState()
+                    }
+                }
             }
         }
     }

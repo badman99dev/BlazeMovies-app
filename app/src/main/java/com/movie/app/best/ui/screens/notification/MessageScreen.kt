@@ -1,5 +1,7 @@
 package com.movie.app.best.ui.screens.notification
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,12 +27,28 @@ import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.theme.AppRed
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
+private const val APP_SCHEME = "app://"
+private const val APP_URI_PREFIX = APP_SCHEME
+
 @Composable
 fun MessageScreen(
     onBackClick: () -> Unit,
+    onNavigateLink: (String) -> Unit = {},
     viewModel: MessageViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    fun handleLink(url: String) {
+        when {
+            url.startsWith(APP_URI_PREFIX) -> onNavigateLink(url)
+            url.startsWith("http", ignoreCase = true) -> {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -69,7 +88,11 @@ fun MessageScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 18.dp, vertical = 14.dp)
                 ) {
-                    MarkdownText(markdown = uiState.markdown.orEmpty())
+                    MarkdownText(
+                        markdown = uiState.markdown.orEmpty(),
+                        onLinkClicked = ::handleLink,
+                        linkColor = AppRed
+                    )
                 }
             }
             else -> {

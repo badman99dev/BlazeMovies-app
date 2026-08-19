@@ -658,7 +658,10 @@ fun AppNavigation(
             )
         ) {
             MessageScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onNavigateLink = { url ->
+                    runCatching { navController.navigate(Uri.parse(url)) }
+                }
             )
         }
     }
