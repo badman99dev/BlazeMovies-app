@@ -112,7 +112,7 @@ fun MovieWatchScreen(
     val firebaseRepository = remember {
         dagger.hilt.android.EntryPointAccessors.fromApplication(
             context.applicationContext,
-            com.movie.app.best.data.repository.FirebaseRepository.EntryPoint::class.java
+            com.movie.app.best.data.repository.FirebaseRepositoryEntryPoint::class.java
         ).firebaseRepository()
     }
     val slug = viewModel.contentSlug

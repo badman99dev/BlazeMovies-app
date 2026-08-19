@@ -20,8 +20,7 @@ import com.movie.app.best.data.remote.AuthApiService
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
+import dagger.hilt.components.SingletonComponentimport kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -32,13 +31,6 @@ class FirebaseRepository @Inject constructor(
     @ApplicationContext context: Context,
     private val apiService: AuthApiService
 ) {
-
-    // Composables ke liye — same singleton instance access (manual instantiation avoid)
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface EntryPoint {
-        fun firebaseRepository(): FirebaseRepository
-    }
     private val prefs: SharedPreferences = context.getSharedPreferences("app_library", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val db: FirebaseFirestore
@@ -552,4 +544,11 @@ class FirebaseRepository @Inject constructor(
     }
 
     fun isLoggedIn(): Boolean = FirebaseAuth.getInstance().currentUser != null
+}
+
+// Composables ke liye — same singleton instance access (manual instantiation avoid)
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface FirebaseRepositoryEntryPoint {
+    fun firebaseRepository(): FirebaseRepository
 }
