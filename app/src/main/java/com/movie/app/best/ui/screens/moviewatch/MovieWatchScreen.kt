@@ -109,7 +109,12 @@ fun MovieWatchScreen(
     val activity = context as? android.app.Activity
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val firebaseRepository = remember { FirebaseRepository(context) }
+    val firebaseRepository = remember {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            com.movie.app.best.data.repository.FirebaseRepository.EntryPoint::class.java
+        ).firebaseRepository()
+    }
     val slug = viewModel.contentSlug
     val title = viewModel.title
 

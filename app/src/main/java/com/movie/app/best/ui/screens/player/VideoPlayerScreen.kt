@@ -166,7 +166,12 @@ fun VideoPlayerScreen(
         activity?.let { ImmersiveMode.enter(it) }
     }
 
-    val firebaseRepository = remember { com.movie.app.best.data.repository.FirebaseRepository(context) }
+    val firebaseRepository = remember {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            com.movie.app.best.data.repository.FirebaseRepository.EntryPoint::class.java
+        ).firebaseRepository()
+    }
 
     var resumePos by remember { mutableStateOf(0L) }
     var hasResumed by remember { mutableStateOf(false) }
