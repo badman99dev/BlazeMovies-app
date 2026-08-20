@@ -130,7 +130,11 @@ data class ContentModerationApiResponse(
     val moderation: ContentModerationResponse? = null,
     val previous_moderation: ContentModerationResponse? = null,
     val images_analyzed: Int = 0,
-    val debug: List<String> = emptyList()
+    val debug: List<String> = emptyList(),
+    val report_id: Int = 0,
+    val report_status: String? = null,
+    val message: String? = null,
+    val status: String? = null
 )
 
 data class StreamRequestApiResponse(

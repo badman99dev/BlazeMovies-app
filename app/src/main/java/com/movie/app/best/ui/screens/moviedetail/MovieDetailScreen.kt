@@ -198,6 +198,9 @@ fun MovieDetailScreen(
                     currentModeration = uiState.movie?.contentModeration,
                     isModerator = uiState.isModerator,
                     onSubmit = { movieId, reportType, reason ->
+                        viewModel.submitUserReport(movieId, reportType, reason)
+                    },
+                    onInstantCheck = { movieId, reportType, reason ->
                         viewModel.submitContentModeration(movieId, reportType, reason)
                     },
                     onModeratorVerdict = { movieId, poster, screenshots, storyline, reasoning ->
@@ -216,6 +219,20 @@ fun MovieDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ReportWaitingPopup(isObjection = uiState.isObjectionReport)
+            }
+        }
+
+        if (uiState.reportSuccessMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.85f)),
+                contentAlignment = Alignment.Center
+            ) {
+                ReportSuccessModal(
+                    message = uiState.reportSuccessMessage!!,
+                    onDismiss = viewModel::dismissReportSuccess
+                )
             }
         }
 

@@ -106,6 +106,7 @@ import com.movie.app.best.ui.screens.moviedetail.components.ReportDrawer
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestWaitingPopup
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
 import com.movie.app.best.ui.screens.moviedetail.components.ReportWaitingPopup
+import com.movie.app.best.ui.screens.moviedetail.components.ReportSuccessModal
 import com.movie.app.best.ui.screens.moviedetail.components.ReportResultModal
 import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.ui.theme.AccentPurple
@@ -250,6 +251,9 @@ fun TVShowDetailScreen(
                     currentModeration = uiState.series?.contentModeration,
                     isModerator = uiState.isModerator,
                     onSubmit = { movieId, reportType, reason ->
+                        viewModel.submitUserReport(movieId, reportType, reason)
+                    },
+                    onInstantCheck = { movieId, reportType, reason ->
                         viewModel.submitContentModeration(movieId, reportType, reason)
                     },
                     onModeratorVerdict = { movieId, poster, screenshots, storyline, reasoning ->
@@ -268,6 +272,20 @@ fun TVShowDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ReportWaitingPopup(isObjection = uiState.isObjectionReport)
+            }
+        }
+
+        if (uiState.reportSuccessMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.85f)),
+                contentAlignment = Alignment.Center
+            ) {
+                ReportSuccessModal(
+                    message = uiState.reportSuccessMessage!!,
+                    onDismiss = viewModel::dismissReportSuccess
+                )
             }
         }
 

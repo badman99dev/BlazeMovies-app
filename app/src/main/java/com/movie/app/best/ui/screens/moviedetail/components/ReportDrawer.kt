@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Warning
@@ -44,6 +45,7 @@ fun ReportDrawer(
     currentModeration: com.movie.app.best.data.model.ContentModeration? = null,
     isModerator: Boolean = false,
     onSubmit: (movieId: Int, reportType: String, reason: String) -> Unit,
+    onInstantCheck: (movieId: Int, reportType: String, reason: String) -> Unit = { _, _, _ -> },
     onModeratorVerdict: (movieId: Int, poster: String, screenshots: String, storyline: String, reasoning: String) -> Unit = { _, _, _, _, _ -> },
     onDismiss: () -> Unit
 ) {
@@ -257,6 +259,34 @@ fun ReportDrawer(
                     )
                 }
             }
+
+            if (isModerator) {
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        if (selectedType.isNotEmpty() && (!isObjection || reason.isNotBlank())) {
+                            onInstantCheck(movieId, selectedType, reason)
+                        }
+                    },
+                    enabled = selectedType.isNotEmpty() && (!isObjection || reason.isNotBlank()),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF7C4DFF),
+                        disabledContainerColor = Color(0xFF7C4DFF).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("⚡ Instant Check (mod) — AI + instant verdict", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+                Text(
+                    text = "Runs AI analysis immediately — shows verdict, flags & celebration. Regular submit just queues the report for review.",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
         }
     }
 }
@@ -396,6 +426,57 @@ fun CustomFlagModal(
                     Spacer(Modifier.width(6.dp))
                     Text("Save Flag", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReportSuccessModal(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    val displayMessage = message.ifBlank {
+        "Your report successfully submitted. We will review and respond in a few minutes. Thank you for helping keep BlazeMovies safe."
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1A1A1A).copy(alpha = 0.97f), RoundedCornerShape(20.dp))
+            .padding(26.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(52.dp)
+            )
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = "Report Submitted",
+                color = Color.White,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = displayMessage,
+                color = Color.White.copy(alpha = 0.62f),
+                fontSize = 14.sp,
+                lineHeight = 19.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(Modifier.height(18.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth().height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
+            ) {
+                Text("Done", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
     }
