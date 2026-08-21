@@ -38,6 +38,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material3.CircularProgressIndicator
 
 @Composable
 fun ReportDrawer(
@@ -47,11 +53,27 @@ fun ReportDrawer(
     onSubmit: (movieId: Int, reportType: String, reason: String) -> Unit,
     onInstantCheck: (movieId: Int, reportType: String, reason: String) -> Unit = { _, _, _ -> },
     onModeratorVerdict: (movieId: Int, poster: String, screenshots: String, storyline: String, reasoning: String) -> Unit = { _, _, _, _, _ -> },
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isSubmitting: Boolean = false
 ) {
     var selectedType by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
     var showCustomFlag by remember { mutableStateOf(false) }
+
+    val submitInteraction = remember { MutableInteractionSource() }
+    val instantInteraction = remember { MutableInteractionSource() }
+    val submitPressed by submitInteraction.collectIsPressedAsState()
+    val instantPressed by instantInteraction.collectIsPressedAsState()
+    val submitScale by animateFloatAsState(
+        targetValue = if (submitPressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = 0.35f, stiffness = 600f),
+        label = "submitScale"
+    )
+    val instantScale by animateFloatAsState(
+        targetValue = if (instantPressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = 0.35f, stiffness = 600f),
+        label = "instantScale"
+    )
 
     if (showCustomFlag && isModerator) {
         CustomFlagModal(
@@ -230,6 +252,7 @@ fun ReportDrawer(
             ) {
                 Button(
                     onClick = onDismiss,
+                    enabled = !isSubmitting,
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2A2A))
@@ -243,20 +266,34 @@ fun ReportDrawer(
                             onSubmit(movieId, selectedType, reason)
                         }
                     },
-                    enabled = selectedType.isNotEmpty() && (!isObjection || reason.isNotBlank()),
-                    modifier = Modifier.weight(1.5f).height(48.dp),
+                    interactionSource = submitInteraction,
+                    enabled = !isSubmitting && selectedType.isNotEmpty() && (!isObjection || reason.isNotBlank()),
+                    modifier = Modifier
+                        .weight(1.5f)
+                        .height(48.dp)
+                        .graphicsLayer { scaleX = submitScale; scaleY = submitScale },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE50914),
                         disabledContainerColor = Color(0xFFE50914).copy(alpha = 0.3f)
                     )
                 ) {
-                    Icon(Icons.Default.Flag, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        if (isObjection) "Submit Objection" else "Submit Report", 
-                        fontWeight = FontWeight.Bold, fontSize = 15.sp
-                    )
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Submitting...", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    } else {
+                        Icon(Icons.Default.Flag, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (isObjection) "Submit Objection" else "Submit Report",
+                            fontWeight = FontWeight.Bold, fontSize = 15.sp
+                        )
+                    }
                 }
             }
 
@@ -268,17 +305,31 @@ fun ReportDrawer(
                             onInstantCheck(movieId, selectedType, reason)
                         }
                     },
-                    enabled = selectedType.isNotEmpty() && (!isObjection || reason.isNotBlank()),
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    interactionSource = instantInteraction,
+                    enabled = !isSubmitting && selectedType.isNotEmpty() && (!isObjection || reason.isNotBlank()),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .graphicsLayer { scaleX = instantScale; scaleY = instantScale },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF7C4DFF),
                         disabledContainerColor = Color(0xFF7C4DFF).copy(alpha = 0.25f)
                     )
                 ) {
-                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("⚡ Instant Check (mod) — AI + instant verdict", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Checking with AI...", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    } else {
+                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("⚡ Instant Check (mod) — AI + instant verdict", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    }
                 }
                 Text(
                     text = "Runs AI analysis immediately — shows verdict, flags & celebration. Regular submit just queues the report for review.",

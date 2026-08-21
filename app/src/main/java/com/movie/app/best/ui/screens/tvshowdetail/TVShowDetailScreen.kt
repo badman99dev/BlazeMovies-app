@@ -259,7 +259,8 @@ fun TVShowDetailScreen(
                     onModeratorVerdict = { movieId, poster, screenshots, storyline, reasoning ->
                         viewModel.submitModeratorVerdict(movieId, poster, screenshots, storyline, reasoning)
                     },
-                    onDismiss = viewModel::closeReportDrawer
+                    onDismiss = viewModel::closeReportDrawer,
+                    isSubmitting = uiState.isSubmittingReport
                 )
             }
         }

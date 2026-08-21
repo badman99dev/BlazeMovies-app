@@ -525,7 +525,7 @@ class MovieDetailViewModel @Inject constructor(
     }
 
     fun closeReportDrawer() {
-        _uiState.update { it.copy(showReportDrawer = false) }
+        _uiState.update { it.copy(showReportDrawer = false, isSubmittingReport = false) }
     }
 
     fun submitContentModeration(movieId: Int, reportType: String, reason: String) {
@@ -553,15 +553,21 @@ class MovieDetailViewModel @Inject constructor(
     // straight to the moderation queue with uid/name/email/slug; thanks message turant.
     fun submitUserReport(movieId: Int, reportType: String, reason: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(showReportDrawer = false, showReportWaiting = false) }
+            _uiState.update { it.copy(isSubmittingReport = true) }
             try {
                 val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
                 val tokenResult = user?.getIdToken(false)?.await()
                 val authHeader = "Bearer ${tokenResult?.token ?: ""}"
                 val response = repository.submitContentModeration(authHeader, movieId, reportType, reason)
-                _uiState.update { it.copy(reportSuccessMessage = response.message) }
+                _uiState.update {
+                    it.copy(
+                        isSubmittingReport = false,
+                        showReportDrawer = false,
+                        reportSuccessMessage = response.message
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(moderationError = e.message) }
+                _uiState.update { it.copy(isSubmittingReport = false, moderationError = e.message) }
             }
         }
     }
@@ -719,5 +725,6 @@ data class MovieDetailUiState(
     val reportModerationResult: com.movie.app.best.data.model.ContentModerationResponse? = null,
     val previousModerationResult: com.movie.app.best.data.model.ContentModerationResponse? = null,
     val showCelebration: Boolean = false,
-    val reportSuccessMessage: String? = null
+    val reportSuccessMessage: String? = null,
+    val isSubmittingReport: Boolean = false
 )
