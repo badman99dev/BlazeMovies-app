@@ -93,15 +93,49 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
 
     private fun createNotificationChannel() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(
+            val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+
+            val defaultChannel = android.app.NotificationChannel(
                 FcmService.CHANNEL_ID,
-                "BlazeMovies Alerts",
+                "App Alerts",
                 android.app.NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "App broadcasts and alerts"
+                description = "App broadcasts and alerts (sound + vibration)"
+                enableVibration(true)
             }
-            (getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager)
-                .createNotificationChannel(channel)
+            nm.createNotificationChannel(defaultChannel)
+
+            val soundOnlyChannel = android.app.NotificationChannel(
+                FcmService.CHANNEL_ID_SOUND,
+                "App Alerts — Sound Only",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Sound plays, no vibration"
+                enableVibration(false)
+            }
+            nm.createNotificationChannel(soundOnlyChannel)
+
+            val vibrateOnlyChannel = android.app.NotificationChannel(
+                FcmService.CHANNEL_ID_VIBRATE,
+                "App Alerts — Vibration Only",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Vibrates, no sound"
+                setSound(null, null)
+                enableVibration(true)
+            }
+            nm.createNotificationChannel(vibrateOnlyChannel)
+
+            val silentChannel = android.app.NotificationChannel(
+                FcmService.CHANNEL_ID_SILENT,
+                "App Alerts — Silent",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "No sound, no vibration"
+                setSound(null, null)
+                enableVibration(false)
+            }
+            nm.createNotificationChannel(silentChannel)
         }
     }
 }

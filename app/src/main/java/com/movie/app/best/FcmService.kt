@@ -24,11 +24,14 @@ class FcmService : FirebaseMessagingService() {
     lateinit var firebaseRepository: FirebaseRepository
 
     companion object {
-        const val CHANNEL_ID = "blazemovies_alerts"
-        const val TOPIC_BROADCASTS = "blazemovies_alerts"
+        const val CHANNEL_ID = "app_alerts"
+        const val CHANNEL_ID_SOUND = "app_alerts_sound"
+        const val CHANNEL_ID_VIBRATE = "app_alerts_vibrate"
+        const val CHANNEL_ID_SILENT = "app_alerts_silent"
+        const val TOPIC_BROADCASTS = "app_alerts"
         const val DEEP_LINK_URI = "app://notifications"
         const val MESSAGE_DEEP_LINK = "firestore://message"
-        const val LEGACY_INBOX_URI = "blazemovies://notifications"
+        const val LEGACY_INBOX_URI = "notif://notifications"
     }
 
     override fun onNewToken(token: String) {
@@ -56,8 +59,10 @@ class FcmService : FirebaseMessagingService() {
         val refer = message.data["ref"]          // Firestore doc id: "notif/{docId}"
         val markdown = message.data["message"]   // full markdown (message-type pushes)
         val icon = message.data["icon"]          // badge icon: keyword | emoji | https image
+        val sound = message.data["sound"] != "0" // "0" = silent, default sound on
+        val vibrate = message.data["vibrate"] != "0"
 
-        showNotification(title, body, deepLink, refer, markdown)
+        showNotification(title, body, deepLink, refer, markdown, icon, sound, vibrate)
 
         // Logged-out users ke liye device-local cache (3-day TTL repository handles)
         if (!firebaseRepository.isLoggedIn()) {
@@ -71,14 +76,22 @@ class FcmService : FirebaseMessagingService() {
         }
     }
 
-    private fun showNotification(title: String, body: String, deepLink: String, ref: String?, markdown: String?, icon: String? = null) {
+    private fun channelFor(sound: Boolean, vibrate: Boolean): String = when {
+        sound && vibrate -> CHANNEL_ID
+        !sound && !vibrate -> CHANNEL_ID_SILENT
+        !sound -> CHANNEL_ID_VIBRATE
+        else -> CHANNEL_ID_SOUND
+    }
+
+    private fun showNotification(title: String, body: String, deepLink: String, ref: String?, markdown: String?, icon: String? = null, sound: Boolean = true, vibrate: Boolean = true) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = channelFor(sound, vibrate)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                "BlazeMovies Alerts",
-                NotificationManager.IMPORTANCE_HIGH
+                channelId,
+                "App Alerts",
+                if (channelId == CHANNEL_ID_SILENT) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "App broadcasts and alerts"
             }
@@ -99,12 +112,12 @@ class FcmService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_stat_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(if (channelId == CHANNEL_ID_SILENT) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
