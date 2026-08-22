@@ -34,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +71,11 @@ fun NotificationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
+    val refreshSignal by NotificationRefreshBus.signal.collectAsState()
+
+    LaunchedEffect(refreshSignal) {
+        if (refreshSignal > 0) viewModel.loadNotifications()
+    }
 
     Column(
         modifier = Modifier

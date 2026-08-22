@@ -88,6 +88,7 @@ import com.movie.app.best.ui.navigation.AppNavigation
 import com.movie.app.best.ui.navigation.BottomNavigationBar
 import com.movie.app.best.ui.navigation.Screen
 import com.movie.app.best.ui.screens.auth.AuthViewModel
+import com.movie.app.best.ui.screens.notification.NotificationRefreshBus
 import com.movie.app.best.ui.screens.splash.SplashScreen
 import com.movie.app.best.ui.screens.settings.UpdateViewModel
 import com.movie.app.best.ui.screens.settings.UpdateUiState
@@ -268,6 +269,10 @@ fun MainContent(
             //  unknown        -> notifications panel fallback
             withFrameNanos { }
             withFrameNanos { }
+            val isNotifDeepLink = uri == FcmService.DEEP_LINK_URI || uri == FcmService.LEGACY_INBOX_URI
+            if (isNotifDeepLink) {
+                NotificationRefreshBus.trigger()
+            }
             if (navController.currentDestination?.route != Screen.Notifications.route) {
                 // Keep home in the back stack (handleDeepLink would create a
                 // root-only stack, breaking the back button: [notifications]
@@ -287,7 +292,7 @@ fun MainContent(
                             popUpTo(navController.graph.startDestinationId)
                         }
                     }
-                    uri == FcmService.DEEP_LINK_URI || uri == FcmService.LEGACY_INBOX_URI -> {
+                    isNotifDeepLink -> {
                         navController.navigate(Screen.Notifications.route) {
                             popUpTo(navController.graph.startDestinationId)
                             launchSingleTop = true
