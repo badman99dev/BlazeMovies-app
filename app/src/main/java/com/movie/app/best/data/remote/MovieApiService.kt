@@ -71,7 +71,8 @@ interface MovieApiService {
     @GET("latest-uploads")
     suspend fun getLatestUploads(
         @Query("offset") offset: Int = 0,
-        @Query("limit") limit: Int = 45
+        @Query("limit") limit: Int = 45,
+        @Query("type") type: String? = null
     ): ApiResponse<OffsetResult>
 
     @GET("new-release/{country}")

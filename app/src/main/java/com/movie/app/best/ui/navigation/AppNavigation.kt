@@ -53,6 +53,7 @@ sealed class Screen(val route: String) {
     object Trending : Screen("trending")
     object Zee5 : Screen("zee5")
     object LatestUploads : Screen("latest-uploads")
+    object SeriesList : Screen("series-list")
     object NewRelease : Screen("new-release/{country}") {
         fun createRoute(country: String) = "new-release/${Uri.encode(country)}"
     }
@@ -536,6 +537,16 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
+            )
+        }
+
+        composable(Screen.SeriesList.route, deepLinks = refLinks("app://series-list")) {
+            LatestUploadScreen(
+                onBackClick = { navController.popBackStack() },
+                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onSearchClick = { navController.navigate(Screen.Search.route) },
+                title = "Binge-Worthy Series",
+                type = "series"
             )
         }
 

@@ -36,8 +36,15 @@ class LatestUploadViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LatestUploadUiState())
     val uiState: StateFlow<LatestUploadUiState> = _uiState.asStateFlow()
 
-    init {
-        loadMovies()
+    private var requestType: String? = null
+    private var configured = false
+
+    fun configure(type: String? = null) {
+        requestType = type
+        if (!configured) {
+            configured = true
+            loadMovies()
+        }
     }
 
     init {
@@ -49,7 +56,7 @@ class LatestUploadViewModel @Inject constructor(
     fun loadMovies() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            repository.getLatestUploads(offset = 0, limit = PAGE_LIMIT).collect { result ->
+            repository.getLatestUploads(offset = 0, limit = PAGE_LIMIT, type = requestType).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
                     is Resource.Success -> {
@@ -87,7 +94,7 @@ class LatestUploadViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMore = true) }
-            repository.getLatestUploads(offset = nextOffset, limit = PAGE_LIMIT).collect { result ->
+            repository.getLatestUploads(offset = nextOffset, limit = PAGE_LIMIT, type = requestType).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
                     is Resource.Success -> {

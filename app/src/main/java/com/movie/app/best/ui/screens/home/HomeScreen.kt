@@ -137,7 +137,8 @@ fun HomeScreen(
                             title        = "Binge-Worthy Series",
                             movies       = series,
                             cardSize     = CardSize.NORMAL,
-                            onMovieClick = onContentClick
+                            onMovieClick = onContentClick,
+                            onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.SeriesList.route) }
                         )
                     }
                 }

@@ -37,12 +37,18 @@ fun LatestUploadScreen(
     onBackClick: () -> Unit,
     onContentClick: (String, Boolean) -> Unit,
     onSearchClick: () -> Unit = {},
+    title: String = "Latest Uploads",
+    type: String? = null,
     viewModel: LatestUploadViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val context = LocalContext.current
     val filteredMovies = remember(uiState.movies, context) { ModerationSettings.filterMovies(context, uiState.movies) }
+
+    LaunchedEffect(Unit) {
+        viewModel.configure(type)
+    }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -62,7 +68,7 @@ fun LatestUploadScreen(
             .background(Color.Black)
     ) {
         CompactPageHeader(
-            title = "Latest Uploads",
+            title = title,
             onBackClick = onBackClick,
             onSearchClick = onSearchClick
         )
