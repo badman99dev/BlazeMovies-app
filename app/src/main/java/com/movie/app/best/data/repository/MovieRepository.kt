@@ -75,9 +75,9 @@ class MovieRepository @Inject constructor(
         emit(safeApiCall { apiService.getWatchableContent(offset, limit) })
     }
 
-    fun getTrending(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
+    fun getTrending(page: Int = 1, max: Int? = null): Flow<Resource<NewReleaseResult>> = flow {
         emit(Resource.Loading())
-        emit(safeApiCall { apiService.getTrending(offset, limit) })
+        emit(safeApiCall { apiService.getTrending(page, max) })
     }
 
     fun getMyFeed(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {

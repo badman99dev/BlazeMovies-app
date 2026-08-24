@@ -38,7 +38,7 @@ class SplashViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                repository.getTrending(0, 20).collect { result ->
+                repository.getTrending(1, 20).collect { result ->
                     if (result is com.movie.app.best.data.model.Resource.Success) {
                         PrefetchCache.trending = result.data?.items ?: emptyList()
                     }

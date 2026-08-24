@@ -89,7 +89,7 @@ class HomeViewModel @Inject constructor(
 
     fun loadTrending() {
         viewModelScope.launch {
-            repository.getTrending(offset = 0, limit = 20).collect { result ->
+            repository.getTrending(page = 1, max = 20).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         _uiState.update { it.copy(isTrendingLoading = true) }

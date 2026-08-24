@@ -44,11 +44,11 @@ fun TrendingScreen(
     val context = LocalContext.current
     val filteredMovies = remember(uiState.popularMovies, context) { ModerationSettings.filterMovies(context, uiState.popularMovies) }
 
-    val shouldLoadMore by remember {
+    val shouldLoadMore by remember(uiState) {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             val totalItems = listState.layoutInfo.totalItemsCount
-            lastVisible >= totalItems - 6 && uiState.canLoadMore && !uiState.isPopularLoadingMore
+            lastVisible >= totalItems - 6 && uiState.hasMore && !uiState.isPopularLoadingMore
         }
     }
 

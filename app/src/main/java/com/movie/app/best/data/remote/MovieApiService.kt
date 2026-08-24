@@ -90,9 +90,9 @@ interface MovieApiService {
 
     @GET("trending")
     suspend fun getTrending(
-        @Query("offset") offset: Int = 0,
-        @Query("limit") limit: Int = 45
-    ): ApiResponse<OffsetResult>
+        @Query("page") page: Int = 1,
+        @Query("max") max: Int? = null
+    ): ApiResponse<NewReleaseResult>
 
     @GET("my-feed")
     suspend fun getMyFeed(
