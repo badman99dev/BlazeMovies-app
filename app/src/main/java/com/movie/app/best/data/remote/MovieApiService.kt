@@ -73,6 +73,13 @@ interface MovieApiService {
         @Query("limit") limit: Int = 45
     ): ApiResponse<OffsetResult>
 
+    @GET("new-release/{country}")
+    suspend fun getNewRelease(
+        @Path("country") country: String,
+        @Query("offset") offset: Int = 0,
+        @Query("limit") limit: Int = 45
+    ): ApiResponse<OffsetResult>
+
     @GET("watchable-content")
     suspend fun getWatchableContent(
         @Query("offset") offset: Int = 0,

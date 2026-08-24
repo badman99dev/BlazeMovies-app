@@ -118,7 +118,7 @@ fun SkeletonHomeContent() {
             .fillMaxWidth()
             .background(Color.Black)
     ) {
-        // New Releases
+        // Latest Uploads
         SkeletonHomeSectionHeader()
         SkeletonHomeMovieRow(cardSize = CardSize.LARGE, count = 6)
 

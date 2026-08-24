@@ -97,10 +97,32 @@ fun HomeScreen(
                     }
                 }
 
+                item {
+                    MovieRowSection(
+                        title        = "Newly Indian Releases 🎬",
+                        movies       = uiState.newIndiaReleases,
+                        isLoading    = uiState.isNewIndiaLoading && uiState.newIndiaReleases.isEmpty(),
+                        cardSize     = CardSize.LARGE,
+                        onMovieClick = onContentClick,
+                        onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("in")) }
+                    )
+                }
+
+                item {
+                    MovieRowSection(
+                        title        = "Hollywood Crazy Drops 🗽",
+                        movies       = uiState.newUsReleases,
+                        isLoading    = uiState.isNewUsLoading && uiState.newUsReleases.isEmpty(),
+                        cardSize     = CardSize.NORMAL,
+                        onMovieClick = onContentClick,
+                        onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("us")) }
+                    )
+                }
+
                 if (newReleases.isNotEmpty()) {
                     item {
                         MovieRowSection(
-                            title        = "New Releases",
+                            title        = "Latest Uploads",
                             movies       = newReleases,
                             cardSize     = CardSize.LARGE,
                             onMovieClick = onContentClick,

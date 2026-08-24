@@ -69,6 +69,9 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(notification = cache.notification, isNotificationLoading = false) }
         } else { loadNotification() }
 
+        loadNewReleasesIndia()
+        loadNewReleasesUs()
+
         if (cache.liveChannels != null) {
             _uiState.update { it.copy(liveChannels = cache.liveChannels!!, isLiveChannelsLoading = false) }
         } else { loadLiveChannels() }
@@ -143,6 +146,52 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             delay(3000)
             repository.recreateMyFeed()
+        }
+    }
+
+    fun loadNewReleasesIndia() {
+        viewModelScope.launch {
+            repository.getNewRelease(country = "in", offset = 0, limit = 12).collect { result ->
+                when (result) {
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isNewIndiaLoading = true) }
+                    }
+                    is Resource.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                newIndiaReleases = result.data?.items ?: emptyList(),
+                                isNewIndiaLoading = false
+                            )
+                        }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isNewIndiaLoading = false) }
+                    }
+                }
+            }
+        }
+    }
+
+    fun loadNewReleasesUs() {
+        viewModelScope.launch {
+            repository.getNewRelease(country = "us", offset = 0, limit = 12).collect { result ->
+                when (result) {
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isNewUsLoading = true) }
+                    }
+                    is Resource.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                newUsReleases = result.data?.items ?: emptyList(),
+                                isNewUsLoading = false
+                            )
+                        }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isNewUsLoading = false) }
+                    }
+                }
+            }
         }
     }
 
@@ -322,6 +371,12 @@ data class HomeUiState(
     val allTabOffset: Int = 0,
     val allTabTotal: Int = 0,
     val canLoadMoreAllTab: Boolean = false,
+
+    val newIndiaReleases: List<Movie> = emptyList(),
+    val isNewIndiaLoading: Boolean = false,
+
+    val newUsReleases: List<Movie> = emptyList(),
+    val isNewUsLoading: Boolean = false,
 
     val notification: AppNotification? = null,
     val isNotificationLoading: Boolean = false,

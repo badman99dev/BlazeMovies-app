@@ -40,6 +40,7 @@ import com.movie.app.best.ui.screens.movies.MoviesScreen
 import com.movie.app.best.ui.screens.settings.SettingsScreen
 import com.movie.app.best.ui.screens.trending.TrendingScreen
 import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
+import com.movie.app.best.ui.screens.newreleases.NewReleaseScreen
 import com.movie.app.best.ui.screens.myfeed.MyFeedScreen
 import com.movie.app.best.ui.screens.auth.LoginScreen
 import com.movie.app.best.ui.screens.profile.ProfileScreen
@@ -52,6 +53,9 @@ sealed class Screen(val route: String) {
     object Trending : Screen("trending")
     object Zee5 : Screen("zee5")
     object LatestUploads : Screen("latest-uploads")
+    object NewRelease : Screen("new-release/{country}") {
+        fun createRoute(country: String) = "new-release/${Uri.encode(country)}"
+    }
     object MyFeed : Screen("my-feed")
     object Categories : Screen("categories")
     object CategoryPage : Screen("category/{categorySlug}/{categoryName}") {
@@ -529,6 +533,24 @@ fun AppNavigation(
 
         composable(Screen.LatestUploads.route, deepLinks = refLinks("app://latest-uploads")) {
             LatestUploadScreen(
+                onBackClick = { navController.popBackStack() },
+                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
+            )
+        }
+
+        composable(
+            route = Screen.NewRelease.route,
+            deepLinks = refLinks("app://new-release/{country}"),
+            arguments = listOf(
+                navArgument("country") {
+                    type = NavType.StringType
+                    defaultValue = "in"
+                }
+            )
+        ) { backStackEntry ->
+            NewReleaseScreen(
+                initialCountry = backStackEntry.arguments?.getString("country") ?: "in",
                 onBackClick = { navController.popBackStack() },
                 onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
