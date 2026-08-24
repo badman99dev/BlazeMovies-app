@@ -233,7 +233,8 @@ fun TVShowDetailScreen(
                         else onMovieClick(slug)
                     },
                     onGoToDownloads = onGoToDownloads,
-                    onOpenExtractedSeries = onOpenExtractedSeries
+                    onOpenExtractedSeries = onOpenExtractedSeries,
+                    onCelebClick = onCelebClick
                 )
             }
         }
@@ -396,7 +397,8 @@ private fun TVShowDetailContent(
     onReportClick: () -> Unit = {},
     onContentClick: (String, Boolean) -> Unit = { _, _ -> },
     onGoToDownloads: () -> Unit = {},
-    onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> }
+    onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
+    onCelebClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val isContentHidden = ModerationSettings.shouldHideDetail(context, series.contentModeration)
