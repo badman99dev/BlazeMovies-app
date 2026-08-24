@@ -1,6 +1,7 @@
 package com.movie.app.best.data.remote
 
 import com.movie.app.best.data.model.ApiResponse
+import com.movie.app.best.data.model.NewReleaseResult
 import com.movie.app.best.data.model.SearchResult
 import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.OffsetResult
@@ -76,9 +77,9 @@ interface MovieApiService {
     @GET("new-release/{country}")
     suspend fun getNewRelease(
         @Path("country") country: String,
-        @Query("offset") offset: Int = 0,
-        @Query("limit") limit: Int = 45
-    ): ApiResponse<OffsetResult>
+        @Query("page") page: Int = 1,
+        @Query("max") max: Int? = null
+    ): ApiResponse<NewReleaseResult>
 
     @GET("watchable-content")
     suspend fun getWatchableContent(

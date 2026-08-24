@@ -61,7 +61,7 @@ fun NewReleaseScreen(
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             val totalItems = listState.layoutInfo.totalItemsCount
-            lastVisible >= totalItems - 6 && activeTab.canLoadMore && !activeTab.isLoadingMore
+            lastVisible >= totalItems - 6 && activeTab.hasMore && !activeTab.isLoadingMore
         }
     }
 

@@ -174,6 +174,13 @@ data class OffsetResult(
     val limit: Int
 )
 
+data class NewReleaseResult(
+    val items: List<Movie> = emptyList(),
+    val page: Int = 1,
+    val max: Int = 0,
+    @SerializedName("has_more") val hasMore: Boolean = false
+)
+
 data class CategoryOffsetResult(
     val category: Category,
     val items: List<Movie>,

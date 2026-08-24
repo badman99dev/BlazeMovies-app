@@ -151,7 +151,7 @@ class HomeViewModel @Inject constructor(
 
     fun loadNewReleasesIndia() {
         viewModelScope.launch {
-            repository.getNewRelease(country = "in", offset = 0, limit = 12).collect { result ->
+            repository.getNewRelease(country = "in", page = 1, max = 12).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         _uiState.update { it.copy(isNewIndiaLoading = true) }
@@ -174,7 +174,7 @@ class HomeViewModel @Inject constructor(
 
     fun loadNewReleasesUs() {
         viewModelScope.launch {
-            repository.getNewRelease(country = "us", offset = 0, limit = 12).collect { result ->
+            repository.getNewRelease(country = "us", page = 1, max = 12).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         _uiState.update { it.copy(isNewUsLoading = true) }

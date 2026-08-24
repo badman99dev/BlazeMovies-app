@@ -19,9 +19,8 @@ data class NewReleaseTabState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
-    val currentOffset: Int = 0,
-    val total: Int = 0,
-    val canLoadMore: Boolean = false
+    val page: Int = 1,
+    val hasMore: Boolean = false
 )
 
 data class NewReleaseUiState(
@@ -36,7 +35,6 @@ class NewReleaseViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private const val PAGE_LIMIT = 45
         const val COUNTRY_IN = "in"
         const val COUNTRY_US = "us"
     }
@@ -80,7 +78,7 @@ class NewReleaseViewModel @Inject constructor(
 
         viewModelScope.launch {
             updateTab(country) { it.copy(isLoading = true) }
-            repository.getNewRelease(country = country, offset = 0, limit = PAGE_LIMIT).collect { result ->
+            repository.getNewRelease(country = country, page = 1).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
                     is Resource.Success -> {
@@ -91,10 +89,8 @@ class NewReleaseViewModel @Inject constructor(
                                 movies = data?.items ?: emptyList(),
                                 isLoading = false,
                                 error = null,
-                                currentOffset = data?.offset ?: 0,
-                                total = data?.total ?: 0,
-                                canLoadMore = (data?.items?.size ?: 0) >= PAGE_LIMIT &&
-                                    ((data?.offset ?: 0) + (data?.items?.size ?: 0)) < (data?.total ?: 0)
+                                page = data?.page ?: 1,
+                                hasMore = data?.hasMore == true
                             )
                         }
                     }
@@ -113,14 +109,13 @@ class NewReleaseViewModel @Inject constructor(
 
     fun loadMore(country: String) {
         val current = tabFor(country)
-        if (current.isLoadingMore || !current.canLoadMore) return
+        if (current.isLoadingMore || !current.hasMore) return
 
-        val nextOffset = current.currentOffset + current.movies.size
-        if (nextOffset >= current.total) return
+        val nextPage = current.page + 1
 
         viewModelScope.launch {
             updateTab(country) { it.copy(isLoadingMore = true) }
-            repository.getNewRelease(country = country, offset = nextOffset, limit = PAGE_LIMIT).collect { result ->
+            repository.getNewRelease(country = country, page = nextPage).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
                     is Resource.Success -> {
@@ -129,8 +124,8 @@ class NewReleaseViewModel @Inject constructor(
                             it.copy(
                                 movies = it.movies + newItems,
                                 isLoadingMore = false,
-                                currentOffset = result.data?.offset ?: nextOffset,
-                                canLoadMore = newItems.size >= PAGE_LIMIT && (nextOffset + newItems.size) < (result.data?.total ?: 0)
+                                page = result.data?.page ?: nextPage,
+                                hasMore = result.data?.hasMore == true
                             )
                         }
                     }

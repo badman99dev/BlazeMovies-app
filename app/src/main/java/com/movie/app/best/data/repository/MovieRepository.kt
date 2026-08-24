@@ -7,6 +7,7 @@ import com.movie.app.best.data.model.AppNotification
 import com.movie.app.best.data.model.Category
 import com.movie.app.best.data.model.CategoryOffsetResult
 import com.movie.app.best.data.model.OffsetResult
+import com.movie.app.best.data.model.NewReleaseResult
 import com.movie.app.best.data.model.SearchResult
 import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.BroadcastResponse
@@ -64,9 +65,9 @@ class MovieRepository @Inject constructor(
         emit(safeApiCall { apiService.getLatestUploads(offset, limit) })
     }
 
-    fun getNewRelease(country: String, offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
+    fun getNewRelease(country: String, page: Int = 1, max: Int? = null): Flow<Resource<NewReleaseResult>> = flow {
         emit(Resource.Loading())
-        emit(safeApiCall { apiService.getNewRelease(country, offset, limit) })
+        emit(safeApiCall { apiService.getNewRelease(country, page, max) })
     }
 
     fun getWatchableContent(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
