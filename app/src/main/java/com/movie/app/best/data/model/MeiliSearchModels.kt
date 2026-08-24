@@ -27,6 +27,7 @@ data class MeiliHit(
     fun toMovie(): Movie = Movie(
         id = id,
         slug = slug,
+        imdbId = imdbId,
         title = title,
         posterUrl = posterUrl,
         qualityLabel = qualityLabel,

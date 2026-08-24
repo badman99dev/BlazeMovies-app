@@ -43,6 +43,7 @@ data class ContentModerationResponse(
 data class Movie(
     val id: Int,
     val slug: String,
+    @SerializedName("imdb_id") val imdbId: String = "",
     val title: String,
     @SerializedName("poster_url") val posterUrl: String,
     @SerializedName("quality_label") val qualityLabel: String,
