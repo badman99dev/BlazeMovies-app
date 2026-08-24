@@ -3,9 +3,11 @@ package com.movie.app.best.ui.screens.celebs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.CelebIntro
+import com.movie.app.best.data.model.ImdbNameDetails
 import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.debug.NetworkMonitor
+import com.movie.app.best.data.remote.ImdbApiService
 import com.movie.app.best.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +29,8 @@ data class CelebsUiState(
 
 @HiltViewModel
 class CelebsViewModel @Inject constructor(
-    private val repository: MovieRepository
+    private val repository: MovieRepository,
+    private val imdbApi: ImdbApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CelebsUiState())
@@ -55,6 +58,14 @@ class CelebsViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            launch {
+                try {
+                    val details = imdbApi.getNameDetails(nameId)
+                    _uiState.update { it.copy(intro = details.toCelebIntro()) }
+                } catch (_: Exception) {}
+            }
+
             repository.getCelebs(nameId, page = 1).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
@@ -62,7 +73,6 @@ class CelebsViewModel @Inject constructor(
                         val data = result.data
                         _uiState.update {
                             it.copy(
-                                intro = data?.name,
                                 movies = data?.items ?: emptyList(),
                                 isLoading = false,
                                 error = null,
@@ -83,6 +93,17 @@ class CelebsViewModel @Inject constructor(
             }
         }
     }
+
+    private fun ImdbNameDetails.toCelebIntro(): CelebIntro = CelebIntro(
+        nameId = id,
+        displayName = displayName,
+        photoUrl = photoUrl,
+        photoWidth = photoWidth,
+        photoHeight = photoHeight,
+        professions = primaryProfessions,
+        birthDate = birthDateText,
+        biography = biography
+    )
 
     fun loadMore() {
         val current = _uiState.value

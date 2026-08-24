@@ -194,7 +194,6 @@ data class CelebIntro(
 )
 
 data class CelebsResult(
-    val name: CelebIntro = CelebIntro(),
     val items: List<Movie> = emptyList(),
     val page: Int = 1,
     val max: Int = 0,

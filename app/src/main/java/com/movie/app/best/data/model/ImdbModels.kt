@@ -60,6 +60,23 @@ data class ImdbName(
     val photoUrl: String get() = primaryImage?.url ?: ""
 }
 
+data class ImdbNameDetails(
+    val id: String = "",
+    @SerializedName("displayName") val displayName: String = "",
+    @SerializedName("primaryImage") val primaryImage: ImdbImage? = null,
+    @SerializedName("primaryProfessions") val primaryProfessions: List<String> = emptyList(),
+    @SerializedName("birthDate") val birthDate: ImdbReleaseDate? = null,
+    val biography: String = ""
+) {
+    val photoUrl: String get() = primaryImage?.url ?: ""
+    val photoWidth: Int get() = primaryImage?.width ?: 0
+    val photoHeight: Int get() = primaryImage?.height ?: 0
+    val birthDateText: String get() {
+        val d = birthDate ?: return ""
+        return if (d.year > 0) "%04d-%02d-%02d".format(d.year, d.month, d.day) else ""
+    }
+}
+
 data class ImdbCountry(
     val code: String = "",
     val name: String = ""
