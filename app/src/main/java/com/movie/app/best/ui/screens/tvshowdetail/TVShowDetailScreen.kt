@@ -92,6 +92,7 @@ import com.movie.app.best.ui.components.CelebrationOverlay
 import com.movie.app.best.ui.components.ScreenshotViewer
 import com.movie.app.best.ui.components.SkeletonDetailPage
 import com.movie.app.best.ui.components.ErrorView
+import com.movie.app.best.ui.components.CollapsibleCastRow
 import com.movie.app.best.ui.components.StorylineWarningBadge
 import com.movie.app.best.ui.screens.moviedetail.components.DetailActionButtons
 import com.movie.app.best.ui.screens.moviedetail.components.DetailHeroSection
@@ -125,6 +126,7 @@ fun TVShowDetailScreen(
     onSeriesClick: (String) -> Unit = {},
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
+    onCelebClick: (String) -> Unit = {},
     viewModel: TVShowDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -483,7 +485,14 @@ private fun TVShowDetailContent(
             }
         }
 
-        CastSection(director = series.director, cast = series.cast)
+        if (uiState.castCredits.isNotEmpty()) {
+            CollapsibleCastRow(
+                stars = uiState.castCredits,
+                onNameClick = onCelebClick
+            )
+        } else {
+            CastSection(director = series.director, cast = series.cast)
+        }
 
         if (seasonKeys.isNotEmpty()) {
             SectionTitle("Episodes")

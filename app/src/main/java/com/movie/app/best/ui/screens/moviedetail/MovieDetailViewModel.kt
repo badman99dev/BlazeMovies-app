@@ -12,6 +12,8 @@ import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.model.DownloadLink
 import com.movie.app.best.data.model.MovieDetails
+import com.movie.app.best.data.model.ImdbName
+import com.movie.app.best.data.remote.ImdbApiService
 import com.movie.app.best.data.repository.DownloadRepository
 import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.repository.MovieRepository
@@ -34,6 +36,7 @@ class MovieDetailViewModel @Inject constructor(
     private val repository: MovieRepository,
     private val downloadRepository: DownloadRepository,
     private val firebaseRepository: FirebaseRepository,
+    private val imdbApi: ImdbApiService,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -85,6 +88,7 @@ class MovieDetailViewModel @Inject constructor(
                             addToFirebaseHistory()
                             checkBookmarkAndLikeStatus()
                             loadSimilarMovies(detailData.movie.imdbId)
+                            loadCastCredits(detailData.movie.imdbId)
                             val movie = detailData.movie
                             if (movie.hasStream || movie.playerUrl.isNotEmpty()) {
                                 val streamUrl = if (movie.playerUrl.isNotEmpty()) movie.playerUrl
@@ -638,6 +642,20 @@ class MovieDetailViewModel @Inject constructor(
         _uiState.update { it.copy(showCelebration = false) }
     }
 
+    private fun loadCastCredits(imdbId: String) {
+        if (!imdbId.startsWith("tt")) return
+        viewModelScope.launch {
+            try {
+                val credits = imdbApi.getCredits(imdbId, pageSize = 30)
+                val cast = credits.credits
+                    .filter { it.isActor && it.name.id.isNotBlank() }
+                    .take(15)
+                    .map { it.name }
+                _uiState.update { it.copy(castCredits = cast) }
+            } catch (_: Exception) {}
+        }
+    }
+
     private fun loadSimilarMovies(imdbId: String) {
         if (!imdbId.startsWith("tt")) return
         viewModelScope.launch {
@@ -682,6 +700,8 @@ data class MovieDetailUiState(
     val similarMovies: List<com.movie.app.best.data.model.Movie> = emptyList(),
     val isSimilarLoading: Boolean = false,
     val similarError: String? = null,
+
+    val castCredits: List<ImdbName> = emptyList(),
 
     val isCommentPosting: Boolean = false,
     val commentPosted: Boolean = false,

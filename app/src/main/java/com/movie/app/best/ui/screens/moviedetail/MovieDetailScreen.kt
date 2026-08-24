@@ -26,6 +26,7 @@ import com.movie.app.best.ui.components.CelebrationOverlay
 import com.movie.app.best.ui.components.ErrorView
 import com.movie.app.best.ui.components.SkeletonDetailPage
 import com.movie.app.best.ui.components.StorylineWarningBadge
+import com.movie.app.best.ui.components.CollapsibleCastRow
 import com.movie.app.best.ui.screens.moviedetail.components.*
 import com.movie.app.best.data.model.DownloadPhase
 import com.movie.app.best.ui.util.CfBypassHost
@@ -43,6 +44,7 @@ fun MovieDetailScreen(
     onDownloadClick: (linkUrl: String) -> Unit = { },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
+    onCelebClick: (String) -> Unit = {},
     viewModel: MovieDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -369,8 +371,15 @@ private fun MovieDetailContent(
 
             Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
 
-            // 5. Cast & Crew (text-only, no cast images)
-            CastSection(director = movie.director, cast = movie.cast)
+            // 5. Cast & Crew — IMDb circular cast (clickable → celebs) ya text fallback
+            if (uiState.castCredits.isNotEmpty()) {
+                CollapsibleCastRow(
+                    stars = uiState.castCredits,
+                    onNameClick = onCelebClick
+                )
+            } else {
+                CastSection(director = movie.director, cast = movie.cast)
+            }
 
             Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
 

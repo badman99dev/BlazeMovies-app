@@ -181,6 +181,25 @@ data class NewReleaseResult(
     @SerializedName("has_more") val hasMore: Boolean = false
 )
 
+data class CelebIntro(
+    @SerializedName("name_id") val nameId: String = "",
+    @SerializedName("display_name") val displayName: String = "",
+    @SerializedName("photo_url") val photoUrl: String = "",
+    @SerializedName("photo_width") val photoWidth: Int = 0,
+    @SerializedName("photo_height") val photoHeight: Int = 0,
+    val professions: List<String> = emptyList(),
+    @SerializedName("birth_date") val birthDate: String = "",
+    val biography: String = ""
+)
+
+data class CelebsResult(
+    val name: CelebIntro = CelebIntro(),
+    val items: List<Movie> = emptyList(),
+    val page: Int = 1,
+    val max: Int = 0,
+    @SerializedName("has_more") val hasMore: Boolean = false
+)
+
 data class CategoryOffsetResult(
     val category: Category,
     val items: List<Movie>,

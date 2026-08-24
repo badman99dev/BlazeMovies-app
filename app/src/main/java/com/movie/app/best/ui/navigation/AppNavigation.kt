@@ -41,6 +41,7 @@ import com.movie.app.best.ui.screens.settings.SettingsScreen
 import com.movie.app.best.ui.screens.trending.TrendingScreen
 import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.newreleases.NewReleaseScreen
+import com.movie.app.best.ui.screens.celebs.CelebsScreen
 import com.movie.app.best.ui.screens.myfeed.MyFeedScreen
 import com.movie.app.best.ui.screens.auth.LoginScreen
 import com.movie.app.best.ui.screens.profile.ProfileScreen
@@ -56,6 +57,9 @@ sealed class Screen(val route: String) {
     object SeriesList : Screen("series-list")
     object NewRelease : Screen("new-release/{country}") {
         fun createRoute(country: String) = "new-release/${Uri.encode(country)}"
+    }
+    object Celebs : Screen("celebs/{nameId}") {
+        fun createRoute(nameId: String) = "celebs/${Uri.encode(nameId)}"
     }
     object MyFeed : Screen("my-feed")
     object Categories : Screen("categories")
@@ -243,6 +247,9 @@ fun AppNavigation(
                 },
                 onOpenExtractedSeries = { extractPath, slug, posterPath ->
                     navController.navigate(Screen.ExtractedSeries.createRoute(extractPath, slug, posterPath))
+                },
+                onCelebClick = { nameId ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId))
                 }
             )
         }
@@ -284,6 +291,9 @@ fun AppNavigation(
                 },
                 onOpenExtractedSeries = { extractPath, slug, posterPath ->
                     navController.navigate(Screen.ExtractedSeries.createRoute(extractPath, slug, posterPath))
+                },
+                onCelebClick = { nameId ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId))
                 }
             )
         }
@@ -305,7 +315,10 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             SeriesWatchScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onCelebClick = { nameId ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId))
+                }
             )
         }
 
@@ -330,6 +343,9 @@ fun AppNavigation(
                     navController.navigate(Screen.MovieDetail.createRoute(movieSlug)) {
                         popUpTo(Screen.MovieWatch.route) { inclusive = true }
                     }
+                },
+                onCelebClick = { nameId ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId))
                 }
             )
         }
@@ -547,6 +563,21 @@ fun AppNavigation(
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 title = "Binge-Worthy Series",
                 type = "series"
+            )
+        }
+
+        composable(
+            route = Screen.Celebs.route,
+            deepLinks = refLinks("app://celebs/{nameId}"),
+            arguments = listOf(
+                navArgument("nameId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            CelebsScreen(
+                nameId = backStackEntry.arguments?.getString("nameId") ?: "",
+                onBackClick = { navController.popBackStack() },
+                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 

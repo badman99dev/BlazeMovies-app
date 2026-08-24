@@ -83,6 +83,7 @@ import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.components.GlassBadge
+import com.movie.app.best.ui.components.CollapsibleCastRow
 import com.movie.app.best.ui.screens.moviedetail.components.FindingSimilarSection
 import com.movie.app.best.ui.screens.moviedetail.components.MoreLikeThisSection
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
@@ -102,6 +103,7 @@ import okhttp3.OkHttpClient
 fun MovieWatchScreen(
     onBackClick: () -> Unit,
     onMovieClick: (String) -> Unit = {},
+    onCelebClick: (String) -> Unit = {},
     viewModel: MovieWatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -567,7 +569,7 @@ fun MovieWatchScreen(
                 emptyList()
             }
             if (castList.isNotEmpty()) {
-                CollapsibleCastRow(castList)
+                CollapsibleCastRow(castList, onNameClick = onCelebClick)
             }
         }
 
@@ -640,102 +642,5 @@ fun MovieWatchScreen(
             )
         }
     }
-    }
-}
-
-@Composable
-private fun CollapsibleCastRow(stars: List<com.movie.app.best.data.model.ImdbName>) {
-    var expanded by remember { mutableStateOf(false) }
-    val arrowRotation by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f,
-        animationSpec = tween(300),
-        label = "arrow_rot"
-    )
-
-    Spacer(modifier = Modifier.height(14.dp))
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = !expanded },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.7f),
-            modifier = Modifier
-                .size(22.dp)
-                .rotate(arrowRotation)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = "Cast",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "  (${stars.size})",
-            color = Color.White.copy(alpha = 0.4f),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Normal
-        )
-    }
-
-    AnimatedVisibility(
-        visible = expanded,
-        enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(tween(300)),
-        exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(tween(200))
-    ) {
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            items(stars) { star ->
-                Column(
-                    modifier = Modifier.width(72.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF1A1A1A)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (star.photoUrl.isNotBlank()) {
-                            AsyncImage(
-                                model = star.photoUrl,
-                                contentDescription = star.displayName,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Filled.Person,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = star.displayName,
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
     }
 }

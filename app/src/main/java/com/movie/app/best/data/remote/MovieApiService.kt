@@ -1,6 +1,7 @@
 package com.movie.app.best.data.remote
 
 import com.movie.app.best.data.model.ApiResponse
+import com.movie.app.best.data.model.CelebsResult
 import com.movie.app.best.data.model.NewReleaseResult
 import com.movie.app.best.data.model.SearchResult
 import com.movie.app.best.data.model.SliderResult
@@ -81,6 +82,13 @@ interface MovieApiService {
         @Query("page") page: Int = 1,
         @Query("max") max: Int? = null
     ): ApiResponse<NewReleaseResult>
+
+    @GET("celebs/{nameId}")
+    suspend fun getCelebs(
+        @Path("nameId") nameId: String,
+        @Query("page") page: Int = 1,
+        @Query("max") max: Int? = null
+    ): ApiResponse<CelebsResult>
 
     @GET("watchable-content")
     suspend fun getWatchableContent(
