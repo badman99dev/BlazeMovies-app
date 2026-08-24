@@ -31,7 +31,7 @@ import com.movie.app.best.data.model.UnifiedChannel
 
 @Composable
 fun HomeScreen(
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     navController: NavController,
     onSearchClick: () -> Unit = {},
     onDownloadClick: () -> Unit = {},

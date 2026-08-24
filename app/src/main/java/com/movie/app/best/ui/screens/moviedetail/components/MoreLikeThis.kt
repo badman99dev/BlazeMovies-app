@@ -49,7 +49,7 @@ fun FindingSimilarSection(modifier: Modifier = Modifier) {
 @Composable
 fun MoreLikeThisSection(
     movies: List<Movie>,
-    onMovieClick: (String, Boolean) -> Unit,
+    onMovieClick: (String, Boolean, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (movies.isEmpty()) return
@@ -63,7 +63,7 @@ fun MoreLikeThisSection(
             items(movies, key = { it.slug }) { movie ->
                 SimilarMovieCard(
                     movie   = movie,
-                    onClick = { onMovieClick(movie.slug, movie.isSeries) }
+                    onClick = { onMovieClick(movie.slug, movie.isSeries, movie.imdbId) }
                 )
             }
         }

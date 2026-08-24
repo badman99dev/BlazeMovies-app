@@ -64,7 +64,7 @@ import com.movie.app.best.ui.screens.home.components.AgeBadge
 @Composable
 fun TVShowsScreen(
     navController: androidx.navigation.NavController,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onSearchClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     viewModel: TVShowsViewModel = hiltViewModel()
@@ -156,7 +156,7 @@ fun TVShowsScreen(
                         items(uiState.tvShows, key = { it.slug }) { tvShow ->
                             TVShowGridItem(
                                 movie = tvShow,
-                                onClick = { onContentClick(tvShow.slug, tvShow.isSeries) }
+                                onClick = { onContentClick(tvShow.slug, tvShow.isSeries, tvShow.imdbId) }
                             )
                         }
                     }

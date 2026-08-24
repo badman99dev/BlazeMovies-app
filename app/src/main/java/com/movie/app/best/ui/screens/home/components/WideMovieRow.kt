@@ -37,7 +37,7 @@ import com.movie.app.best.ui.screens.home.components.AgeBadge
 fun WideMovieRowSection(
     title: String,
     movies: List<Movie>,
-    onMovieClick: (String, Boolean) -> Unit
+    onMovieClick: (String, Boolean, String) -> Unit
 ) {
     Column {
         SectionHeader(title = title)
@@ -48,7 +48,7 @@ fun WideMovieRowSection(
             items(movies, key = { it.slug }) { movie ->
                 WideMovieCard(
                     movie   = movie,
-                    onClick = { onMovieClick(movie.slug, movie.isSeries) }
+                    onClick = { onMovieClick(movie.slug, movie.isSeries, movie.imdbId) }
                 )
             }
         }

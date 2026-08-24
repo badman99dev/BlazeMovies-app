@@ -49,7 +49,7 @@ fun MovieRowSection(
     movies: List<Movie>,
     isLoading: Boolean = false,
     cardSize: CardSize = CardSize.NORMAL,
-    onMovieClick: (String, Boolean) -> Unit,
+    onMovieClick: (String, Boolean, String) -> Unit,
     onSeeAllClick: () -> Unit = {}
 ) {
     Column {
@@ -66,7 +66,7 @@ fun MovieRowSection(
                     MoviePosterCard(
                         movie = movie,
                         size = cardSize,
-                        onClick = { onMovieClick(movie.slug, movie.isSeries) }
+                        onClick = { onMovieClick(movie.slug, movie.isSeries, movie.imdbId) }
                     )
                 }
             }

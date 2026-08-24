@@ -52,7 +52,7 @@ import com.movie.app.best.ui.screens.home.components.movieGridItems
 fun CelebsScreen(
     nameId: String,
     onBackClick: () -> Unit,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onSearchClick: () -> Unit = {},
     viewModel: CelebsViewModel = hiltViewModel()
 ) {

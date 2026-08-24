@@ -64,7 +64,7 @@ import com.movie.app.best.ui.screens.home.components.movieGridItems
 @Composable
 fun CategoriesScreen(
     onCategoryClick: (categorySlug: String, categoryName: String) -> Unit,
-    onContentClick: (slug: String, isSeries: Boolean) -> Unit = { _, _ -> },
+    onContentClick: (slug: String, isSeries: Boolean, imdbId: String) -> Unit = { _, _, _ -> },
     onSearchClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
@@ -237,7 +237,7 @@ fun CategoryCard(
 fun CategoryPageScreen(
     categorySlug: String,
     categoryName: String,
-    onContentClick: (slug: String, isSeries: Boolean) -> Unit,
+    onContentClick: (slug: String, isSeries: Boolean, imdbId: String) -> Unit,
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit = {},
     viewModel: CategoryPageViewModel = hiltViewModel()

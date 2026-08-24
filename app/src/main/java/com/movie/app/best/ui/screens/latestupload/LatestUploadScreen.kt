@@ -35,7 +35,7 @@ import com.movie.app.best.ui.screens.home.components.movieGridItems
 @Composable
 fun LatestUploadScreen(
     onBackClick: () -> Unit,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onSearchClick: () -> Unit = {},
     title: String = "Latest Uploads",
     type: String? = null,

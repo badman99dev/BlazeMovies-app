@@ -40,12 +40,17 @@ class TVShowDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val slug: String = checkNotNull(savedStateHandle["slug"])
+    private val passedImdbId: String = savedStateHandle["imdbId"] ?: ""
 
     private val _uiState = MutableStateFlow(TVShowDetailUiState())
     val uiState: StateFlow<TVShowDetailUiState> = _uiState.asStateFlow()
 
     init {
         MyListRefreshState.markStale()
+        if (passedImdbId.startsWith("tt")) {
+            loadSimilarMovies(passedImdbId)
+            loadCastCredits(passedImdbId)
+        }
         loadSeriesDetails()
         viewModelScope.launch {
             try {
@@ -84,8 +89,10 @@ class TVShowDetailViewModel @Inject constructor(
                             }
                             addToFirebaseHistory()
                             checkBookmarkAndLikeStatus()
-                            loadSimilarMovies(data.movie.imdbId)
-                            loadCastCredits(data.movie.imdbId)
+                            if (!passedImdbId.startsWith("tt")) {
+                                loadSimilarMovies(data.movie.imdbId)
+                                loadCastCredits(data.movie.imdbId)
+                            }
                         } else {
                             _uiState.update { it.copy(isLoading = false, error = "No data") }
                         }

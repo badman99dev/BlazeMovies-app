@@ -35,7 +35,7 @@ import com.movie.app.best.ui.screens.home.components.movieGridItems
 @Composable
 fun TrendingScreen(
     navController: androidx.navigation.NavController,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onSearchClick: () -> Unit = {},
     viewModel: TrendingViewModel = hiltViewModel()
 ) {

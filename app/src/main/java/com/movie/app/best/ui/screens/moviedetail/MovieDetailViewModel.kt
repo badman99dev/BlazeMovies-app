@@ -41,12 +41,17 @@ class MovieDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val slug: String = checkNotNull(savedStateHandle["slug"])
+    private val passedImdbId: String = savedStateHandle["imdbId"] ?: ""
 
     private val _uiState = MutableStateFlow(MovieDetailUiState())
     val uiState: StateFlow<MovieDetailUiState> = _uiState.asStateFlow()
 
     init {
         MyListRefreshState.markStale()
+        if (passedImdbId.startsWith("tt")) {
+            loadSimilarMovies(passedImdbId)
+            loadCastCredits(passedImdbId)
+        }
         loadMovieDetails()
     }
 
@@ -87,8 +92,10 @@ class MovieDetailViewModel @Inject constructor(
                         if (detailData?.movie != null) {
                             addToFirebaseHistory()
                             checkBookmarkAndLikeStatus()
-                            loadSimilarMovies(detailData.movie.imdbId)
-                            loadCastCredits(detailData.movie.imdbId)
+                            if (!passedImdbId.startsWith("tt")) {
+                                loadSimilarMovies(detailData.movie.imdbId)
+                                loadCastCredits(detailData.movie.imdbId)
+                            }
                             val movie = detailData.movie
                             if (movie.hasStream || movie.playerUrl.isNotEmpty()) {
                                 val streamUrl = if (movie.playerUrl.isNotEmpty()) movie.playerUrl

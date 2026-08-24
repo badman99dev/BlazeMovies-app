@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class MeiliHit(
     val id: Int = 0,
     val slug: String = "",
+    @SerializedName("imdb_id") val imdbId: String = "",
     val title: String = "",
     @SerializedName("poster_url") val posterUrl: String = "",
     @SerializedName("release_year") val releaseYear: Int = 0,

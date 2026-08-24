@@ -87,7 +87,7 @@ import com.movie.app.best.ui.screens.home.components.SeriesBadge
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onZee5Click: (String) -> Unit,
     onTvChannelClick: (UnifiedChannel) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
@@ -168,7 +168,7 @@ fun SearchScreen(
             } else if (uiState.isShowingSuggestions) {
                 SuggestionsView(
                     state = uiState,
-                    onMeiliClick = { hit -> onContentClick(hit.slug, hit.isSeriesBool) },
+                    onMeiliClick = { hit -> onContentClick(hit.slug, hit.isSeriesBool, hit.imdbId) },
                     onZee5Click = { text -> viewModel.searchUniversal(text) }
                 )
             } else {
@@ -344,7 +344,7 @@ fun Zee5SuggestionRow(text: String, onClick: () -> Unit) {
 @Composable
 fun SearchResultsView(
     state: SearchUiState,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onZee5Click: (String) -> Unit,
     onTvChannelClick: (UnifiedChannel) -> Unit,
     gridState: androidx.compose.foundation.lazy.grid.LazyGridState
@@ -442,7 +442,7 @@ fun SearchResultsView(
             }
         } else {
             items(state.ownResults, key = { "own_${it.id}" }) { hit ->
-                MeiliResultCard(hit = hit, onClick = { onContentClick(hit.slug, hit.isSeriesBool) })
+                MeiliResultCard(hit = hit, onClick = { onContentClick(hit.slug, hit.isSeriesBool, hit.imdbId) })
             }
         }
 

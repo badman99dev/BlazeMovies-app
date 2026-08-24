@@ -68,8 +68,8 @@ sealed class Screen(val route: String) {
             return "category/${Uri.encode(slug)}/${Uri.encode(name)}"
         }
     }
-    object MovieDetail : Screen("movie/{slug}") {
-        fun createRoute(slug: String) = "movie/${Uri.encode(slug)}"
+    object MovieDetail : Screen("movie/{slug}?imdbId={imdbId}") {
+        fun createRoute(slug: String, imdbId: String = "") = "movie/${Uri.encode(slug)}?imdbId=${Uri.encode(imdbId)}"
     }
     object Search : Screen("search")
     object TVShows : Screen("tv-shows")
@@ -90,8 +90,8 @@ sealed class Screen(val route: String) {
             return "extractedSeries/${Uri.encode(extractPath)}/${Uri.encode(slug)}/${Uri.encode(posterPath)}"
         }
     }
-    object SeriesDetail : Screen("series/{slug}") {
-        fun createRoute(slug: String) = "series/${Uri.encode(slug)}"
+    object SeriesDetail : Screen("series/{slug}?imdbId={imdbId}") {
+        fun createRoute(slug: String, imdbId: String = "") = "series/${Uri.encode(slug)}?imdbId=${Uri.encode(imdbId)}"
     }
     object SeriesWatch : Screen("seriesWatch/{imdbId}/{title}/{movieId}/{slug}/{targetSeason}?cast={cast}&director={director}&description={description}") {
         fun createRoute(imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int = -1, cast: String = "", director: String = "", description: String = ""): String {
@@ -127,11 +127,11 @@ fun AppNavigation(
     onMenuClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    fun navigateToContent(slug: String, isSeries: Boolean) {
+    fun navigateToContent(slug: String, isSeries: Boolean, imdbId: String = "") {
         if (isSeries) {
-            navController.navigate(Screen.SeriesDetail.createRoute(slug))
+            navController.navigate(Screen.SeriesDetail.createRoute(slug, imdbId))
         } else {
-            navController.navigate(Screen.MovieDetail.createRoute(slug))
+            navController.navigate(Screen.MovieDetail.createRoute(slug, imdbId))
         }
     }
 
@@ -200,7 +200,7 @@ fun AppNavigation(
     ) {
         composable(Screen.Home.route, deepLinks = refLinks("app://home")) {
             HomeScreen(
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onDownloadClick = { navController.navigate(Screen.Downloads.route) },
@@ -211,7 +211,10 @@ fun AppNavigation(
         composable(
             route = Screen.MovieDetail.route,
             deepLinks = refLinks("app://content/movie/{slug}"),
-            arguments = listOf(navArgument("slug") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("slug") { type = NavType.StringType },
+                navArgument("imdbId") { type = NavType.StringType; defaultValue = "" }
+            )
         ) { backStackEntry ->
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
             MovieDetailScreen(
@@ -225,13 +228,13 @@ fun AppNavigation(
                 },
                 onWatchClick = { imdbId, mTitle, mId, mSlug, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector, mDescription ->
                     navController.navigate(Screen.MovieWatch.createRoute(mSlug, imdbId, mTitle, mId, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector, mDescription))
-                },                onSeriesClick = { seriesSlug ->
-                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug)) {
+                },                onSeriesClick = { seriesSlug, seriesImdbId ->
+                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug, seriesImdbId)) {
                         popUpTo(Screen.MovieDetail.route) { inclusive = true }
                     }
                 },
-                onMovieClick = { movieSlug ->
-                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug)) {
+                onMovieClick = { movieSlug, movieImdbId ->
+                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug, movieImdbId)) {
                         popUpTo(Screen.MovieDetail.route) { inclusive = true }
                     }
                 },
@@ -257,7 +260,10 @@ fun AppNavigation(
         composable(
             route = Screen.SeriesDetail.route,
             deepLinks = refLinks("app://content/series/{slug}"),
-            arguments = listOf(navArgument("slug") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("slug") { type = NavType.StringType },
+                navArgument("imdbId") { type = NavType.StringType; defaultValue = "" }
+            )
         ) { backStackEntry ->
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
             TVShowDetailScreen(
@@ -272,11 +278,11 @@ fun AppNavigation(
                 onWatchNow = { imdbId, title, movieId, slug, targetSeason, cast, director, description ->
                     navController.navigate(Screen.SeriesWatch.createRoute(imdbId, title, movieId, slug, targetSeason, cast, director, description))
                 },
-                onMovieClick = { movieSlug ->
-                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug))
+                onMovieClick = { movieSlug, movieImdbId ->
+                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug, movieImdbId))
                 },
-                onSeriesClick = { seriesSlug ->
-                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug)) {
+                onSeriesClick = { seriesSlug, seriesImdbId ->
+                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug, seriesImdbId)) {
                         popUpTo(Screen.SeriesDetail.route) { inclusive = true }
                     }
                 },
@@ -339,8 +345,8 @@ fun AppNavigation(
         ) { backStackEntry ->
             MovieWatchScreen(
                 onBackClick = { navController.popBackStack() },
-                onMovieClick = { movieSlug ->
-                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug)) {
+                onMovieClick = { movieSlug, movieImdbId ->
+                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug, movieImdbId)) {
                         popUpTo(Screen.MovieWatch.route) { inclusive = true }
                     }
                 },
@@ -352,7 +358,7 @@ fun AppNavigation(
 
         composable(Screen.Search.route, deepLinks = refLinks("app://search")) {
             SearchScreen(
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onZee5Click = { id -> navController.navigate("zee5_detail/$id") },
                 onTvChannelClick = { channel ->
                     navController.navigate(
@@ -371,7 +377,7 @@ fun AppNavigation(
 
         composable(Screen.TVShows.route, deepLinks = refLinks("app://tv-shows")) {
             TVShowsScreen(
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onMenuClick = onMenuClick
@@ -402,7 +408,7 @@ fun AppNavigation(
                 onCategoryClick = { slug, name ->
                     navController.navigate(Screen.CategoryPage.createRoute(slug, name))
                 },
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onNotificationClick = { navController.navigate(Screen.Notifications.route) },
                 onMenuClick = onMenuClick
@@ -422,7 +428,7 @@ fun AppNavigation(
             CategoryPageScreen(
                 categorySlug = slug,
                 categoryName = name,
-                onContentClick = { s, isSeries -> navigateToContent(s, isSeries) },
+                onContentClick = { s, isSeries, imdbId -> navigateToContent(s, isSeries, imdbId) },
                 onBackClick = { navController.popBackStack() },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
@@ -484,7 +490,7 @@ fun AppNavigation(
 
         composable(Screen.Movies.route, deepLinks = refLinks("app://movies")) {
             MoviesScreen(
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onMenuClick = onMenuClick
@@ -493,7 +499,7 @@ fun AppNavigation(
 
         composable(Screen.Trending.route, deepLinks = refLinks("app://trending")) {
             TrendingScreen(
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
@@ -551,7 +557,7 @@ fun AppNavigation(
         composable(Screen.LatestUploads.route, deepLinks = refLinks("app://latest-uploads")) {
             LatestUploadScreen(
                 onBackClick = { navController.popBackStack() },
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
@@ -559,7 +565,7 @@ fun AppNavigation(
         composable(Screen.SeriesList.route, deepLinks = refLinks("app://series-list")) {
             LatestUploadScreen(
                 onBackClick = { navController.popBackStack() },
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 title = "Binge-Worthy Series",
                 type = "series"
@@ -576,7 +582,7 @@ fun AppNavigation(
             CelebsScreen(
                 nameId = backStackEntry.arguments?.getString("nameId") ?: "",
                 onBackClick = { navController.popBackStack() },
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
@@ -594,14 +600,14 @@ fun AppNavigation(
             NewReleaseScreen(
                 initialCountry = backStackEntry.arguments?.getString("country") ?: "in",
                 onBackClick = { navController.popBackStack() },
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 
         composable(Screen.MyFeed.route, deepLinks = refLinks("app://my-feed")) {
             MyFeedScreen(
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
@@ -622,7 +628,7 @@ fun AppNavigation(
 
         composable(Screen.Library.route, deepLinks = refLinks("app://library", "app://my-list")) {
             LibraryScreen(
-                onContentClick = { slug, isSeries -> navigateToContent(slug, isSeries) },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onDownloadsClick = { navController.navigate(Screen.Downloads.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) }
             )

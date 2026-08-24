@@ -66,7 +66,7 @@ import com.movie.app.best.ui.screens.home.components.AgeBadge
 @Composable
 fun MoviesScreen(
     navController: androidx.navigation.NavController,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onSearchClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     viewModel: MoviesViewModel = hiltViewModel()
@@ -179,7 +179,7 @@ fun MoviesScreen(
                         items(uiState.movies, key = { it.slug }) { movie ->
                             MovieGridItem(
                                 movie = movie,
-                                onClick = { onContentClick(movie.slug, movie.isSeries) }
+                                onClick = { onContentClick(movie.slug, movie.isSeries, movie.imdbId) }
                             )
                         }
                     }

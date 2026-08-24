@@ -12,7 +12,7 @@ import com.movie.app.best.data.model.Movie
 
 fun LazyListScope.movieGridItems(
     movies: List<Movie>,
-    onMovieClick: (String, Boolean) -> Unit
+    onMovieClick: (String, Boolean, String) -> Unit
 ) {
     val columns = 3
     val rows = (movies.size + columns - 1) / columns
@@ -33,7 +33,7 @@ private fun GridRow(
     movies: List<Movie>,
     rowIdx: Int,
     columns: Int,
-    onMovieClick: (String, Boolean) -> Unit
+    onMovieClick: (String, Boolean, String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -49,7 +49,7 @@ private fun GridRow(
                     MoviePosterCard(
                         movie = movie,
                         size = CardSize.NORMAL,
-                        onClick = { onMovieClick(movie.slug, movie.isSeries) }
+                        onClick = { onMovieClick(movie.slug, movie.isSeries, movie.imdbId) }
                     )
                 }
             } else {

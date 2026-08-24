@@ -41,7 +41,7 @@ import com.movie.app.best.ui.screens.home.components.movieGridItems
 fun NewReleaseScreen(
     initialCountry: String,
     onBackClick: () -> Unit,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onSearchClick: () -> Unit = {},
     viewModel: NewReleaseViewModel = hiltViewModel()
 ) {

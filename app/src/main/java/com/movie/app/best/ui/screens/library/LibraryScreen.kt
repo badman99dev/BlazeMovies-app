@@ -60,7 +60,7 @@ import com.movie.app.best.ui.components.SkeletonLibraryPage
 
 @Composable
 fun LibraryScreen(
-    onContentClick: (String, Boolean) -> Unit = { _, _ -> },
+    onContentClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
     onDownloadsClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
@@ -158,7 +158,7 @@ fun LibraryScreen(
 @Composable
 private fun HistorySection(
     history: List<FirebaseHistoryItem>,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onRemove: (String) -> Unit,
     onClearAll: () -> Unit
 ) {
@@ -208,7 +208,7 @@ private fun HistorySection(
                         posterUrl = item.posterUrl,
                         progressPercent = item.progressPercent,
                         shouldBlur = shouldBlur,
-                        onClick = { onContentClick(item.slug, item.isSeries) },
+                        onClick = { onContentClick(item.slug, item.isSeries, item.imdbId) },
                         onRemove = { onRemove(item.slug) }
                     )
                 }
@@ -222,7 +222,7 @@ private fun PlaylistSection(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     items: List<Any>,
-    onContentClick: (String, Boolean) -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit,
     onRemove: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -277,7 +277,7 @@ private fun PlaylistSection(
                         posterUrl = posterUrl,
                         progressPercent = 0f,
                         shouldBlur = shouldBlur,
-                        onClick = { onContentClick(slug, isSeries) },
+                        onClick = { onContentClick(slug, isSeries, "") },
                         onRemove = { onRemove(slug) }
                     )
                 }

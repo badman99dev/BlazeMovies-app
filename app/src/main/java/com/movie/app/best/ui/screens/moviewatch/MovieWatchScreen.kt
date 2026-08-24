@@ -102,7 +102,7 @@ import okhttp3.OkHttpClient
 @Composable
 fun MovieWatchScreen(
     onBackClick: () -> Unit,
-    onMovieClick: (String) -> Unit = {},
+    onMovieClick: (String, String) -> Unit = { _, _ -> },
     onCelebClick: (String) -> Unit = {},
     viewModel: MovieWatchViewModel = hiltViewModel()
 ) {
@@ -586,8 +586,8 @@ fun MovieWatchScreen(
         } else if (state.similarMovies.isNotEmpty()) {
             MoreLikeThisSection(
                 movies = state.similarMovies,
-                onMovieClick = { movieSlug, isSeries ->
-                    if (!isSeries) onMovieClick(movieSlug)
+                onMovieClick = { movieSlug, isSeries, imdbId ->
+                    if (!isSeries) onMovieClick(movieSlug, imdbId)
                 }
             )
             Spacer(modifier = Modifier.height(80.dp))

@@ -122,8 +122,8 @@ fun TVShowDetailScreen(
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
     onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String) -> Unit = { _, _, _, _, _, _, _, _ -> },
-    onMovieClick: (String) -> Unit = {},
-    onSeriesClick: (String) -> Unit = {},
+    onMovieClick: (String, String) -> Unit = { _, _ -> },
+    onSeriesClick: (String, String) -> Unit = { _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
     onCelebClick: (String) -> Unit = {},
@@ -228,9 +228,9 @@ fun TVShowDetailScreen(
                     onToggleBookmark = viewModel::toggleBookmark,
                     onToggleLike = viewModel::toggleLike,
                     onReportClick = viewModel::openReportDrawer,
-                    onContentClick = { slug, isSeries ->
-                        if (isSeries) onSeriesClick(slug)
-                        else onMovieClick(slug)
+                    onContentClick = { slug, isSeries, imdbId ->
+                        if (isSeries) onSeriesClick(slug, imdbId)
+                        else onMovieClick(slug, imdbId)
                     },
                     onGoToDownloads = onGoToDownloads,
                     onOpenExtractedSeries = onOpenExtractedSeries,
@@ -395,7 +395,7 @@ private fun TVShowDetailContent(
     onToggleBookmark: () -> Unit,
     onToggleLike: () -> Unit,
     onReportClick: () -> Unit = {},
-    onContentClick: (String, Boolean) -> Unit = { _, _ -> },
+    onContentClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
     onCelebClick: (String) -> Unit = {}
@@ -646,7 +646,7 @@ private fun TVShowDetailContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(uiState.moreSeasons, key = { it.id }) { season ->
-                    MoreSeasonCard(season = season, onClick = { onContentClick(season.slug, true) })
+                    MoreSeasonCard(season = season, onClick = { onContentClick(season.slug, true, "") })
                 }
             }
         }

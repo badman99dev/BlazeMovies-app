@@ -39,8 +39,8 @@ fun MovieDetailScreen(
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
     onWatchClick: (imdbId: String, title: String, movieId: String, slug: String, hasStream: Boolean, playerUrl: String, posterUrl: String, cast: String, director: String, description: String) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
-    onSeriesClick: (slug: String) -> Unit,
-    onMovieClick: (slug: String) -> Unit = {},
+    onSeriesClick: (slug: String, imdbId: String) -> Unit,
+    onMovieClick: (slug: String, imdbId: String) -> Unit = { _, _ -> },
     onDownloadClick: (linkUrl: String) -> Unit = { },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
@@ -133,9 +133,9 @@ fun MovieDetailScreen(
                     onToggleBookmark   = viewModel::toggleBookmark,
                     onToggleLike       = viewModel::toggleLike,
                     onReportClick      = viewModel::openReportDrawer,
-                    onContentClick     = { slug, isSeries ->
-                        if (isSeries) onSeriesClick(slug)
-                        else onMovieClick(slug)
+                    onContentClick     = { slug, isSeries, imdbId ->
+                        if (isSeries) onSeriesClick(slug, imdbId)
+                        else onMovieClick(slug, imdbId)
                     },
                     onGoToDownloads    = onGoToDownloads,
                     onOpenExtractedSeries = onOpenExtractedSeries,
@@ -273,11 +273,11 @@ private fun MovieDetailContent(
     onPostComment: (String, String) -> Unit,
     onRequestStream: () -> Unit,
     onResetCommentState: () -> Unit,
-    onSeriesClick: (String) -> Unit,
+    onSeriesClick: (String, String) -> Unit,
     onToggleBookmark: () -> Unit,
     onToggleLike: () -> Unit,
     onReportClick: () -> Unit = {},
-    onContentClick: (String, Boolean) -> Unit = { _, _ -> },
+    onContentClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
     onCelebClick: (String) -> Unit = {}
@@ -388,7 +388,7 @@ private fun MovieDetailContent(
             // 6. Episodes row (series only)
             EpisodesRow(
                 isSeries       = movie.isSeries,
-                onViewEpisodes = { onSeriesClick(movie.slug) }
+                onViewEpisodes = { onSeriesClick(movie.slug, movie.imdbId) }
             )
 
             // 7. Trailers row
