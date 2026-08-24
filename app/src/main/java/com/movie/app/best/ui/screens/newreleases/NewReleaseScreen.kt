@@ -57,7 +57,7 @@ fun NewReleaseScreen(
     val activeTab = if (activeCountry == NewReleaseViewModel.COUNTRY_US) uiState.usTab else uiState.inTab
     val filteredMovies = remember(activeTab.movies, context) { ModerationSettings.filterMovies(context, activeTab.movies) }
 
-    val shouldLoadMore by remember {
+    val shouldLoadMore by remember(activeTab) {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             val totalItems = listState.layoutInfo.totalItemsCount
