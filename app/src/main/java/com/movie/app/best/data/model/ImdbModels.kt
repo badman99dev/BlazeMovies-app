@@ -110,6 +110,12 @@ data class ImdbLanguage(
     val name: String = ""
 )
 
+data class ImdbInterest(
+    val id: String = "",
+    val name: String = "",
+    @SerializedName("isSubgenre") val isSubgenre: Boolean? = null
+)
+
 data class ImdbTitleDetails(
     val id: String = "",
     val type: String = "",
@@ -120,6 +126,7 @@ data class ImdbTitleDetails(
     @SerializedName("endYear") val endYear: Int? = null,
     @SerializedName("runtimeSeconds") val runtimeSeconds: Int = 0,
     val genres: List<String> = emptyList(),
+    val interests: List<ImdbInterest> = emptyList(),
     val rating: ImdbRating? = null,
     val metacritic: ImdbMetacritic? = null,
     val plot: String = "",

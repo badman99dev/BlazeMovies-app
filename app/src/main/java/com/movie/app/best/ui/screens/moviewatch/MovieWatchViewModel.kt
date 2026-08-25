@@ -52,6 +52,7 @@ class MovieWatchViewModel @Inject constructor(
     val backendCast: String = savedStateHandle["cast"] ?: ""
     val backendDirector: String = savedStateHandle["director"] ?: ""
     val backendDescription: String = savedStateHandle["description"] ?: ""
+    val backendGenres: String = savedStateHandle["genres"] ?: ""
     val title: String get() = movieTitle
     val contentSlug: String get() = slug
 
@@ -353,5 +354,6 @@ data class MovieWatchState(
     val isBookmarked: Boolean = false,
     val backendCast: String = "",
     val backendDirector: String = "",
-    val backendDescription: String = ""
+    val backendDescription: String = "",
+    val backendGenres: String = ""
 )

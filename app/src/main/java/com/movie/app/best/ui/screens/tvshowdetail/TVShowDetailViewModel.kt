@@ -11,7 +11,8 @@ import com.movie.app.best.data.model.Comment
 import com.movie.app.best.data.model.DownloadLink
 import com.movie.app.best.data.model.Episode
 import com.movie.app.best.data.model.MovieDetails
-import com.movie.app.best.data.model.ImdbName
+import com.movie.app.best.data.model.ImdbTitleDetails
+import com.movie.app.best.data.model.CrewPerson
 import com.movie.app.best.data.remote.ImdbApiService
 import com.movie.app.best.data.model.Season
 import com.movie.app.best.data.debug.NetworkMonitor
@@ -22,6 +23,8 @@ import com.movie.app.best.data.repository.MyListRefreshState
 import com.movie.app.best.data.repository.ResolvedMirror
 import com.movie.app.best.data.model.DownloadPhase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,7 +52,7 @@ class TVShowDetailViewModel @Inject constructor(
         MyListRefreshState.markStale()
         if (passedImdbId.startsWith("tt")) {
             loadSimilarMovies(passedImdbId)
-            loadCastCredits(passedImdbId)
+            loadCrewAndTitle(passedImdbId)
         }
         loadSeriesDetails()
         viewModelScope.launch {
@@ -83,6 +86,7 @@ class TVShowDetailViewModel @Inject constructor(
                                     screenshots = data.screenshots,
                                     moreSeasons = data.moreSeasons,
                                     downloadLinks = data.linksNoEpisode,
+                                    fallbackGenres = data.genres,
                                     isLoading = false,
                                     error = null
                                 )
@@ -91,7 +95,7 @@ class TVShowDetailViewModel @Inject constructor(
                             checkBookmarkAndLikeStatus()
                             if (!passedImdbId.startsWith("tt")) {
                                 loadSimilarMovies(data.movie.imdbId)
-                                loadCastCredits(data.movie.imdbId)
+                                loadCrewAndTitle(data.movie.imdbId)
                             }
                         } else {
                             _uiState.update { it.copy(isLoading = false, error = "No data") }
@@ -653,16 +657,29 @@ class TVShowDetailViewModel @Inject constructor(
         }
     }
 
-    private fun loadCastCredits(imdbId: String) {
+    private fun loadCrewAndTitle(imdbId: String) {
         if (!imdbId.startsWith("tt")) return
         viewModelScope.launch {
             try {
-                val credits = imdbApi.getCredits(imdbId, pageSize = 30)
-                val cast = credits.credits
-                    .filter { it.isActor && it.name.id.isNotBlank() }
-                    .take(15)
-                    .map { it.name }
-                _uiState.update { it.copy(castCredits = cast) }
+                coroutineScope {
+                    val creditsDeferred = async {
+                        try { imdbApi.getCredits(imdbId, pageSize = 30) } catch (_: Exception) { null }
+                    }
+                    val titleDeferred = async {
+                        try { imdbApi.getTitleDetails(imdbId) } catch (_: Exception) { null }
+                    }
+                    val credits = creditsDeferred.await()
+                    val titleDetails = titleDeferred.await()
+                    val crew = CrewPerson.sortCrew(
+                        credits?.credits?.mapNotNull { CrewPerson.fromCredit(it) } ?: emptyList()
+                    )
+                    _uiState.update {
+                        it.copy(
+                            crewCredits = crew,
+                            titleDetails = titleDetails
+                        )
+                    }
+                }
             } catch (_: Exception) {}
         }
     }
@@ -684,7 +701,9 @@ data class TVShowDetailUiState(
     val isSimilarLoading: Boolean = false,
     val similarError: String? = null,
 
-    val castCredits: List<ImdbName> = emptyList(),
+    val crewCredits: List<CrewPerson> = emptyList(),
+    val titleDetails: ImdbTitleDetails? = null,
+    val fallbackGenres: List<String> = emptyList(),
 
     val isCommentPosting: Boolean = false,
     val commentPosted: Boolean = false,

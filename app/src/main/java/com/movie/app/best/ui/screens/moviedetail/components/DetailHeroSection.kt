@@ -40,7 +40,9 @@ fun DetailHeroSection(
     onShareClick: () -> Unit = {},
     onReportClick: () -> Unit = {},
     forceBlur: Boolean = false,
-    minimal: Boolean = false
+    minimal: Boolean = false,
+    overrideRating: String? = null,
+    overrideVotes: String? = null
 ) {
     val context = LocalContext.current
     val shouldBlur = forceBlur || ModerationSettings.shouldBlurDetail(context, movie.contentModeration)
@@ -215,7 +217,10 @@ fun DetailHeroSection(
                     }
                     Icon(Icons.Default.Star, null, tint = Amber, modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(3.dp))
-                    Text(movie.rating, color = Color.White.copy(0.75f), fontSize = 13.sp)
+                    Text(overrideRating ?: movie.rating, color = Color.White.copy(0.75f), fontSize = 13.sp)
+                    if (overrideVotes != null) {
+                        Text(overrideVotes, color = Color.White.copy(0.5f), fontSize = 12.sp)
+                    }
                     if (movie.runtime.isNotEmpty()) {
                         Text("  •  ", color = Color.White.copy(0.4f), fontSize = 13.sp)
                         Text(movie.runtime, color = Color.White.copy(0.75f), fontSize = 13.sp)

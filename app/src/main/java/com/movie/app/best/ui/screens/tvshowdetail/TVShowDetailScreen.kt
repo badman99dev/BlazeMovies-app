@@ -92,7 +92,8 @@ import com.movie.app.best.ui.components.CelebrationOverlay
 import com.movie.app.best.ui.components.ScreenshotViewer
 import com.movie.app.best.ui.components.SkeletonDetailPage
 import com.movie.app.best.ui.components.ErrorView
-import com.movie.app.best.ui.components.CollapsibleCastRow
+import com.movie.app.best.ui.components.CollapsibleCrewRow
+import com.movie.app.best.ui.components.InterestsGenreSection
 import com.movie.app.best.ui.components.StorylineWarningBadge
 import com.movie.app.best.ui.screens.moviedetail.components.DetailActionButtons
 import com.movie.app.best.ui.screens.moviedetail.components.DetailHeroSection
@@ -121,7 +122,7 @@ fun TVShowDetailScreen(
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
-    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String, genres: String) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
     onMovieClick: (String, String) -> Unit = { _, _ -> },
     onSeriesClick: (String, String) -> Unit = { _, _ -> },
     onGoToDownloads: () -> Unit = {},
@@ -386,7 +387,7 @@ private fun TVShowDetailContent(
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
-    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String) -> Unit,
+    onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String, genres: String) -> Unit,
     onPostComment: (name: String, msg: String) -> Unit,
     onRequestStream: () -> Unit,
     onStartDownload: (linkUrl: String, linkId: Int?) -> Unit,
@@ -406,6 +407,17 @@ private fun TVShowDetailContent(
     val seasonKeys = uiState.episodesBySeason.keys.sorted()
     val defaultSeason = series.seasonLabel.filter { it.isDigit() }.toIntOrNull()
     var selectedSeason by remember { mutableStateOf(defaultSeason?.takeIf { it in seasonKeys } ?: seasonKeys.firstOrNull() ?: 1) }
+
+    val titleDetails = uiState.titleDetails
+    val displayRating = titleDetails?.let {
+        if (it.ratingValue > 0) String.format("%.1f", it.ratingValue) else null
+    } ?: series.rating
+    val displayVotes = titleDetails?.let {
+        if (it.voteCount > 0) "  (${formatVoteCount(it.voteCount)})" else null
+    }
+    val crew = uiState.crewCredits
+    val interests = titleDetails?.interests?.map { it.name } ?: emptyList()
+    val genres = titleDetails?.genres?.ifEmpty { null } ?: uiState.fallbackGenres
 
     if (isContentHidden) {
         Column(
@@ -455,7 +467,9 @@ private fun TVShowDetailContent(
         DetailHeroSection(
             movie = series,
             onBackClick = onBackClick,
-            onReportClick = onReportClick
+            onReportClick = onReportClick,
+            overrideRating = displayRating,
+            overrideVotes = displayVotes
         )
 
         DetailActionButtons(
@@ -465,7 +479,7 @@ private fun TVShowDetailContent(
             isLiked = uiState.isLiked,
             isSeries = true,
             onPlayClick = {
-                onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason, series.cast, series.director, series.description)
+                onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason, series.cast, series.director, series.description, uiState.fallbackGenres.joinToString(","))
             },
             onDownloadClick = {
                 val allLinks = uiState.linksByEpisode.values.flatten() + uiState.downloadLinks
@@ -487,13 +501,20 @@ private fun TVShowDetailContent(
             }
         }
 
-        if (uiState.castCredits.isNotEmpty()) {
-            CollapsibleCastRow(
-                stars = uiState.castCredits,
+        if (crew.isNotEmpty()) {
+            CollapsibleCrewRow(
+                crew = crew,
                 onNameClick = onCelebClick
             )
         } else {
             CastSection(director = series.director, cast = series.cast)
+        }
+
+        if (interests.isNotEmpty() || genres.isNotEmpty()) {
+            InterestsGenreSection(
+                interests = interests,
+                genres = genres
+            )
         }
 
         if (seasonKeys.isNotEmpty()) {
@@ -534,7 +555,7 @@ private fun TVShowDetailContent(
                     downloadLoadingLinkId = uiState.downloadLoadingLinkId,
                     downloadStartedLinkIds = uiState.downloadStartedLinkIds,
                     onPlayClick = {
-                        onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason, series.cast, series.director, series.description)
+                        onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason, series.cast, series.director, series.description, uiState.fallbackGenres.joinToString(","))
                     },
                     onDownloadClick = { links ->
                         onOpenEpisodeDownloadSheet(links, "${series.title} - S${selectedSeason}E${episode.episodeNo}")
@@ -1133,4 +1154,10 @@ private fun TVCommentFormSection(
             }
         }
     }
+}
+
+private fun formatVoteCount(count: Int): String = when {
+    count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
+    count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+    else -> count.toString()
 }

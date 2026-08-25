@@ -82,9 +82,11 @@ import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.data.repository.FirebaseRepository
+import com.movie.app.best.data.model.CrewPerson
 import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.components.GlassBadge
-import com.movie.app.best.ui.components.CollapsibleCastRow
+import com.movie.app.best.ui.components.CollapsibleCrewRow
+import com.movie.app.best.ui.components.InterestsGenreSection
 import com.movie.app.best.ui.screens.moviedetail.components.FindingSimilarSection
 import com.movie.app.best.ui.screens.moviedetail.components.MoreLikeThisSection
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
@@ -557,20 +559,28 @@ fun MovieWatchScreen(
                 )
             }
 
-            val stars = state.titleDetails?.stars ?: emptyList()
-            val backendCast = state.backendCast
-            val castList = if (stars.isNotEmpty()) {
-                stars
-            } else if (backendCast.isNotBlank()) {
-                backendCast.split(",").mapNotNull { name ->
+            val titleDetails = state.titleDetails
+            val crew = if (titleDetails != null) {
+                val directors = titleDetails.directors.map { CrewPerson.fromName(it, CrewPerson.CAT_DIRECTOR) }
+                val stars = titleDetails.stars.map { CrewPerson.fromName(it, CrewPerson.CAT_ACTOR) }
+                CrewPerson.sortCrew(directors + stars)
+            } else if (state.backendCast.isNotBlank()) {
+                state.backendCast.split(",").mapNotNull { name ->
                     val trimmed = name.trim()
-                    if (trimmed.isNotBlank()) com.movie.app.best.data.model.ImdbName(displayName = trimmed) else null
+                    if (trimmed.isNotBlank()) CrewPerson(displayName = trimmed) else null
                 }
             } else {
                 emptyList()
             }
-            if (castList.isNotEmpty()) {
-                CollapsibleCastRow(castList, onNameClick = onCelebClick)
+            if (crew.isNotEmpty()) {
+                CollapsibleCrewRow(crew, onNameClick = onCelebClick)
+            }
+
+            val watchInterests = titleDetails?.interests?.map { it.name } ?: emptyList()
+            val watchGenres = titleDetails?.genres?.ifEmpty { null }
+                ?: state.backendGenres.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            if (watchInterests.isNotEmpty() || watchGenres.isNotEmpty()) {
+                InterestsGenreSection(interests = watchInterests, genres = watchGenres)
             }
         }
 

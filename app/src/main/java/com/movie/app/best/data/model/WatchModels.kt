@@ -62,7 +62,8 @@ data class ExtractionState(
     val error: String? = null,
     val backendCast: String = "",
     val backendDirector: String = "",
-    val backendDescription: String = ""
+    val backendDescription: String = "",
+    val backendGenres: String = ""
 ) {
     val mergedEpisodes: List<WatchEpisode>
         get() {

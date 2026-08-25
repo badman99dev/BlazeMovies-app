@@ -8,6 +8,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,6 +59,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.ImdbCredit
 import com.movie.app.best.data.model.ImdbTitleDetails
+import com.movie.app.best.ui.components.CastFrameYellow
 import com.movie.app.best.ui.theme.AppBlack
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
@@ -68,6 +70,7 @@ fun YoutubeTrailerScreen(
     title: String,
     imdbId: String = "",
     onBackClick: () -> Unit,
+    onCelebClick: (String, String) -> Unit = { _, _ -> },
     trailerViewModel: TrailerViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -217,7 +220,7 @@ fun YoutubeTrailerScreen(
                             item { Spacer(modifier = Modifier.height(12.dp)) }
                         }
                         if (s.cast.isNotEmpty()) {
-                            item { CastRow(s.cast) }
+                            item { CastRow(s.cast, onCelebClick) }
                             item { Spacer(modifier = Modifier.height(12.dp)) }
                         }
                         item { CrewSection(s.title) }
@@ -452,7 +455,7 @@ private fun SynopsisSection(plot: String) {
 }
 
 @Composable
-private fun CastRow(cast: List<ImdbCredit>) {
+private fun CastRow(cast: List<ImdbCredit>, onCelebClick: (String, String) -> Unit = { _, _ -> }) {
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -469,14 +472,16 @@ private fun CastRow(cast: List<ImdbCredit>) {
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(cast) { credit ->
-                CastCard(credit)
+                CastCard(credit, onCelebClick)
             }
         }
     }
 }
 
 @Composable
-private fun CastCard(credit: ImdbCredit) {
+private fun CastCard(credit: ImdbCredit, onCelebClick: (String, String) -> Unit = { _, _ -> }) {
+    val nameId = credit.name.id
+    val clickable = nameId.isNotBlank()
     Column(
         modifier = Modifier.width(80.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -485,7 +490,16 @@ private fun CastCard(credit: ImdbCredit) {
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF1A1A1A)),
+                .background(Color(0xFF1A1A1A))
+                .then(
+                    if (clickable) {
+                        Modifier
+                            .border(2.5.dp, CastFrameYellow, CircleShape)
+                            .clickable { onCelebClick(nameId, credit.displayName) }
+                    } else {
+                        Modifier
+                    }
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (credit.photoUrl.isNotBlank()) {
@@ -494,7 +508,7 @@ private fun CastCard(credit: ImdbCredit) {
                     contentDescription = credit.displayName,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(if (clickable) 64.dp else 72.dp)
                         .clip(CircleShape)
                 )
             } else {
@@ -531,19 +545,13 @@ private fun CastCard(credit: ImdbCredit) {
 
 @Composable
 private fun CrewSection(title: ImdbTitleDetails) {
-    if (title.directors.isEmpty() && title.writers.isEmpty()) return
+    if (title.directors.isEmpty()) return
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
     ) {
-        if (title.directors.isNotEmpty()) {
-            CrewItem(label = "Director", value = title.directorsText)
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-        if (title.writers.isNotEmpty()) {
-            CrewItem(label = "Writer", value = title.writersText)
-        }
+        CrewItem(label = "Director", value = title.directorsText)
     }
 }
 

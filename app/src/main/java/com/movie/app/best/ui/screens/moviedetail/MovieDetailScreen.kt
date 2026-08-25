@@ -26,7 +26,8 @@ import com.movie.app.best.ui.components.CelebrationOverlay
 import com.movie.app.best.ui.components.ErrorView
 import com.movie.app.best.ui.components.SkeletonDetailPage
 import com.movie.app.best.ui.components.StorylineWarningBadge
-import com.movie.app.best.ui.components.CollapsibleCastRow
+import com.movie.app.best.ui.components.CollapsibleCrewRow
+import com.movie.app.best.ui.components.InterestsGenreSection
 import com.movie.app.best.ui.screens.moviedetail.components.*
 import com.movie.app.best.data.model.DownloadPhase
 import com.movie.app.best.ui.util.CfBypassHost
@@ -38,7 +39,7 @@ fun MovieDetailScreen(
     onBackClick: () -> Unit,
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
-    onWatchClick: (imdbId: String, title: String, movieId: String, slug: String, hasStream: Boolean, playerUrl: String, posterUrl: String, cast: String, director: String, description: String) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
+    onWatchClick: (imdbId: String, title: String, movieId: String, slug: String, hasStream: Boolean, playerUrl: String, posterUrl: String, cast: String, director: String, description: String, genres: String) -> Unit = { _, _, _, _, _, _, _, _, _, _, _ -> },
     onSeriesClick: (slug: String, imdbId: String) -> Unit,
     onMovieClick: (slug: String, imdbId: String) -> Unit = { _, _ -> },
     onDownloadClick: (linkUrl: String) -> Unit = { },
@@ -268,7 +269,7 @@ private fun MovieDetailContent(
     onBackClick: () -> Unit,
     onPlayClick: (String, String, String, String, String, String) -> Unit,
     onTrailerClick: (String, String, String) -> Unit = { _, _, _ -> },
-    onWatchClick: (String, String, String, String, Boolean, String, String, String, String, String) -> Unit,
+    onWatchClick: (String, String, String, String, Boolean, String, String, String, String, String, String) -> Unit,
     onDownloadClick: () -> Unit,
     onPostComment: (String, String) -> Unit,
     onRequestStream: () -> Unit,
@@ -284,6 +285,18 @@ private fun MovieDetailContent(
 ) {
     val context = LocalContext.current
     val isContentHidden = ModerationSettings.shouldHideDetail(context, movie.contentModeration)
+
+    val titleDetails = uiState.titleDetails
+    val displayRating = titleDetails?.let {
+        if (it.ratingValue > 0) String.format("%.1f", it.ratingValue) else null
+    } ?: movie.rating
+    val displayVotes = titleDetails?.let {
+        if (it.voteCount > 0) "  (${formatVoteCount(it.voteCount)})" else null
+    }
+
+    val crew = uiState.crewCredits
+    val interests = titleDetails?.interests?.map { it.name } ?: emptyList()
+    val genres = titleDetails?.genres?.ifEmpty { null } ?: uiState.fallbackGenres
 
     if (isContentHidden) {
         Column(
@@ -333,7 +346,9 @@ private fun MovieDetailContent(
         DetailHeroSection(
             movie       = movie,
             onBackClick = onBackClick,
-            onReportClick = onReportClick
+            onReportClick = onReportClick,
+            overrideRating = displayRating,
+            overrideVotes = displayVotes
         )
 
         Column(
@@ -350,7 +365,7 @@ private fun MovieDetailContent(
                 hasDownloadLinks = uiState.downloadLinks.isNotEmpty(),
                 alwaysShowWatch = true,
                 onPlayClick     = {
-                    onWatchClick(movie.imdbId, movie.title, movie.id.toString(), movie.slug, movie.hasStream, movie.playerUrl, movie.posterUrl, movie.cast, movie.director, movie.description)
+                    onWatchClick(movie.imdbId, movie.title, movie.id.toString(), movie.slug, movie.hasStream, movie.playerUrl, movie.posterUrl, movie.cast, movie.director, movie.description, uiState.fallbackGenres.joinToString(","))
                 },
                 onDownloadClick = onDownloadClick,
                 onMyListClick   = onToggleBookmark,
@@ -374,9 +389,9 @@ private fun MovieDetailContent(
             Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
 
             // 5. Cast & Crew — IMDb circular cast (clickable → celebs) ya text fallback
-            if (uiState.castCredits.isNotEmpty()) {
-                CollapsibleCastRow(
-                    stars = uiState.castCredits,
+            if (crew.isNotEmpty()) {
+                CollapsibleCrewRow(
+                    crew = crew,
                     onNameClick = onCelebClick
                 )
             } else {
@@ -384,6 +399,15 @@ private fun MovieDetailContent(
             }
 
             Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
+
+            // 5b. Interests & Genre
+            InterestsGenreSection(
+                interests = interests,
+                genres = genres
+            )
+            if (interests.isNotEmpty() || genres.isNotEmpty()) {
+                Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
+            }
 
             // 6. Episodes row (series only)
             EpisodesRow(
@@ -442,4 +466,10 @@ private fun MovieDetailContent(
 @Composable
 private fun Divider(color: Color, modifier: Modifier = Modifier) {
     HorizontalDivider(color = color, modifier = modifier)
+}
+
+private fun formatVoteCount(count: Int): String = when {
+    count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
+    count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+    else -> count.toString()
 }
