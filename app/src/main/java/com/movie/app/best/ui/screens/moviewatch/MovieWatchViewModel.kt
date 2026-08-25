@@ -3,6 +3,7 @@ package com.movie.app.best.ui.screens.moviewatch
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.GemmaEpisodeInfo
 import com.movie.app.best.data.model.GemmaExtractionResult
@@ -70,7 +71,7 @@ class MovieWatchViewModel @Inject constructor(
         val list = mutableListOf<StreamCandidate>()
         if (hasStream || playerUrl.isNotEmpty()) {
             list.add(StreamCandidate.Backend(
-                "https://sparkling-breeze-1ad6.badman993944.workers.dev/?id=${movieId}"
+                BuildConfig.SPARKLE_BASE_URL + "?id=$movieId"
             ))
         }
         if (imdbId.startsWith("tt")) {

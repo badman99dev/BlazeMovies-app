@@ -1,5 +1,6 @@
 package com.movie.app.best.data.repository
 
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.MeiliHit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -27,9 +28,9 @@ class MeiliSearchRepository @Inject constructor() {
         .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
-    private val KEY_URL = "https://meilisearch.badman993944.workers.dev/"
-    private val SEARCH_URL = "https://meilisearch-rs25.onrender.com/indexes/movies/search"
-    private val PING_URL = "https://meilisearch-rs25.onrender.com/"
+    private val KEY_URL = BuildConfig.MEILI_KEY_URL
+    private val SEARCH_URL = BuildConfig.MEILI_SEARCH_URL
+    private val PING_URL = BuildConfig.MEILI_PING_URL
     private val JSON = "application/json".toMediaType()
 
     suspend fun pingAndPrefetchKey() {

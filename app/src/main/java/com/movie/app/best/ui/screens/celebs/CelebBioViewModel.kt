@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.ImdbRelationship
 import com.movie.app.best.data.remote.ImdbApiService
+import com.movie.app.best.data.remote.ImdxApiService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +31,8 @@ data class CelebBioUiState(
 
 @HiltViewModel
 class CelebBioViewModel @Inject constructor(
-    private val imdbApi: ImdbApiService
+    private val imdbApi: ImdbApiService,
+    private val imdxApi: ImdxApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CelebBioUiState())
@@ -73,7 +75,7 @@ class CelebBioViewModel @Inject constructor(
 
             launch {
                 try {
-                    val rel = imdbApi.getRelationships(nameId)
+                    val rel = imdxApi.getRelationships(nameId)
                     _uiState.update {
                         it.copy(
                             relationships = rel.relationships,

@@ -7,6 +7,7 @@ import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.remote.AuthApiService
 import com.movie.app.best.data.remote.BypassApiService
 import com.movie.app.best.data.remote.ImdbApiService
+import com.movie.app.best.data.remote.ImdxApiService
 import com.movie.app.best.data.remote.MovieApiService
 import com.movie.app.best.data.repository.Zee5TokenRepository
 import com.google.gson.FieldNamingPolicy
@@ -143,7 +144,7 @@ object NetworkModule {
             .addInterceptor(DebugInterceptor())
             .build()
         return Retrofit.Builder()
-            .baseUrl("https://dl-agent.badman993944.workers.dev/")
+            .baseUrl(BuildConfig.DL_AGENT_BASE_URL)
             .client(bypassClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -154,7 +155,18 @@ object NetworkModule {
     @Named("imdb")
     fun provideImdbRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api.tiffara.com/")
+            .baseUrl(BuildConfig.IMDB1_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("imdx")
+    fun provideImdxRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BuildConfig.IMDB2_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -182,6 +194,12 @@ object NetworkModule {
     @Singleton
     fun provideImdbApiService(@Named("imdb") retrofit: Retrofit): ImdbApiService {
         return retrofit.create(ImdbApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideImdxApiService(@Named("imdx") retrofit: Retrofit): ImdxApiService {
+        return retrofit.create(ImdxApiService::class.java)
     }
 
     @Provides

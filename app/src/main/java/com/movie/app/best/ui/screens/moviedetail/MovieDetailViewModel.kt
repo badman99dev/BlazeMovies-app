@@ -3,6 +3,7 @@ package com.movie.app.best.ui.screens.moviedetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.LikeItem
@@ -99,7 +100,7 @@ class MovieDetailViewModel @Inject constructor(
                             val movie = detailData.movie
                             if (movie.hasStream || movie.playerUrl.isNotEmpty()) {
                                 val streamUrl = if (movie.playerUrl.isNotEmpty()) movie.playerUrl
-                                    else "https://sparkling-breeze-1ad6.badman993944.workers.dev/?id=${movie.id}"
+                                    else BuildConfig.SPARKLE_BASE_URL + "?id=${movie.id}"
                                 warmCdnCache(streamUrl)
                             }
                         }

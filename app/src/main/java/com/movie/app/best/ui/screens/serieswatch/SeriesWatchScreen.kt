@@ -78,6 +78,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.data.settings.VideoQualitySettings
@@ -152,7 +153,7 @@ fun SeriesWatchScreen(
         val okFactory = OkHttpDataSource.Factory(okClient)
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
             .setDefaultRequestProperties(mapOf(
-                "Referer" to "https://gemma416okl.com/",
+                "Referer" to BuildConfig.GEMMA_BASE_URL,
                 "Accept" to "*/*"
             ))
 

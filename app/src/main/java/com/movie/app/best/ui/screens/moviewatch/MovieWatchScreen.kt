@@ -78,6 +78,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import coil.compose.AsyncImage
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.data.repository.FirebaseRepository
@@ -167,7 +168,7 @@ fun MovieWatchScreen(
         }
 
         val referer = when (state.activeSource) {
-            "gemma" -> "https://gemma416okl.com/"
+            "gemma" -> BuildConfig.GEMMA_BASE_URL
             else -> "https://wasmer-jhns970ko-badals-projects-03fab3df.vercel.app/"
         }
 
