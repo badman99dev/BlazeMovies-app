@@ -94,8 +94,7 @@ interface MovieApiService {
     suspend fun getInterestMovies(
         @Path("interestId") interestId: String,
         @Query("page") page: Int = 1,
-        @Query("max") max: Int? = null,
-        @Query("includeUnavailable") includeUnavailable: Int = 1
+        @Query("max") max: Int? = null
     ): ApiResponse<CelebsResult>
 
     @GET("watchable-content")
