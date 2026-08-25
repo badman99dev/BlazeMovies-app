@@ -43,6 +43,7 @@ import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.newreleases.NewReleaseScreen
 import com.movie.app.best.ui.screens.celebs.CelebBioScreen
 import com.movie.app.best.ui.screens.celebs.CelebsScreen
+import com.movie.app.best.ui.screens.interests.InterestScreen
 import com.movie.app.best.ui.screens.myfeed.MyFeedScreen
 import com.movie.app.best.ui.screens.auth.LoginScreen
 import com.movie.app.best.ui.screens.profile.ProfileScreen
@@ -64,6 +65,9 @@ sealed class Screen(val route: String) {
     }
     object CelebBio : Screen("celebs/{nameId}/bio?name={name}") {
         fun createRoute(nameId: String, name: String = "") = "celebs/${Uri.encode(nameId)}/bio?name=${Uri.encode(name)}"
+    }
+    object Interests : Screen("interests/{interestId}?name={name}") {
+        fun createRoute(interestId: String, name: String = "") = "interests/${Uri.encode(interestId)}?name=${Uri.encode(name)}"
     }
     object MyFeed : Screen("my-feed")
     object Categories : Screen("categories")
@@ -257,6 +261,9 @@ fun AppNavigation(
                 },
                 onCelebClick = { nameId, name ->
                     navController.navigate(Screen.Celebs.createRoute(nameId, name))
+                },
+                onInterestClick = { interestId, name ->
+                    navController.navigate(Screen.Interests.createRoute(interestId, name))
                 }
             )
         }
@@ -304,6 +311,9 @@ fun AppNavigation(
                 },
                 onCelebClick = { nameId, name ->
                     navController.navigate(Screen.Celebs.createRoute(nameId, name))
+                },
+                onInterestClick = { interestId, name ->
+                    navController.navigate(Screen.Interests.createRoute(interestId, name))
                 }
             )
         }
@@ -329,6 +339,9 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onCelebClick = { nameId, name ->
                     navController.navigate(Screen.Celebs.createRoute(nameId, name))
+                },
+                onInterestClick = { interestId, name ->
+                    navController.navigate(Screen.Interests.createRoute(interestId, name))
                 }
             )
         }
@@ -358,6 +371,9 @@ fun AppNavigation(
                 },
                 onCelebClick = { nameId, name ->
                     navController.navigate(Screen.Celebs.createRoute(nameId, name))
+                },
+                onInterestClick = { interestId, name ->
+                    navController.navigate(Screen.Interests.createRoute(interestId, name))
                 }
             )
         }
@@ -619,6 +635,26 @@ fun AppNavigation(
                 onCelebClick = { nameId, name ->
                     navController.navigate(Screen.Celebs.createRoute(nameId, name))
                 },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
+            )
+        }
+
+        composable(
+            route = Screen.Interests.route,
+            deepLinks = refLinks(
+                "app://interests/{interestId}",
+                "app://interests/{interestId}?name={name}"
+            ),
+            arguments = listOf(
+                navArgument("interestId") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            InterestScreen(
+                interestId = backStackEntry.arguments?.getString("interestId") ?: "",
+                name = backStackEntry.arguments?.getString("name") ?: "",
+                onBackClick = { navController.popBackStack() },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }

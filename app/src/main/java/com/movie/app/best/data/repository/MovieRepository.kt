@@ -76,6 +76,11 @@ class MovieRepository @Inject constructor(
         emit(safeApiCall { apiService.getCelebs(nameId, page, max) })
     }
 
+    fun getInterestMovies(interestId: String, page: Int = 1, max: Int? = null): Flow<Resource<CelebsResult>> = flow {
+        emit(Resource.Loading())
+        emit(safeApiCall { apiService.getInterestMovies(interestId, page, max) })
+    }
+
     fun getWatchableContent(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getWatchableContent(offset, limit) })

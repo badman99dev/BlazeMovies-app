@@ -103,6 +103,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 fun SeriesWatchScreen(
     onBackClick: () -> Unit,
     onCelebClick: (String, String) -> Unit = { _, _ -> },
+    onInterestClick: (String, String) -> Unit = { _, _ -> },
     viewModel: SeriesWatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -474,11 +475,12 @@ fun SeriesWatchScreen(
                 CollapsibleCrewRow(crew, onNameClick = onCelebClick)
             }
 
-            val watchInterests = titleDetails?.interests?.map { it.name } ?: emptyList()
-            val watchGenres = titleDetails?.genres?.ifEmpty { null }
-                ?: state.backendGenres.split(",").map { it.trim() }.filter { it.isNotBlank() }
-            if (watchInterests.isNotEmpty() || watchGenres.isNotEmpty()) {
-                InterestsGenreSection(interests = watchInterests, genres = watchGenres)
+            val watchInterests = titleDetails?.interests ?: emptyList()
+            if (watchInterests.isNotEmpty()) {
+                InterestsGenreSection(
+                    interests = watchInterests,
+                    onInterestClick = onInterestClick
+                )
             }
         }
 

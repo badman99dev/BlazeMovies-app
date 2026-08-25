@@ -46,6 +46,7 @@ fun MovieDetailScreen(
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
     onCelebClick: (String, String) -> Unit = { _, _ -> },
+    onInterestClick: (String, String) -> Unit = { _, _ -> },
     viewModel: MovieDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -140,7 +141,8 @@ fun MovieDetailScreen(
                     },
                     onGoToDownloads    = onGoToDownloads,
                     onOpenExtractedSeries = onOpenExtractedSeries,
-                    onCelebClick       = onCelebClick
+                    onCelebClick       = onCelebClick,
+                    onInterestClick    = onInterestClick
                 )
             }
         }
@@ -281,7 +283,8 @@ private fun MovieDetailContent(
     onContentClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
-    onCelebClick: (String, String) -> Unit = { _, _ -> }
+    onCelebClick: (String, String) -> Unit = { _, _ -> },
+    onInterestClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val isContentHidden = ModerationSettings.shouldHideDetail(context, movie.contentModeration)
@@ -295,8 +298,7 @@ private fun MovieDetailContent(
     }
 
     val crew = uiState.crewCredits
-    val interests = titleDetails?.interests?.map { it.name } ?: emptyList()
-    val genres = titleDetails?.genres?.ifEmpty { null } ?: uiState.fallbackGenres
+    val interests = titleDetails?.interests ?: emptyList()
 
     if (isContentHidden) {
         Column(
@@ -400,12 +402,12 @@ private fun MovieDetailContent(
 
             Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
 
-            // 5b. Interests & Genre
+            // 5b. Interests
             InterestsGenreSection(
                 interests = interests,
-                genres = genres
+                onInterestClick = onInterestClick
             )
-            if (interests.isNotEmpty() || genres.isNotEmpty()) {
+            if (interests.isNotEmpty()) {
                 Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
             }
 

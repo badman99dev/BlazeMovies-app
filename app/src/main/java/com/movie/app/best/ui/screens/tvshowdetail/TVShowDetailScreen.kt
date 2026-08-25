@@ -128,6 +128,7 @@ fun TVShowDetailScreen(
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
     onCelebClick: (String, String) -> Unit = { _, _ -> },
+    onInterestClick: (String, String) -> Unit = { _, _ -> },
     viewModel: TVShowDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -235,7 +236,8 @@ fun TVShowDetailScreen(
                     },
                     onGoToDownloads = onGoToDownloads,
                     onOpenExtractedSeries = onOpenExtractedSeries,
-                    onCelebClick = onCelebClick
+                    onCelebClick = onCelebClick,
+                    onInterestClick = onInterestClick
                 )
             }
         }
@@ -399,7 +401,8 @@ private fun TVShowDetailContent(
     onContentClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
-    onCelebClick: (String, String) -> Unit = { _, _ -> }
+    onCelebClick: (String, String) -> Unit = { _, _ -> },
+    onInterestClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val isContentHidden = ModerationSettings.shouldHideDetail(context, series.contentModeration)
@@ -416,8 +419,7 @@ private fun TVShowDetailContent(
         if (it.voteCount > 0) "  (${formatVoteCount(it.voteCount)})" else null
     }
     val crew = uiState.crewCredits
-    val interests = titleDetails?.interests?.map { it.name } ?: emptyList()
-    val genres = titleDetails?.genres?.ifEmpty { null } ?: uiState.fallbackGenres
+    val interests = titleDetails?.interests ?: emptyList()
 
     if (isContentHidden) {
         Column(
@@ -510,10 +512,10 @@ private fun TVShowDetailContent(
             CastSection(director = series.director, cast = series.cast)
         }
 
-        if (interests.isNotEmpty() || genres.isNotEmpty()) {
+        if (interests.isNotEmpty()) {
             InterestsGenreSection(
                 interests = interests,
-                genres = genres
+                onInterestClick = onInterestClick
             )
         }
 

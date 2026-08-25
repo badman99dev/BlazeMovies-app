@@ -107,6 +107,7 @@ fun MovieWatchScreen(
     onBackClick: () -> Unit,
     onMovieClick: (String, String) -> Unit = { _, _ -> },
     onCelebClick: (String, String) -> Unit = { _, _ -> },
+    onInterestClick: (String, String) -> Unit = { _, _ -> },
     viewModel: MovieWatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -576,11 +577,12 @@ fun MovieWatchScreen(
                 CollapsibleCrewRow(crew, onNameClick = onCelebClick)
             }
 
-            val watchInterests = titleDetails?.interests?.map { it.name } ?: emptyList()
-            val watchGenres = titleDetails?.genres?.ifEmpty { null }
-                ?: state.backendGenres.split(",").map { it.trim() }.filter { it.isNotBlank() }
-            if (watchInterests.isNotEmpty() || watchGenres.isNotEmpty()) {
-                InterestsGenreSection(interests = watchInterests, genres = watchGenres)
+            val watchInterests = titleDetails?.interests ?: emptyList()
+            if (watchInterests.isNotEmpty()) {
+                InterestsGenreSection(
+                    interests = watchInterests,
+                    onInterestClick = onInterestClick
+                )
             }
         }
 

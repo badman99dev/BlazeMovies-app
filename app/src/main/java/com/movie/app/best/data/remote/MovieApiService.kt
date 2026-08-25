@@ -90,6 +90,14 @@ interface MovieApiService {
         @Query("max") max: Int? = null
     ): ApiResponse<CelebsResult>
 
+    @GET("interests/{interestId}")
+    suspend fun getInterestMovies(
+        @Path("interestId") interestId: String,
+        @Query("page") page: Int = 1,
+        @Query("max") max: Int? = null,
+        @Query("includeUnavailable") includeUnavailable: Int = 1
+    ): ApiResponse<CelebsResult>
+
     @GET("watchable-content")
     suspend fun getWatchableContent(
         @Query("offset") offset: Int = 0,
