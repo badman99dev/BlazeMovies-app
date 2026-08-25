@@ -4,6 +4,7 @@ import com.movie.app.best.data.model.ImdbCertificatesResponse
 import com.movie.app.best.data.model.ImdbCreditsResponse
 import com.movie.app.best.data.model.ImdbEpisodeResponse
 import com.movie.app.best.data.model.ImdbNameDetails
+import com.movie.app.best.data.model.ImdbRelationshipsResponse
 import com.movie.app.best.data.model.ImdbTitleDetails
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -15,6 +16,11 @@ interface ImdbApiService {
     suspend fun getNameDetails(
         @Path("nameId") nameId: String
     ): ImdbNameDetails
+
+    @GET("names/{nameId}/relationships")
+    suspend fun getRelationships(
+        @Path("nameId") nameId: String
+    ): ImdbRelationshipsResponse
 
     @GET("titles/{titleId}/episodes")
     suspend fun getEpisodes(

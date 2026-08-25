@@ -103,7 +103,7 @@ import okhttp3.OkHttpClient
 fun MovieWatchScreen(
     onBackClick: () -> Unit,
     onMovieClick: (String, String) -> Unit = { _, _ -> },
-    onCelebClick: (String) -> Unit = {},
+    onCelebClick: (String, String) -> Unit = { _, _ -> },
     viewModel: MovieWatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()

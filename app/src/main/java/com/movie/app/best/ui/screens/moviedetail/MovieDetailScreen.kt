@@ -44,7 +44,7 @@ fun MovieDetailScreen(
     onDownloadClick: (linkUrl: String) -> Unit = { },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
-    onCelebClick: (String) -> Unit = {},
+    onCelebClick: (String, String) -> Unit = { _, _ -> },
     viewModel: MovieDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -280,7 +280,7 @@ private fun MovieDetailContent(
     onContentClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
-    onCelebClick: (String) -> Unit = {}
+    onCelebClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val isContentHidden = ModerationSettings.shouldHideDetail(context, movie.contentModeration)

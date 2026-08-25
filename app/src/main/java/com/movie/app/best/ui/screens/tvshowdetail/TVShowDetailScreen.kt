@@ -126,7 +126,7 @@ fun TVShowDetailScreen(
     onSeriesClick: (String, String) -> Unit = { _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
-    onCelebClick: (String) -> Unit = {},
+    onCelebClick: (String, String) -> Unit = { _, _ -> },
     viewModel: TVShowDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -398,7 +398,7 @@ private fun TVShowDetailContent(
     onContentClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
     onGoToDownloads: () -> Unit = {},
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
-    onCelebClick: (String) -> Unit = {}
+    onCelebClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val isContentHidden = ModerationSettings.shouldHideDetail(context, series.contentModeration)

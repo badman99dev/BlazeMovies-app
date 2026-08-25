@@ -41,6 +41,7 @@ import com.movie.app.best.ui.screens.settings.SettingsScreen
 import com.movie.app.best.ui.screens.trending.TrendingScreen
 import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.newreleases.NewReleaseScreen
+import com.movie.app.best.ui.screens.celebs.CelebBioScreen
 import com.movie.app.best.ui.screens.celebs.CelebsScreen
 import com.movie.app.best.ui.screens.myfeed.MyFeedScreen
 import com.movie.app.best.ui.screens.auth.LoginScreen
@@ -58,8 +59,11 @@ sealed class Screen(val route: String) {
     object NewRelease : Screen("new-release/{country}") {
         fun createRoute(country: String) = "new-release/${Uri.encode(country)}"
     }
-    object Celebs : Screen("celebs/{nameId}") {
-        fun createRoute(nameId: String) = "celebs/${Uri.encode(nameId)}"
+    object Celebs : Screen("celebs/{nameId}?name={name}") {
+        fun createRoute(nameId: String, name: String = "") = "celebs/${Uri.encode(nameId)}?name=${Uri.encode(name)}"
+    }
+    object CelebBio : Screen("celebs/{nameId}/bio?name={name}") {
+        fun createRoute(nameId: String, name: String = "") = "celebs/${Uri.encode(nameId)}/bio?name=${Uri.encode(name)}"
     }
     object MyFeed : Screen("my-feed")
     object Categories : Screen("categories")
@@ -251,8 +255,8 @@ fun AppNavigation(
                 onOpenExtractedSeries = { extractPath, slug, posterPath ->
                     navController.navigate(Screen.ExtractedSeries.createRoute(extractPath, slug, posterPath))
                 },
-                onCelebClick = { nameId ->
-                    navController.navigate(Screen.Celebs.createRoute(nameId))
+                onCelebClick = { nameId, name ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId, name))
                 }
             )
         }
@@ -298,8 +302,8 @@ fun AppNavigation(
                 onOpenExtractedSeries = { extractPath, slug, posterPath ->
                     navController.navigate(Screen.ExtractedSeries.createRoute(extractPath, slug, posterPath))
                 },
-                onCelebClick = { nameId ->
-                    navController.navigate(Screen.Celebs.createRoute(nameId))
+                onCelebClick = { nameId, name ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId, name))
                 }
             )
         }
@@ -322,8 +326,8 @@ fun AppNavigation(
         ) { backStackEntry ->
             SeriesWatchScreen(
                 onBackClick = { navController.popBackStack() },
-                onCelebClick = { nameId ->
-                    navController.navigate(Screen.Celebs.createRoute(nameId))
+                onCelebClick = { nameId, name ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId, name))
                 }
             )
         }
@@ -350,8 +354,8 @@ fun AppNavigation(
                         popUpTo(Screen.MovieWatch.route) { inclusive = true }
                     }
                 },
-                onCelebClick = { nameId ->
-                    navController.navigate(Screen.Celebs.createRoute(nameId))
+                onCelebClick = { nameId, name ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId, name))
                 }
             )
         }
@@ -574,15 +578,42 @@ fun AppNavigation(
 
         composable(
             route = Screen.Celebs.route,
-            deepLinks = refLinks("app://celebs/{nameId}"),
+            deepLinks = refLinks("app://celebs/{nameId}", "app://celebs/{nameId}?name={name}"),
             arguments = listOf(
-                navArgument("nameId") { type = NavType.StringType }
+                navArgument("nameId") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
             CelebsScreen(
                 nameId = backStackEntry.arguments?.getString("nameId") ?: "",
+                name = backStackEntry.arguments?.getString("name") ?: "",
                 onBackClick = { navController.popBackStack() },
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
+                onBioClick = { nameId, name ->
+                    navController.navigate(Screen.CelebBio.createRoute(nameId, name))
+                },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
+            )
+        }
+
+        composable(
+            route = Screen.CelebBio.route,
+            deepLinks = refLinks(
+                "app://celebs/{nameId}/bio",
+                "app://celebs/{nameId}/bio?name={name}"
+            ),
+            arguments = listOf(
+                navArgument("nameId") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            CelebBioScreen(
+                nameId = backStackEntry.arguments?.getString("nameId") ?: "",
+                name = backStackEntry.arguments?.getString("name") ?: "",
+                onBackClick = { navController.popBackStack() },
+                onCelebClick = { nameId, name ->
+                    navController.navigate(Screen.Celebs.createRoute(nameId, name))
+                },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }

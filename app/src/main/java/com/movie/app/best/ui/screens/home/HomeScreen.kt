@@ -46,7 +46,7 @@ fun HomeScreen(
     val trending    = remember(uiState.trendingMovies, context) { ModerationSettings.filterMovies(context, uiState.trendingMovies) }
     val myFeed      = remember(uiState.myFeedMovies, context) { ModerationSettings.filterMovies(context, uiState.myFeedMovies) }
     val newReleases = remember(allMovies) { allMovies.sortedByDescending { it.id }.take(12) }
-    val series      = remember(allMovies) { allMovies.filter { it.isSeries }.take(12) }
+    val series      = remember(uiState.seriesMovies, context) { ModerationSettings.filterMovies(context, uiState.seriesMovies) }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -131,11 +131,12 @@ fun HomeScreen(
                     }
                 }
 
-                if (series.isNotEmpty()) {
+                if (series.isNotEmpty() || uiState.isSeriesLoading) {
                     item {
                         MovieRowSection(
                             title        = "Binge-Worthy Series",
                             movies       = series,
+                            isLoading    = uiState.isSeriesLoading && series.isEmpty(),
                             cardSize     = CardSize.NORMAL,
                             onMovieClick = onContentClick,
                             onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.SeriesList.route) }

@@ -52,7 +52,7 @@ val CastFrameYellow = Color(0xFFC9A227)
 @Composable
 fun CollapsibleCastRow(
     stars: List<ImdbName>,
-    onNameClick: (String) -> Unit = {}
+    onNameClick: (String, String) -> Unit = { _, _ -> }
 ) {
     var expanded by remember { mutableStateOf(false) }
     val arrowRotation by androidx.compose.animation.core.animateFloatAsState(
@@ -106,7 +106,7 @@ fun CollapsibleCastRow(
             items(stars) { star ->
                 CastCircleFrame(
                     star = star,
-                    onClick = { if (star.id.isNotBlank()) onNameClick(star.id) }
+                    onClick = { if (star.id.isNotBlank()) onNameClick(star.id, star.displayName) }
                 )
             }
         }

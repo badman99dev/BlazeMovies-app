@@ -69,6 +69,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(notification = cache.notification, isNotificationLoading = false) }
         } else { loadNotification() }
 
+        loadSeries()
         loadNewReleasesIndia()
         loadNewReleasesUs()
 
@@ -258,6 +259,36 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun loadSeries() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSeriesLoading = true) }
+            repository.getLatestUploads(offset = 0, limit = 12, type = "series").collect { result ->
+                when (result) {
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isSeriesLoading = true) }
+                    }
+                    is Resource.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                seriesMovies = result.data?.items ?: emptyList(),
+                                isSeriesLoading = false,
+                                seriesError = null
+                            )
+                        }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isSeriesLoading = false,
+                                seriesError = result.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun loadMoreAllTab() {
         val current = _uiState.value
         if (current.isAllTabLoadingMore || !current.canLoadMoreAllTab) return
@@ -371,6 +402,10 @@ data class HomeUiState(
     val allTabOffset: Int = 0,
     val allTabTotal: Int = 0,
     val canLoadMoreAllTab: Boolean = false,
+
+    val seriesMovies: List<Movie> = emptyList(),
+    val isSeriesLoading: Boolean = false,
+    val seriesError: String? = null,
 
     val newIndiaReleases: List<Movie> = emptyList(),
     val isNewIndiaLoading: Boolean = false,

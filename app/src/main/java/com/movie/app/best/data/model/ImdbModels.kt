@@ -66,7 +66,10 @@ data class ImdbNameDetails(
     @SerializedName("primaryImage") val primaryImage: ImdbImage? = null,
     @SerializedName("primaryProfessions") val primaryProfessions: List<String> = emptyList(),
     @SerializedName("birthDate") val birthDate: ImdbReleaseDate? = null,
-    val biography: String = ""
+    val biography: String = "",
+    @SerializedName("heightCm") val heightCm: Int = 0,
+    @SerializedName("birthName") val birthName: String = "",
+    @SerializedName("birthLocation") val birthLocation: String = ""
 ) {
     val photoUrl: String get() = primaryImage?.url ?: ""
     val photoWidth: Int get() = primaryImage?.width ?: 0
@@ -75,7 +78,27 @@ data class ImdbNameDetails(
         val d = birthDate ?: return ""
         return if (d.year > 0) "%04d-%02d-%02d".format(d.year, d.month, d.day) else ""
     }
+    val age: Int get() {
+        val d = birthDate ?: return 0
+        if (d.year <= 0) return 0
+        val now = java.util.Calendar.getInstance()
+        var a = now.get(java.util.Calendar.YEAR) - d.year
+        val curMonth = now.get(java.util.Calendar.MONTH) + 1
+        val curDay = now.get(java.util.Calendar.DAY_OF_MONTH)
+        if (curMonth < d.month || (curMonth == d.month && curDay < d.day)) a--
+        return a
+    }
+    val heightText: String get() = if (heightCm > 0) "${heightCm} cm" else ""
 }
+
+data class ImdbRelationshipsResponse(
+    val relationships: List<ImdbRelationship> = emptyList()
+)
+
+data class ImdbRelationship(
+    val name: ImdbName = ImdbName(),
+    @SerializedName("relationType") val relationType: String = ""
+)
 
 data class ImdbCountry(
     val code: String = "",

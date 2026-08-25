@@ -99,7 +99,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun SeriesWatchScreen(
     onBackClick: () -> Unit,
-    onCelebClick: (String) -> Unit = {},
+    onCelebClick: (String, String) -> Unit = { _, _ -> },
     viewModel: SeriesWatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()

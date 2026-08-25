@@ -26,9 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,8 +49,10 @@ import com.movie.app.best.ui.screens.home.components.movieGridItems
 @Composable
 fun CelebsScreen(
     nameId: String,
+    name: String = "",
     onBackClick: () -> Unit,
     onContentClick: (String, Boolean, String) -> Unit,
+    onBioClick: (String, String) -> Unit = { _, _ -> },
     onSearchClick: () -> Unit = {},
     viewModel: CelebsViewModel = hiltViewModel()
 ) {
@@ -84,7 +84,7 @@ fun CelebsScreen(
             .background(Color.Black)
     ) {
         CompactPageHeader(
-            title = uiState.intro?.displayName?.takeIf { it.isNotBlank() } ?: "Celebrity",
+            title = uiState.intro?.displayName?.takeIf { it.isNotBlank() } ?: name.ifBlank { "Celebrity" },
             onBackClick = onBackClick,
             onSearchClick = onSearchClick
         )
@@ -123,7 +123,11 @@ fun CelebsScreen(
                     ) {
                         if (uiState.intro != null) {
                             item {
-                                CelebIntroCard(intro = uiState.intro!!)
+                                CelebIntroCard(
+                                    intro = uiState.intro!!,
+                                    nameId = nameId,
+                                    onBioClick = onBioClick
+                                )
                             }
                         }
 
@@ -157,11 +161,13 @@ fun CelebsScreen(
 }
 
 @Composable
-private fun CelebIntroCard(intro: CelebIntro) {
+private fun CelebIntroCard(
+    intro: CelebIntro,
+    nameId: String,
+    onBioClick: (String, String) -> Unit
+) {
     val aspect = if (intro.photoWidth > 0 && intro.photoHeight > 0)
         intro.photoWidth.toFloat() / intro.photoHeight.toFloat() else 2f / 3f
-
-    var bioExpanded by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -200,16 +206,19 @@ private fun CelebIntroCard(intro: CelebIntro) {
                     color = Color(0xFFE8E8E8),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
-                    maxLines = if (bioExpanded) Int.MAX_VALUE else 6,
+                    maxLines = 6,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = if (bioExpanded) "less" else "more",
+                    text = "more",
                     color = Color(0xFFC9A227),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { bioExpanded = !bioExpanded }
+                    modifier = Modifier.clickable {
+                        val n = intro.displayName.ifBlank { nameId }
+                        onBioClick(nameId, n)
+                    }
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
