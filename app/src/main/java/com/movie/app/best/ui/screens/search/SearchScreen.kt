@@ -58,6 +58,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -205,7 +206,11 @@ fun SuggestionsView(
     onMeiliClick: (MeiliHit) -> Unit,
     onZee5Click: (String) -> Unit
 ) {
-    val hasAnySuggestions = state.meiliSuggestions.isNotEmpty() ||
+    val context = LocalContext.current
+    val visibleMeili = remember(state.meiliSuggestions, context) {
+        state.meiliSuggestions.filter { !ModerationSettings.shouldHide(context, it.toMovie()) }
+    }
+    val hasAnySuggestions = visibleMeili.isNotEmpty() ||
             state.zee5Suggestions.isNotEmpty()
 
     if (!hasAnySuggestions && !state.isSuggestionLoading) {
@@ -234,9 +239,9 @@ fun SuggestionsView(
             return@LazyColumn
         }
 
-        if (state.meiliSuggestions.isNotEmpty()) {
+        if (visibleMeili.isNotEmpty()) {
             item { SuggestionHeader("Movies & Series") }
-            items(state.meiliSuggestions, key = { "meili_${it.id}" }) { hit ->
+            items(visibleMeili, key = { "meili_${it.id}" }) { hit ->
                 MeiliSuggestionRow(hit = hit, onClick = { onMeiliClick(hit) })
             }
         }
@@ -263,6 +268,10 @@ fun SuggestionHeader(text: String) {
 
 @Composable
 fun MeiliSuggestionRow(hit: MeiliHit, onClick: () -> Unit) {
+    val context = LocalContext.current
+    val movie = remember(hit) { hit.toMovie() }
+    val shouldBlur = ModerationSettings.effectiveShouldBlur(movie)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,24 +279,29 @@ fun MeiliSuggestionRow(hit: MeiliHit, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (hit.posterUrl.isNotEmpty()) {
-            AsyncImage(
-                model = hit.posterUrl,
-                contentDescription = hit.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(54.dp)
-                    .clip(RoundedCornerShape(4.dp))
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(54.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFF1A1A1A))
-            )
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(54.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(if (shouldBlur) Color(0xFF3D3D3D) else Color(0xFF1A1A1A)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (shouldBlur) {
+                Text(
+                    text = "18+",
+                    color = Color.Gray,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            } else if (hit.posterUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = hit.posterUrl,
+                    contentDescription = hit.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -349,6 +363,10 @@ fun SearchResultsView(
     onTvChannelClick: (UnifiedChannel) -> Unit,
     gridState: androidx.compose.foundation.lazy.grid.LazyGridState
 ) {
+    val context = LocalContext.current
+    val visibleOwn = remember(state.ownResults, context) {
+        state.ownResults.filter { !ModerationSettings.shouldHide(context, it.toMovie()) }
+    }
     val ownLoading = state.isOwnLoading && state.ownResults.isEmpty()
 
     if (ownLoading && state.zee5Results.isEmpty() && !state.isZee5Loading && state.tvChannels.isEmpty()) {
@@ -428,7 +446,7 @@ fun SearchResultsView(
 
         if (ownLoading) {
             items(6) { SkeletonPosterCard(modifier = Modifier.fillMaxWidth()) }
-        } else if (state.ownResults.isEmpty() && !state.isOwnLoading) {
+        } else if (visibleOwn.isEmpty() && !state.isOwnLoading) {
             item(span = { GridItemSpan(3) }) {
                 if (state.zee5Results.isEmpty()) {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -441,7 +459,7 @@ fun SearchResultsView(
                 }
             }
         } else {
-            items(state.ownResults, key = { "own_${it.id}" }) { hit ->
+            items(visibleOwn, key = { "own_${it.id}" }) { hit ->
                 MeiliResultCard(hit = hit, onClick = { onContentClick(hit.slug, hit.isSeriesBool, hit.imdbId) })
             }
         }
