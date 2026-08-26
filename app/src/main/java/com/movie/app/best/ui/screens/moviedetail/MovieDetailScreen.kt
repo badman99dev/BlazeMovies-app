@@ -112,14 +112,14 @@ fun MovieDetailScreen(
         contentAlignment = Alignment.Center
     ) {
         when {
-            uiState.isLoading && uiState.movie == null -> SkeletonDetailPage()
+            !uiState.isReady && uiState.error == null -> SkeletonDetailPage()
             uiState.error != null && uiState.movie == null -> {
                 ErrorView(
                     error   = uiState.error ?: "Failed to load details",
                     onRetry = viewModel::loadMovieDetails
                 )
             }
-            uiState.movie != null -> {
+            uiState.isReady -> {
                 MovieDetailContent(
                     movie              = uiState.movie!!,
                     uiState            = uiState,

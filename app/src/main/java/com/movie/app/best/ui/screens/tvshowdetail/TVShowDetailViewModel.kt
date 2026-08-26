@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -77,6 +78,8 @@ class TVShowDetailViewModel @Inject constructor(
                     is Resource.Success -> {
                         val data = result.data
                         if (data != null) {
+                            val seriesImdbId = data.movie.imdbId ?: ""
+                            val noImdbNeeded = !passedImdbId.startsWith("tt") && !seriesImdbId.startsWith("tt")
                             _uiState.update {
                                 it.copy(
                                     series = data.movie,
@@ -87,6 +90,8 @@ class TVShowDetailViewModel @Inject constructor(
                                     moreSeasons = data.moreSeasons,
                                     downloadLinks = data.linksNoEpisode,
                                     fallbackGenres = data.genres,
+                                    contentReady = true,
+                                    imdbReady = if (noImdbNeeded) true else it.imdbReady,
                                     isLoading = false,
                                     error = null
                                 )
@@ -98,12 +103,16 @@ class TVShowDetailViewModel @Inject constructor(
                                 loadCrewAndTitle(data.movie.imdbId)
                             }
                         } else {
-                            _uiState.update { it.copy(isLoading = false, error = "No data") }
+                            _uiState.update { it.copy(contentReady = true, isLoading = false, error = "No data") }
                         }
                     }
                     is Resource.Error -> {
                         _uiState.update {
-                            it.copy(isLoading = false, error = result.error)
+                            it.copy(
+                                contentReady = true,
+                                isLoading = false,
+                                error = result.error
+                            )
                         }
                     }
                 }
@@ -658,7 +667,10 @@ class TVShowDetailViewModel @Inject constructor(
     }
 
     private fun loadCrewAndTitle(imdbId: String) {
-        if (!imdbId.startsWith("tt")) return
+        if (!imdbId.startsWith("tt")) {
+            _uiState.update { it.copy(imdbReady = true) }
+            return
+        }
         viewModelScope.launch {
             try {
                 coroutineScope {
@@ -668,8 +680,8 @@ class TVShowDetailViewModel @Inject constructor(
                     val titleDeferred = async {
                         try { imdbApi.getTitleDetails(imdbId) } catch (_: Exception) { null }
                     }
-                    val credits = creditsDeferred.await()
-                    val titleDetails = titleDeferred.await()
+                    val credits = withTimeoutOrNull(4000) { creditsDeferred.await() }
+                    val titleDetails = withTimeoutOrNull(4000) { titleDeferred.await() }
                     val crew = CrewPerson.sortCrew(
                         credits?.credits?.mapNotNull { CrewPerson.fromCredit(it) } ?: emptyList()
                     )
@@ -680,7 +692,10 @@ class TVShowDetailViewModel @Inject constructor(
                         )
                     }
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            } finally {
+                _uiState.update { it.copy(imdbReady = true) }
+            }
         }
     }
 }
@@ -704,6 +719,8 @@ data class TVShowDetailUiState(
     val crewCredits: List<CrewPerson> = emptyList(),
     val titleDetails: ImdbTitleDetails? = null,
     val fallbackGenres: List<String> = emptyList(),
+    val contentReady: Boolean = false,
+    val imdbReady: Boolean = false,
 
     val isCommentPosting: Boolean = false,
     val commentPosted: Boolean = false,
@@ -751,4 +768,6 @@ data class TVShowDetailUiState(
     val showCelebration: Boolean = false,
     val reportSuccessMessage: String? = null,
     val isSubmittingReport: Boolean = false
-)
+) {
+    val isReady: Boolean get() = contentReady && imdbReady
+}

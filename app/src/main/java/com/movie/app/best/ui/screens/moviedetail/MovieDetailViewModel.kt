@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -81,6 +82,8 @@ class MovieDetailViewModel @Inject constructor(
                     }
                     is Resource.Success -> {
                         val detailData = result.data
+                        val movieImdbId = detailData?.movie?.imdbId ?: ""
+                        val noImdbNeeded = !passedImdbId.startsWith("tt") && !movieImdbId.startsWith("tt")
                         _uiState.update {
                             it.copy(
                                 movie = detailData?.movie,
@@ -90,6 +93,8 @@ class MovieDetailViewModel @Inject constructor(
                                 categories = emptyList(),
                                 allMovies = emptyList(),
                                 fallbackGenres = detailData?.genres ?: emptyList(),
+                                contentReady = true,
+                                imdbReady = if (noImdbNeeded) true else it.imdbReady,
                                 isLoading = false,
                                 error = null
                             )
@@ -112,6 +117,7 @@ class MovieDetailViewModel @Inject constructor(
                     is Resource.Error -> {
                         _uiState.update {
                             it.copy(
+                                contentReady = true,
                                 isLoading = false,
                                 error = result.error
                             )
@@ -655,7 +661,10 @@ class MovieDetailViewModel @Inject constructor(
     }
 
     private fun loadCrewAndTitle(imdbId: String) {
-        if (!imdbId.startsWith("tt")) return
+        if (!imdbId.startsWith("tt")) {
+            _uiState.update { it.copy(imdbReady = true) }
+            return
+        }
         viewModelScope.launch {
             try {
                 coroutineScope {
@@ -665,8 +674,8 @@ class MovieDetailViewModel @Inject constructor(
                     val titleDeferred = async {
                         try { imdbApi.getTitleDetails(imdbId) } catch (_: Exception) { null }
                     }
-                    val credits = creditsDeferred.await()
-                    val titleDetails = titleDeferred.await()
+                    val credits = withTimeoutOrNull(4000) { creditsDeferred.await() }
+                    val titleDetails = withTimeoutOrNull(4000) { titleDeferred.await() }
                     val crew = CrewPerson.sortCrew(
                         credits?.credits?.mapNotNull { CrewPerson.fromCredit(it) } ?: emptyList()
                     )
@@ -677,7 +686,10 @@ class MovieDetailViewModel @Inject constructor(
                         )
                     }
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            } finally {
+                _uiState.update { it.copy(imdbReady = true) }
+            }
         }
     }
 
@@ -729,6 +741,8 @@ data class MovieDetailUiState(
     val crewCredits: List<CrewPerson> = emptyList(),
     val titleDetails: ImdbTitleDetails? = null,
     val fallbackGenres: List<String> = emptyList(),
+    val contentReady: Boolean = false,
+    val imdbReady: Boolean = false,
 
     val isCommentPosting: Boolean = false,
     val commentPosted: Boolean = false,
@@ -774,4 +788,6 @@ data class MovieDetailUiState(
     val showCelebration: Boolean = false,
     val reportSuccessMessage: String? = null,
     val isSubmittingReport: Boolean = false
-)
+) {
+    val isReady: Boolean get() = contentReady && imdbReady
+}

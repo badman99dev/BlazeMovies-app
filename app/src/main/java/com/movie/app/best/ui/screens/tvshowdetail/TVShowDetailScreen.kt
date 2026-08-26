@@ -205,7 +205,7 @@ fun TVShowDetailScreen(
         contentAlignment = Alignment.Center
     ) {
         when {
-            uiState.isLoading && uiState.series == null -> {
+            !uiState.isReady && uiState.error == null -> {
                 SkeletonDetailPage()
             }
             uiState.error != null && uiState.series == null -> {
@@ -214,7 +214,7 @@ fun TVShowDetailScreen(
                     onRetry = viewModel::loadSeriesDetails
                 )
             }
-            uiState.series != null -> {
+            uiState.isReady -> {
                 TVShowDetailContent(
                     series = uiState.series!!,
                     uiState = uiState,
