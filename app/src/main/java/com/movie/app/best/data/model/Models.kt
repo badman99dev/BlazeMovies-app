@@ -214,6 +214,14 @@ data class SliderResult(
     val movies: List<Movie>
 )
 
+data class HomeFeedResponse(
+    val slider: SliderResult? = null,
+    val trending: NewReleaseResult? = null,
+    @SerializedName("new_release_in") val newReleaseIn: NewReleaseResult? = null,
+    @SerializedName("new_release_us") val newReleaseUs: NewReleaseResult? = null,
+    @SerializedName("live_channels") val liveChannels: TvStreamResponse? = null
+)
+
 data class ContentDetailResponse(
     @SerializedName("content_type") val contentType: String,
     val movie: MovieDetails,

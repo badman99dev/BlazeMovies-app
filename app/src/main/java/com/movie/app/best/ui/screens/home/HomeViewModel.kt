@@ -7,6 +7,7 @@ import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.model.AppNotification
 import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.UnifiedChannel
+import com.movie.app.best.data.model.toUnified
 import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.repository.MeiliSearchRepository
@@ -46,11 +47,11 @@ class HomeViewModel @Inject constructor(
 
         if (cache.slider != null) {
             _uiState.update { it.copy(sliderMovies = cache.slider!!, isSliderLoading = false) }
-        } else { loadSlider() }
+        }
 
         if (cache.trending != null) {
             _uiState.update { it.copy(trendingMovies = cache.trending!!, isTrendingLoading = false) }
-        } else { loadTrending() }
+        }
 
         if (cache.latestUploads != null) {
             val data = cache.latestUploads!!
@@ -60,23 +61,21 @@ class HomeViewModel @Inject constructor(
                     isAllTabLoading = false,
                     allTabOffset = 0,
                     allTabTotal = Int.MAX_VALUE,
-                    canLoadMoreAllTab = data.size >= 45
+                    canLoadMoreAllTab = data.size >= PAGE_LIMIT
                 )
             }
-        } else { loadAllTab() }
-
-        if (cache.notification != null) {
-            _uiState.update { it.copy(notification = cache.notification, isNotificationLoading = false) }
-        } else { loadNotification() }
-
-        loadSeries()
-        loadNewReleasesIndia()
-        loadNewReleasesUs()
+        }
 
         if (cache.liveChannels != null) {
             _uiState.update { it.copy(liveChannels = cache.liveChannels!!, isLiveChannelsLoading = false) }
-        } else { loadLiveChannels() }
+        }
 
+        // Slow-changing home rails — single API call (slider, trending, new-in, new-us, live)
+        loadHomeFeed()
+
+        // Fresh, frequently-changing rails — separate calls
+        loadAllTab()
+        loadSeries()
         loadMyFeed()
     }
 
@@ -84,6 +83,50 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             NetworkMonitor.refreshCounter.collect {
                 if (it > 0) loadAllContent()
+            }
+        }
+    }
+
+    fun loadHomeFeed() {
+        viewModelScope.launch {
+            repository.getHomeFeed().collect { result ->
+                when (result) {
+                    is Resource.Loading -> {}
+                    is Resource.Success -> {
+                        val data = result.data
+                        _uiState.update { state ->
+                            state.copy(
+                                sliderMovies = data?.slider?.movies?.filter { it.hasStream } ?: state.sliderMovies,
+                                isSliderLoading = false,
+                                sliderError = null,
+                                trendingMovies = data?.trending?.items ?: state.trendingMovies,
+                                isTrendingLoading = false,
+                                trendingError = null,
+                                newIndiaReleases = data?.newReleaseIn?.items ?: state.newIndiaReleases,
+                                isNewIndiaLoading = false,
+                                newUsReleases = data?.newReleaseUs?.items ?: state.newUsReleases,
+                                isNewUsLoading = false,
+                                liveChannels = data?.liveChannels?.let { tv ->
+                                    tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
+                                } ?: state.liveChannels,
+                                isLiveChannelsLoading = false
+                            )
+                        }
+                        data?.slider?.let { s -> PrefetchCache.slider = s.movies.filter { it.hasStream } }
+                        data?.trending?.let { t -> PrefetchCache.trending = t.items }
+                        data?.liveChannels?.let { tv ->
+                            PrefetchCache.liveChannels = tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
+                        }
+                    }
+                    is Resource.Error -> {
+                        // Fallback to individual calls
+                        if (_uiState.value.sliderMovies.isEmpty()) loadSlider()
+                        if (_uiState.value.trendingMovies.isEmpty()) loadTrending()
+                        if (_uiState.value.newIndiaReleases.isEmpty()) loadNewReleasesIndia()
+                        if (_uiState.value.newUsReleases.isEmpty()) loadNewReleasesUs()
+                        if (_uiState.value.liveChannels.isEmpty()) loadLiveChannels()
+                    }
+                }
             }
         }
     }

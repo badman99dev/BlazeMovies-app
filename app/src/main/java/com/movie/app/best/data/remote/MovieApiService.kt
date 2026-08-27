@@ -7,6 +7,7 @@ import com.movie.app.best.data.model.SearchResult
 import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.OffsetResult
 import com.movie.app.best.data.model.CategoryOffsetResult
+import com.movie.app.best.data.model.HomeFeedResponse
 import com.movie.app.best.data.model.ContentModerationResponse
 import com.movie.app.best.data.model.BroadcastResponse
 import com.movie.app.best.data.model.TvStreamResponse
@@ -108,6 +109,9 @@ interface MovieApiService {
         @Query("page") page: Int = 1,
         @Query("max") max: Int? = null
     ): ApiResponse<NewReleaseResult>
+
+    @GET("home")
+    suspend fun getHomeFeed(): ApiResponse<HomeFeedResponse>
 
     @GET("my-feed")
     suspend fun getMyFeed(

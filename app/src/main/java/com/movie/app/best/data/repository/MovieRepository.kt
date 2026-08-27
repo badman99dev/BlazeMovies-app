@@ -9,6 +9,7 @@ import com.movie.app.best.data.model.CategoryOffsetResult
 import com.movie.app.best.data.model.OffsetResult
 import com.movie.app.best.data.model.NewReleaseResult
 import com.movie.app.best.data.model.CelebsResult
+import com.movie.app.best.data.model.HomeFeedResponse
 import com.movie.app.best.data.model.SearchResult
 import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.BroadcastResponse
@@ -89,6 +90,11 @@ class MovieRepository @Inject constructor(
     fun getTrending(page: Int = 1, max: Int? = null): Flow<Resource<NewReleaseResult>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getTrending(page, max) })
+    }
+
+    fun getHomeFeed(): Flow<Resource<HomeFeedResponse>> = flow {
+        emit(Resource.Loading())
+        emit(safeApiCall { apiService.getHomeFeed() })
     }
 
     fun getMyFeed(offset: Int = 0, limit: Int = 45): Flow<Resource<OffsetResult>> = flow {
