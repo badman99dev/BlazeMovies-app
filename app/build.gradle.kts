@@ -48,8 +48,8 @@ android {
             buildConfigField("String", "MEILI_SEARCH_URL", "\"https://meilisearch-rs25.onrender.com/indexes/movies/search\"")
             buildConfigField("String", "MEILI_PING_URL", "\"https://meilisearch-rs25.onrender.com/\"")
             buildConfigField("String", "DL_AGENT_BASE_URL", "\"https://dl-agent.badman993944.workers.dev/\"")
-            buildConfigField("String", "GEMMA_BASE_URL", "\"https://gemma416okl.com/\"")
-            buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://keymi417exx.com\"")
+            buildConfigField("String", "GEMMA_BASE_URL", "\"https://slast430did.com/\"")
+            buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://jemsa431ilk.com\"")
             buildConfigField("String", "SPARKLE_BASE_URL", "\"https://sparkling-breeze-1ad6.badman993944.workers.dev/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -61,8 +61,8 @@ android {
             buildConfigField("String", "MEILI_SEARCH_URL", "\"https://meilisearch-rs25.onrender.com/indexes/movies/search\"")
             buildConfigField("String", "MEILI_PING_URL", "\"https://meilisearch-rs25.onrender.com/\"")
             buildConfigField("String", "DL_AGENT_BASE_URL", "\"https://dl-agent.badman993944.workers.dev/\"")
-            buildConfigField("String", "GEMMA_BASE_URL", "\"https://gemma416okl.com/\"")
-            buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://keymi417exx.com\"")
+            buildConfigField("String", "GEMMA_BASE_URL", "\"https://slast430did.com/\"")
+            buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://jemsa431ilk.com\"")
             buildConfigField("String", "SPARKLE_BASE_URL", "\"https://sparkling-breeze-1ad6.badman993944.workers.dev/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
