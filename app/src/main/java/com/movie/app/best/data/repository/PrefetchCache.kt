@@ -14,6 +14,8 @@ object PrefetchCache {
     var latestUploads: List<Movie>? = null
     var notification: AppNotification? = null
     var liveChannels: List<UnifiedChannel>? = null
+    var newIndiaReleases: List<Movie>? = null
+    var newUsReleases: List<Movie>? = null
 
     var updateResponse: UpdateResponse? by mutableStateOf(null)
 
@@ -23,6 +25,8 @@ object PrefetchCache {
         latestUploads = null
         notification = null
         liveChannels = null
+        newIndiaReleases = null
+        newUsReleases = null
         updateResponse = null
     }
 }

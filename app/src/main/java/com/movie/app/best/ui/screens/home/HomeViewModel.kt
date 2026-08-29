@@ -74,6 +74,14 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(liveChannels = cache.liveChannels!!, isLiveChannelsLoading = false) }
         }
 
+        if (cache.newIndiaReleases != null) {
+            _uiState.update { it.copy(newIndiaReleases = cache.newIndiaReleases!!, isNewIndiaLoading = false) }
+        }
+
+        if (cache.newUsReleases != null) {
+            _uiState.update { it.copy(newUsReleases = cache.newUsReleases!!, isNewUsLoading = false) }
+        }
+
         // Slow-changing home rails — single API call (slider, trending, new-in, new-us, live)
         loadHomeFeed()
 
