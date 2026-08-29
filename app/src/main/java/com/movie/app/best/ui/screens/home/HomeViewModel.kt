@@ -32,12 +32,8 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    private var homeRetryCount = 0
-
     companion object {
         private const val PAGE_LIMIT = 45
-        private const val HOME_RETRY_DELAY_MS = 1000L
-        private const val MAX_HOME_RETRIES = 1
     }
 
     init {
@@ -82,9 +78,6 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(newUsReleases = cache.newUsReleases!!, isNewUsLoading = false) }
         }
 
-        // Slow-changing home rails — single API call (slider, trending, new-in, new-us, live)
-        loadHomeFeed()
-
         // Fresh, frequently-changing rails — separate calls
         loadAllTab()
         loadSeries()
@@ -94,81 +87,43 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             NetworkMonitor.refreshCounter.collect {
-                if (it > 0) loadAllContent()
-            }
-        }
-    }
-
-    fun loadHomeFeed() {
-        viewModelScope.launch {
-            repository.getHomeFeed().collect { result ->
-                when (result) {
-                    is Resource.Loading -> {}
-                    is Resource.Success -> {
-                        homeRetryCount = 0
-                        val data = result.data
-                        _uiState.update { state ->
-                            state.copy(
-                                sliderMovies = data?.slider?.movies?.filter { it.hasStream } ?: state.sliderMovies,
-                                isSliderLoading = false,
-                                sliderError = null,
-                                trendingMovies = data?.trending?.items ?: state.trendingMovies,
-                                isTrendingLoading = false,
-                                trendingError = null,
-                                newIndiaReleases = data?.newReleaseIn?.items ?: state.newIndiaReleases,
-                                isNewIndiaLoading = false,
-                                newUsReleases = data?.newReleaseUs?.items ?: state.newUsReleases,
-                                isNewUsLoading = false,
-                                liveChannels = data?.liveChannels?.let { tv ->
-                                    tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
-                                } ?: state.liveChannels,
-                                isLiveChannelsLoading = false
-                            )
-                        }
-                        data?.slider?.let { s -> PrefetchCache.slider = s.movies.filter { it.hasStream } }
-                        data?.trending?.let { t -> PrefetchCache.trending = t.items }
-                        data?.liveChannels?.let { tv ->
-                            PrefetchCache.liveChannels = tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
-                        }
-                    }
-                    is Resource.Error -> {
-                        if (homeRetryCount < MAX_HOME_RETRIES) {
-                            homeRetryCount++
-                            delay(HOME_RETRY_DELAY_MS)
-                            loadHomeFeed()
-                        } else {
-                            homeRetryCount = 0
-                        }
-                    }
+                if (it > 0) {
+                    loadAllContent()
+                    refreshHomeFeed()
                 }
             }
         }
     }
 
-    fun loadTrending() {
+    fun refreshHomeFeed() {
         viewModelScope.launch {
-            repository.getTrending(page = 1, max = 20).collect { result ->
-                when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isTrendingLoading = true) }
+            repository.getHomeFeed().collect { result ->
+                if (result is Resource.Success) {
+                    val data = result.data
+                    _uiState.update { state ->
+                        state.copy(
+                            sliderMovies = data?.slider?.movies?.filter { it.hasStream } ?: state.sliderMovies,
+                            isSliderLoading = false,
+                            sliderError = null,
+                            trendingMovies = data?.trending?.items ?: state.trendingMovies,
+                            isTrendingLoading = false,
+                            trendingError = null,
+                            newIndiaReleases = data?.newReleaseIn?.items ?: state.newIndiaReleases,
+                            isNewIndiaLoading = false,
+                            newUsReleases = data?.newReleaseUs?.items ?: state.newUsReleases,
+                            isNewUsLoading = false,
+                            liveChannels = data?.liveChannels?.let { tv ->
+                                tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
+                            } ?: state.liveChannels,
+                            isLiveChannelsLoading = false
+                        )
                     }
-                    is Resource.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                trendingMovies = result.data?.items ?: emptyList(),
-                                isTrendingLoading = false,
-                                trendingError = null
-                            )
-                        }
-                    }
-                    is Resource.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                isTrendingLoading = false,
-                                trendingError = result.error
-                            )
-                        }
-                    }
+                    PrefetchCache.slider = data?.slider?.movies?.filter { it.hasStream }
+                    PrefetchCache.trending = data?.trending?.items
+                    PrefetchCache.newIndiaReleases = data?.newReleaseIn?.items
+                    PrefetchCache.newUsReleases = data?.newReleaseUs?.items
+                    PrefetchCache.liveChannels = data?.liveChannels?.channels
+                        ?.mapIndexed { idx, ch -> ch.toUnified(idx) }
                 }
             }
         }
@@ -204,81 +159,6 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             delay(3000)
             repository.recreateMyFeed()
-        }
-    }
-
-    fun loadNewReleasesIndia() {
-        viewModelScope.launch {
-            repository.getNewRelease(country = "in", page = 1, max = 12).collect { result ->
-                when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isNewIndiaLoading = true) }
-                    }
-                    is Resource.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                newIndiaReleases = result.data?.items ?: emptyList(),
-                                isNewIndiaLoading = false
-                            )
-                        }
-                    }
-                    is Resource.Error -> {
-                        _uiState.update { it.copy(isNewIndiaLoading = false) }
-                    }
-                }
-            }
-        }
-    }
-
-    fun loadNewReleasesUs() {
-        viewModelScope.launch {
-            repository.getNewRelease(country = "us", page = 1, max = 12).collect { result ->
-                when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isNewUsLoading = true) }
-                    }
-                    is Resource.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                newUsReleases = result.data?.items ?: emptyList(),
-                                isNewUsLoading = false
-                            )
-                        }
-                    }
-                    is Resource.Error -> {
-                        _uiState.update { it.copy(isNewUsLoading = false) }
-                    }
-                }
-            }
-        }
-    }
-
-    fun loadSlider() {
-        viewModelScope.launch {
-            repository.getSlider().collect { result ->
-                when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isSliderLoading = true) }
-                    }
-                    is Resource.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                sliderMovies = (result.data?.movies ?: emptyList()).filter { it.hasStream },
-                                isSliderLoading = false,
-                                sliderError = null
-                            )
-                        }
-                    }
-                    is Resource.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                isSliderLoading = false,
-                                sliderError = result.error
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -408,34 +288,6 @@ class HomeViewModel @Inject constructor(
 
     fun dismissNotification() {
         _uiState.update { it.copy(notification = null) }
-    }
-
-    fun loadLiveChannels() {
-        viewModelScope.launch {
-            repository.getTvStreamsUnified(limit = 15).collect { result ->
-                when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isLiveChannelsLoading = true) }
-                    }
-                    is Resource.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                liveChannels = result.data ?: emptyList(),
-                                isLiveChannelsLoading = false
-                            )
-                        }
-                    }
-                    is Resource.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                liveChannels = emptyList(),
-                                isLiveChannelsLoading = false
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

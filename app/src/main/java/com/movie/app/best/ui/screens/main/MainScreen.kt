@@ -41,6 +41,8 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -321,6 +323,7 @@ fun MainContent(
     var wasOffline by remember { mutableStateOf(!isConnected) }
     var showBackOnlineBanner by remember { mutableStateOf(false) }
     var showConnectionLostBanner by remember { mutableStateOf(false) }
+    var offlineOverlayDismissed by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -342,8 +345,9 @@ fun MainContent(
         if (isConnected && wasOffline) {
             showBackOnlineBanner = true
             wasOffline = false
+            offlineOverlayDismissed = false
+            delay(3000)
             NetworkMonitor.onBackOnline()
-            delay(1500)
             showBackOnlineBanner = false
         } else if (!isConnected) {
             wasOffline = true
@@ -435,6 +439,24 @@ fun MainContent(
                 ) {
                     BackOnlineBanner()
                 }
+
+                if (!isConnected && !offlineOverlayDismissed) {
+                    NoInternetOverlay(
+                        onRetry = {
+                            isConnected = isCurrentlyConnected(connectivityManager)
+                            if (isConnected) {
+                                offlineOverlayDismissed = false
+                                NetworkMonitor.onBackOnline()
+                            }
+                        },
+                        onGoToDownloads = {
+                            offlineOverlayDismissed = true
+                            navController.navigate(Screen.Downloads.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -480,6 +502,108 @@ private fun BackOnlineBanner() {
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@Composable
+private fun NoInternetOverlay(
+    onRetry: () -> Unit,
+    onGoToDownloads: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF3D1212)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 40.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(140.dp)
+                    .background(Color(0xFF5C1F1F), RoundedCornerShape(28.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WifiOff,
+                    contentDescription = "No internet",
+                    tint = Color(0xFFFF8A8A),
+                    modifier = Modifier.size(72.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Text(
+                text = "No Internet Connection",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "Check your connection and try again",
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 14.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            Button(
+                onClick = onRetry,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Retry",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            OutlinedButton(
+                onClick = onGoToDownloads,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFFF8A8A)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = null,
+                    tint = Color(0xFFFF8A8A),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Go to Downloads",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
     }
 }
 
