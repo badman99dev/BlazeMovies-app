@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -330,13 +331,31 @@ fun SkeletonMovieRow(cardSize: CardSize = CardSize.NORMAL) {
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(6) {
-            Box(
-                modifier = Modifier
-                    .width(cardSize.width)
-                    .height(cardSize.height)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White.copy(alpha = alpha))
-            )
+            Column(modifier = Modifier.width(cardSize.width)) {
+                Box(
+                    modifier = Modifier
+                        .width(cardSize.width)
+                        .height(cardSize.height)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = alpha))
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .width(cardSize.width * 0.85f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.White.copy(alpha = alpha * 0.8f))
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Box(
+                    modifier = Modifier
+                        .width(cardSize.width * 0.6f)
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.White.copy(alpha = alpha * 0.6f))
+                )
+            }
         }
     }
 }

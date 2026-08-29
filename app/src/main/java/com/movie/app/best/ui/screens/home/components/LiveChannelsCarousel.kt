@@ -1,5 +1,6 @@
 package com.movie.app.best.ui.screens.home.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -68,10 +69,11 @@ fun LiveChannelsCarousel(
     channels: List<UnifiedChannel>,
     onChannelClick: (UnifiedChannel) -> Unit,
     onMoreClick: (() -> Unit)? = null,
-    applyTopPadding: Boolean = false,  // Search page has its own top bar; skip home's spacer
+    applyTopPadding: Boolean = false,
+    isLoading: Boolean = false,
 ) {
     val listState = rememberLazyListState()
-    val headerClearance = 40.dp   // = 36dp AppHeader row + 4dp gap (status bar handled by MainActivity)
+    val headerClearance = 40.dp
     val topPadding = if (applyTopPadding) headerClearance else 8.dp
 
     Column(
@@ -81,19 +83,57 @@ fun LiveChannelsCarousel(
     ) {
         LiveTvSectionHeader(onMoreClick = onMoreClick)
 
-        LazyRow(
-            state = listState,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) {
-            items(channels, key = { it.uniqueKey }) { channel ->
-                ChannelCircle(
-                    logoUrl = channel.logoUrl,
-                    name = channel.name,
-                    onClick = { onChannelClick(channel) }
-                )
+        if (isLoading) {
+            val shimmer = rememberInfiniteTransition(label = "shimmer")
+            val alpha by shimmer.animateFloat(
+                initialValue = 0.3f, targetValue = 0.7f,
+                animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+                label = "alpha"
+            )
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(6) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(80.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = alpha * 0.5f))
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(56.dp)
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.White.copy(alpha = alpha * 0.4f))
+                        )
+                    }
+                }
             }
+        } else {
+            LazyRow(
+                state = listState,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                items(channels, key = { it.uniqueKey }) { channel ->
+                    ChannelCircle(
+                        logoUrl = channel.logoUrl,
+                        name = channel.name,
+                        onClick = { onChannelClick(channel) }
+                    )
+                }
+            }
+        }
+    }
+}
         }
     }
 }

@@ -35,17 +35,6 @@ class HomeViewModel @Inject constructor(
         private const val PAGE_LIMIT = 45
     }
 
-    private var homeCallDone = false
-    private var allTabCallDone = false
-    private var seriesCallDone = false
-    private var myFeedCallDone = false
-
-    private fun checkPageReady() {
-        if (homeCallDone && allTabCallDone && seriesCallDone && myFeedCallDone) {
-            _uiState.update { it.copy(isPageLoading = false) }
-        }
-    }
-
     init {
         loadAllContent()
         viewModelScope.launch { meiliRepository.pingAndPrefetchKey() }
@@ -53,12 +42,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun loadAllContent() {
-        _uiState.update { it.copy(isPageLoading = true) }
-        homeCallDone = false
-        allTabCallDone = false
-        seriesCallDone = false
-        myFeedCallDone = false
-
         loadHomeFeed()
         loadAllTab()
         loadSeries()
@@ -76,6 +59,15 @@ class HomeViewModel @Inject constructor(
 
     fun loadHomeFeed() {
         viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    isSliderLoading = true,
+                    isTrendingLoading = true,
+                    isNewIndiaLoading = true,
+                    isNewUsLoading = true,
+                    isLiveChannelsLoading = true
+                )
+            }
             repository.getHomeFeed().collect { result ->
                 when (result) {
                     is Resource.Loading -> return@collect
@@ -91,19 +83,33 @@ class HomeViewModel @Inject constructor(
                                 trendingError = null,
                                 newIndiaReleases = data?.newReleaseIn?.items ?: state.newIndiaReleases,
                                 isNewIndiaLoading = false,
+                                newIndiaError = null,
                                 newUsReleases = data?.newReleaseUs?.items ?: state.newUsReleases,
                                 isNewUsLoading = false,
+                                newUsError = null,
                                 liveChannels = data?.liveChannels?.let { tv ->
                                     tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
                                 } ?: state.liveChannels,
-                                isLiveChannelsLoading = false
+                                isLiveChannelsLoading = false,
+                                liveChannelsError = null
                             )
                         }
                     }
-                    is Resource.Error -> {}
+                    is Resource.Error -> {
+                        _uiState.update { state ->
+                            state.copy(
+                                isTrendingLoading = false,
+                                trendingError = state.trendingError ?: "failed",
+                                isNewIndiaLoading = false,
+                                newIndiaError = state.newIndiaError ?: "failed",
+                                isNewUsLoading = false,
+                                newUsError = state.newUsError ?: "failed",
+                                isLiveChannelsLoading = false,
+                                liveChannelsError = state.liveChannelsError ?: "failed"
+                            )
+                        }
+                    }
                 }
-                homeCallDone = true
-                checkPageReady()
             }
         }
     }
@@ -131,8 +137,6 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
-                myFeedCallDone = true
-                checkPageReady()
             }
         }
         viewModelScope.launch {
@@ -169,8 +173,6 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
-                allTabCallDone = true
-                checkPageReady()
             }
         }
     }
@@ -199,8 +201,6 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
-                seriesCallDone = true
-                checkPageReady()
             }
         }
     }
@@ -271,8 +271,6 @@ class HomeViewModel @Inject constructor(
 }
 
 data class HomeUiState(
-    val isPageLoading: Boolean = true,
-
     val sliderMovies: List<Movie> = emptyList(),
     val isSliderLoading: Boolean = false,
     val sliderError: String? = null,
@@ -299,9 +297,11 @@ data class HomeUiState(
 
     val newIndiaReleases: List<Movie> = emptyList(),
     val isNewIndiaLoading: Boolean = false,
+    val newIndiaError: String? = null,
 
     val newUsReleases: List<Movie> = emptyList(),
     val isNewUsLoading: Boolean = false,
+    val newUsError: String? = null,
 
     val notification: AppNotification? = null,
     val isNotificationLoading: Boolean = false,
