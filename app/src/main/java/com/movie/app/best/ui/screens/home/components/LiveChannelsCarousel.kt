@@ -91,6 +91,11 @@ fun LiveChannelsCarousel(
                 animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
                 label = "alpha"
             )
+            val redGradient = Brush.linearGradient(
+                colors = listOf(Color(0xFFFF0000), Color(0xFFFF4081)),
+                start = Offset(0f, 0f),
+                end = Offset(1f, 1f)
+            )
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -105,13 +110,13 @@ fun LiveChannelsCarousel(
                                 .size(72.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = alpha * 0.5f))
-                                .border(1.5.dp, Color.White.copy(alpha = alpha * 0.5f), CircleShape)
+                                .border(1.5.dp, redGradient, CircleShape)
                         )
 
                         Box(
                             modifier = Modifier
                                 .offset(y = (-6).dp)
-                                .background(Color.White.copy(alpha = alpha * 0.5f), RoundedCornerShape(4.dp))
+                                .background(Color(0xFFFF0000), RoundedCornerShape(4.dp))
                                 .padding(horizontal = 4.dp, vertical = 1.dp)
                         ) {
                             Box(
@@ -119,11 +124,11 @@ fun LiveChannelsCarousel(
                                     .width(26.dp)
                                     .height(9.dp)
                                     .clip(RoundedCornerShape(2.dp))
-                                    .background(Color.White.copy(alpha = 0.7f))
+                                    .background(Color.White)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(11.dp))
+                        Spacer(modifier = Modifier.height(13.dp))
                         Box(
                             modifier = Modifier
                                 .width(56.dp)
