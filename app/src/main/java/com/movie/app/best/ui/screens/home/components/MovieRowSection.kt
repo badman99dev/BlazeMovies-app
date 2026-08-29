@@ -1,5 +1,6 @@
 package com.movie.app.best.ui.screens.home.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -56,19 +57,24 @@ fun MovieRowSection(
     Column {
         SectionHeader(title = title, onSeeAllClick = onSeeAllClick)
 
-        if (isLoading) {
-            SkeletonMovieRow(cardSize = cardSize)
-        } else if (movies.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                itemsIndexed(movies) { _, movie ->
-                    MoviePosterCard(
-                        movie = movie,
-                        size = cardSize,
-                        onClick = { onMovieClick(movie.slug, movie.isSeries, movie.imdbId) }
-                    )
+        Crossfade(
+            targetState = isLoading && movies.isEmpty(),
+            animationSpec = tween(300)
+        ) { showSkeleton ->
+            if (showSkeleton) {
+                SkeletonMovieRow(cardSize = cardSize)
+            } else if (movies.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    itemsIndexed(movies) { _, movie ->
+                        MoviePosterCard(
+                            movie = movie,
+                            size = cardSize,
+                            onClick = { onMovieClick(movie.slug, movie.isSeries, movie.imdbId) }
+                        )
+                    }
                 }
             }
         }

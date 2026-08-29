@@ -84,65 +84,69 @@ fun LiveChannelsCarousel(
     ) {
         LiveTvSectionHeader(onMoreClick = onMoreClick)
 
-        if (isLoading) {
-            val shimmer = rememberInfiniteTransition(label = "shimmer")
-            val alpha by shimmer.animateFloat(
-                initialValue = 0.3f, targetValue = 0.7f,
-                animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-                label = "alpha"
-            )
-            val redGradient = Brush.linearGradient(
-                colors = listOf(Color(0xFFFF0000), Color(0xFFFF4081)),
-                start = Offset(0f, 0f),
-                end = Offset(1f, 1f)
-            )
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(6) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(80.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = alpha * 0.5f))
-                                .border(1.5.dp, redGradient, CircleShape)
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .offset(y = (-6).dp)
-                                .background(Color(0xFFFF0000), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 4.dp, vertical = 1.dp)
+        Crossfade(
+            targetState = isLoading && channels.isEmpty(),
+            animationSpec = tween(300)
+        ) { showSkeleton ->
+            if (showSkeleton) {
+                val shimmer = rememberInfiniteTransition(label = "shimmer")
+                val alpha by shimmer.animateFloat(
+                    initialValue = 0.3f, targetValue = 0.7f,
+                    animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+                    label = "alpha"
+                )
+                val redGradient = Brush.linearGradient(
+                    colors = listOf(Color(0xFFFF0000), Color(0xFFFF4081)),
+                    start = Offset(0f, 0f),
+                    end = Offset(1f, 1f)
+                )
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(6) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.width(80.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .width(26.dp)
-                                    .height(9.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(Color.White)
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = alpha * 0.5f))
+                                    .border(1.5.dp, redGradient, CircleShape)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = (-6).dp)
+                                    .background(Color(0xFFFF0000), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(26.dp)
+                                        .height(9.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(Color.White)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(13.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(56.dp)
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.White.copy(alpha = alpha * 0.4f))
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(13.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(56.dp)
-                                .height(10.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color.White.copy(alpha = alpha * 0.4f))
-                        )
                     }
                 }
-            }
-        } else {
-            LazyRow(
-                state = listState,
-                modifier = Modifier.fillMaxWidth(),
+            } else {
+                LazyRow(
+                    state = listState,
+                    modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
@@ -153,6 +157,7 @@ fun LiveChannelsCarousel(
                         onClick = { onChannelClick(channel) }
                     )
                 }
+            }
             }
         }
     }
