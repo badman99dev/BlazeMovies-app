@@ -1,5 +1,6 @@
 package com.movie.app.best.ui.screens.home.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
