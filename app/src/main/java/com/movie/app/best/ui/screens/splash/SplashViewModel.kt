@@ -28,26 +28,6 @@ class SplashViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                repository.getSlider().collect { result ->
-                    if (result is com.movie.app.best.data.model.Resource.Success) {
-                        PrefetchCache.slider = (result.data?.movies ?: emptyList()).filter { it.hasStream }
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-
-        viewModelScope.launch {
-            try {
-                repository.getTrending(1, 20).collect { result ->
-                    if (result is com.movie.app.best.data.model.Resource.Success) {
-                        PrefetchCache.trending = result.data?.items ?: emptyList()
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-
-        viewModelScope.launch {
-            try {
                 repository.getLatestUploads(0, 45).collect { result ->
                     if (result is com.movie.app.best.data.model.Resource.Success) {
                         PrefetchCache.latestUploads = result.data?.items ?: emptyList()
@@ -56,23 +36,10 @@ class SplashViewModel @Inject constructor(
             } catch (_: Exception) {}
         }
 
+        // /v1/home warms CDN — slider + trending + new releases (in/us) + live channels in one call
         viewModelScope.launch {
             try {
-                repository.getNotification().collect { result ->
-                    if (result is com.movie.app.best.data.model.Resource.Success) {
-                        PrefetchCache.notification = result.data
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-
-        viewModelScope.launch {
-            try {
-                repository.getTvStreamsUnified(limit = 15).collect { result ->
-                    if (result is com.movie.app.best.data.model.Resource.Success) {
-                        PrefetchCache.liveChannels = result.data ?: emptyList()
-                    }
-                }
+                repository.getHomeFeed().collect { }
             } catch (_: Exception) {}
         }
 
