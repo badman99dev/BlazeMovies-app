@@ -32,8 +32,12 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private var homeRetryCount = 0
+
     companion object {
         private const val PAGE_LIMIT = 45
+        private const val HOME_RETRY_DELAY_MS = 1000L
+        private const val MAX_HOME_RETRIES = 1
     }
 
     init {
@@ -93,6 +97,7 @@ class HomeViewModel @Inject constructor(
                 when (result) {
                     is Resource.Loading -> {}
                     is Resource.Success -> {
+                        homeRetryCount = 0
                         val data = result.data
                         _uiState.update { state ->
                             state.copy(
@@ -119,12 +124,13 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     is Resource.Error -> {
-                        // Fallback to individual calls
-                        if (_uiState.value.sliderMovies.isEmpty()) loadSlider()
-                        if (_uiState.value.trendingMovies.isEmpty()) loadTrending()
-                        if (_uiState.value.newIndiaReleases.isEmpty()) loadNewReleasesIndia()
-                        if (_uiState.value.newUsReleases.isEmpty()) loadNewReleasesUs()
-                        if (_uiState.value.liveChannels.isEmpty()) loadLiveChannels()
+                        if (homeRetryCount < MAX_HOME_RETRIES) {
+                            homeRetryCount++
+                            delay(HOME_RETRY_DELAY_MS)
+                            loadHomeFeed()
+                        } else {
+                            homeRetryCount = 0
+                        }
                     }
                 }
             }
