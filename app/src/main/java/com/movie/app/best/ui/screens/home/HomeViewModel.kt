@@ -303,10 +303,11 @@ data class HomeUiState(
     val isNewUsLoading: Boolean = false,
     val newUsError: String? = null,
 
+    val liveChannels: List<UnifiedChannel> = emptyList(),
+    val isLiveChannelsLoading: Boolean = false,
+    val liveChannelsError: String? = null,
+
     val notification: AppNotification? = null,
     val isNotificationLoading: Boolean = false,
     val notificationError: String? = null,
-
-    val liveChannels: List<UnifiedChannel> = emptyList(),
-    val isLiveChannelsLoading: Boolean = false
 )
