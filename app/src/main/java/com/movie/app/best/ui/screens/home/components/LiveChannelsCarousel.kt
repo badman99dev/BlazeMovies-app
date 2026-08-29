@@ -2,6 +2,7 @@ package com.movie.app.best.ui.screens.home.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -90,11 +91,6 @@ fun LiveChannelsCarousel(
                 animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
                 label = "alpha"
             )
-            val redGradient = Brush.linearGradient(
-                colors = listOf(Color(0xFFFF0000), Color(0xFFFF4081)),
-                start = Offset(0f, 0f),
-                end = Offset(1f, 1f)
-            )
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -107,25 +103,15 @@ fun LiveChannelsCarousel(
                         Box(
                             modifier = Modifier
                                 .size(72.dp)
-                                .drawWithCache {
-                                    onDrawWithContent {
-                                        drawCircle(
-                                            brush = redGradient,
-                                            radius = size.minDimension / 2,
-                                            center = center,
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density)
-                                        )
-                                        drawContent()
-                                    }
-                                }
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = alpha * 0.5f))
+                                .border(1.5.dp, Color.White.copy(alpha = alpha * 0.5f), CircleShape)
                         )
 
                         Box(
                             modifier = Modifier
                                 .offset(y = (-6).dp)
-                                .background(Color(0xFFFF0000).copy(alpha = alpha), RoundedCornerShape(4.dp))
+                                .background(Color.White.copy(alpha = alpha * 0.5f), RoundedCornerShape(4.dp))
                                 .padding(horizontal = 4.dp, vertical = 1.dp)
                         ) {
                             Box(
@@ -137,7 +123,7 @@ fun LiveChannelsCarousel(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(11.dp))
                         Box(
                             modifier = Modifier
                                 .width(56.dp)
