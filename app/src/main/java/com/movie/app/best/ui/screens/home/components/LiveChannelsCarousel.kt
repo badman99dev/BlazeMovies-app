@@ -134,9 +134,6 @@ fun LiveChannelsCarousel(
         }
     }
 }
-        }
-    }
-}
 
 @Composable
 private fun LiveTvSectionHeader(onMoreClick: (() -> Unit)?) {
