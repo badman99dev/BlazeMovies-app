@@ -26,7 +26,7 @@ interface AuthApiService {
 
     @POST("auth/logout")
     suspend fun logout(
-        @Header("Authorization") authHeader: String
+        @Header("X-Auth-Token") authHeader: String
     ): AuthResponse
 
     @POST("auth/firebase-sync")
@@ -36,7 +36,7 @@ interface AuthApiService {
 
     @GET("auth/profile")
     suspend fun getProfile(
-        @Header("Authorization") authHeader: String
+        @Header("X-Auth-Token") authHeader: String
     ): AuthResponse
 
     // Device registration handshake — binds FCM token + FID to current user
@@ -48,6 +48,6 @@ interface AuthApiService {
         @Query("device") device: String,
         @Query("fcm_token") fcmToken: String,
         @Query("anon") anon: Int? = null,
-        @Header("Authorization") authHeader: String? = null
+        @Header("X-Auth-Token") authHeader: String? = null
     ): AuthResponse
 }

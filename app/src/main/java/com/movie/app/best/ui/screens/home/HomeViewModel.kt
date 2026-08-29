@@ -8,7 +8,6 @@ import com.movie.app.best.data.model.AppNotification
 import com.movie.app.best.data.model.SliderResult
 import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.model.toUnified
-import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.repository.MeiliSearchRepository
 import com.movie.app.best.data.repository.MovieRepository
@@ -36,6 +35,17 @@ class HomeViewModel @Inject constructor(
         private const val PAGE_LIMIT = 45
     }
 
+    private var homeCallDone = false
+    private var allTabCallDone = false
+    private var seriesCallDone = false
+    private var myFeedCallDone = false
+
+    private fun checkPageReady() {
+        if (homeCallDone && allTabCallDone && seriesCallDone && myFeedCallDone) {
+            _uiState.update { it.copy(isPageLoading = false) }
+        }
+    }
+
     init {
         loadAllContent()
         viewModelScope.launch { meiliRepository.pingAndPrefetchKey() }
@@ -43,88 +53,57 @@ class HomeViewModel @Inject constructor(
     }
 
     fun loadAllContent() {
-        val cache = PrefetchCache
+        _uiState.update { it.copy(isPageLoading = true) }
+        homeCallDone = false
+        allTabCallDone = false
+        seriesCallDone = false
+        myFeedCallDone = false
 
-        if (cache.slider != null) {
-            _uiState.update { it.copy(sliderMovies = cache.slider!!, isSliderLoading = false) }
-        }
-
-        if (cache.trending != null) {
-            _uiState.update { it.copy(trendingMovies = cache.trending!!, isTrendingLoading = false) }
-        }
-
-        if (cache.latestUploads != null) {
-            val data = cache.latestUploads!!
-            _uiState.update {
-                it.copy(
-                    allTabMovies = data,
-                    isAllTabLoading = false,
-                    allTabOffset = 0,
-                    allTabTotal = Int.MAX_VALUE,
-                    canLoadMoreAllTab = data.size >= PAGE_LIMIT
-                )
-            }
-        }
-
-        if (cache.liveChannels != null) {
-            _uiState.update { it.copy(liveChannels = cache.liveChannels!!, isLiveChannelsLoading = false) }
-        }
-
-        if (cache.newIndiaReleases != null) {
-            _uiState.update { it.copy(newIndiaReleases = cache.newIndiaReleases!!, isNewIndiaLoading = false) }
-        }
-
-        if (cache.newUsReleases != null) {
-            _uiState.update { it.copy(newUsReleases = cache.newUsReleases!!, isNewUsLoading = false) }
-        }
-
-        // Fresh, frequently-changing rails — separate calls
+        loadHomeFeed()
         loadAllTab()
         loadSeries()
         loadMyFeed()
+        loadNotification()
     }
 
     init {
         viewModelScope.launch {
             NetworkMonitor.refreshCounter.collect {
-                if (it > 0) {
-                    loadAllContent()
-                    refreshHomeFeed()
-                }
+                if (it > 0) loadAllContent()
             }
         }
     }
 
-    fun refreshHomeFeed() {
+    fun loadHomeFeed() {
         viewModelScope.launch {
             repository.getHomeFeed().collect { result ->
-                if (result is Resource.Success) {
-                    val data = result.data
-                    _uiState.update { state ->
-                        state.copy(
-                            sliderMovies = data?.slider?.movies?.filter { it.hasStream } ?: state.sliderMovies,
-                            isSliderLoading = false,
-                            sliderError = null,
-                            trendingMovies = data?.trending?.items ?: state.trendingMovies,
-                            isTrendingLoading = false,
-                            trendingError = null,
-                            newIndiaReleases = data?.newReleaseIn?.items ?: state.newIndiaReleases,
-                            isNewIndiaLoading = false,
-                            newUsReleases = data?.newReleaseUs?.items ?: state.newUsReleases,
-                            isNewUsLoading = false,
-                            liveChannels = data?.liveChannels?.let { tv ->
-                                tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
-                            } ?: state.liveChannels,
-                            isLiveChannelsLoading = false
-                        )
+                when (result) {
+                    is Resource.Loading -> return@collect
+                    is Resource.Success -> {
+                        val data = result.data
+                        _uiState.update { state ->
+                            state.copy(
+                                sliderMovies = data?.slider?.movies?.filter { it.hasStream } ?: state.sliderMovies,
+                                isSliderLoading = false,
+                                sliderError = null,
+                                trendingMovies = data?.trending?.items ?: state.trendingMovies,
+                                isTrendingLoading = false,
+                                trendingError = null,
+                                newIndiaReleases = data?.newReleaseIn?.items ?: state.newIndiaReleases,
+                                isNewIndiaLoading = false,
+                                newUsReleases = data?.newReleaseUs?.items ?: state.newUsReleases,
+                                isNewUsLoading = false,
+                                liveChannels = data?.liveChannels?.let { tv ->
+                                    tv.channels.mapIndexed { idx, ch -> ch.toUnified(idx) }
+                                } ?: state.liveChannels,
+                                isLiveChannelsLoading = false
+                            )
+                        }
                     }
-                    PrefetchCache.slider = data?.slider?.movies?.filter { it.hasStream }
-                    PrefetchCache.trending = data?.trending?.items
-                    PrefetchCache.newIndiaReleases = data?.newReleaseIn?.items
-                    PrefetchCache.newUsReleases = data?.newReleaseUs?.items
-                    PrefetchCache.liveChannels = data?.liveChannels?.channels
-                        ?.mapIndexed { idx, ch -> ch.toUnified(idx) }
+                    is Resource.Error -> {}
                 }
+                homeCallDone = true
+                checkPageReady()
             }
         }
     }
@@ -133,9 +112,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getMyFeed(offset = 0, limit = 20).collect { result ->
                 when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isMyFeedLoading = true) }
-                    }
+                    is Resource.Loading -> return@collect
                     is Resource.Success -> {
                         _uiState.update {
                             it.copy(
@@ -154,6 +131,8 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
+                myFeedCallDone = true
+                checkPageReady()
             }
         }
         viewModelScope.launch {
@@ -167,9 +146,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(isAllTabLoading = true) }
             repository.getLatestUploads(offset = 0, limit = PAGE_LIMIT).collect { result ->
                 when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isAllTabLoading = true) }
-                    }
+                    is Resource.Loading -> return@collect
                     is Resource.Success -> {
                         val data = result.data
                         _uiState.update {
@@ -192,6 +169,8 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
+                allTabCallDone = true
+                checkPageReady()
             }
         }
     }
@@ -201,9 +180,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(isSeriesLoading = true) }
             repository.getLatestUploads(offset = 0, limit = 12, type = "series").collect { result ->
                 when (result) {
-                    is Resource.Loading -> {
-                        _uiState.update { it.copy(isSeriesLoading = true) }
-                    }
+                    is Resource.Loading -> return@collect
                     is Resource.Success -> {
                         _uiState.update {
                             it.copy(
@@ -222,6 +199,8 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
+                seriesCallDone = true
+                checkPageReady()
             }
         }
     }
@@ -292,6 +271,8 @@ class HomeViewModel @Inject constructor(
 }
 
 data class HomeUiState(
+    val isPageLoading: Boolean = true,
+
     val sliderMovies: List<Movie> = emptyList(),
     val isSliderLoading: Boolean = false,
     val sliderError: String? = null,

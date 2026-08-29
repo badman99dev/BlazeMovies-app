@@ -7,7 +7,6 @@ import com.movie.app.best.data.repository.MeiliSearchRepository
 import com.movie.app.best.data.repository.MovieRepository
 import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.data.repository.Zee5TokenRepository
-import com.movie.app.best.data.model.toUnified
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,34 +24,6 @@ class SplashViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try { zee5TokenRepository.prefetchTokens() } catch (_: Exception) {}
-        }
-
-        viewModelScope.launch {
-            try {
-                repository.getLatestUploads(0, 45).collect { result ->
-                    if (result is com.movie.app.best.data.model.Resource.Success) {
-                        PrefetchCache.latestUploads = result.data?.items ?: emptyList()
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-
-        // /v1/home prefetch — slider + trending + new releases (in/us) + live channels in one call
-        // Result cached so home screen renders instantly from PrefetchCache
-        viewModelScope.launch {
-            try {
-                repository.getHomeFeed().collect { result ->
-                    if (result is com.movie.app.best.data.model.Resource.Success) {
-                        val data = result.data
-                        PrefetchCache.slider = data?.slider?.movies?.filter { it.hasStream }
-                        PrefetchCache.trending = data?.trending?.items
-                        PrefetchCache.newIndiaReleases = data?.newReleaseIn?.items
-                        PrefetchCache.newUsReleases = data?.newReleaseUs?.items
-                        PrefetchCache.liveChannels = data?.liveChannels?.channels
-                            ?.mapIndexed { idx, ch -> ch.toUnified(idx) }
-                    }
-                }
-            } catch (_: Exception) {}
         }
 
         viewModelScope.launch {

@@ -53,20 +53,20 @@ interface MovieApiService {
     @POST("comment")
     @FormUrlEncoded
     suspend fun postComment(
-        @Header("Authorization") authHeader: String,
+        @Header("X-Auth-Token") authHeader: String,
         @Field("movie_id") movieId: Int,
         @Field("msg") msg: String
     ): ApiResponse<Map<String, String>>
 
     @POST("stream-request")
     suspend fun postStreamRequest(
-        @Header("Authorization") authHeader: String,
+        @Header("X-Auth-Token") authHeader: String,
         @Body request: Map<String, @JvmSuppressWildcards Any>
     ): ApiResponse<StreamRequestApiResponse>
 
     @POST("content-moderation")
     suspend fun postContentModeration(
-        @Header("Authorization") authHeader: String,
+        @Header("X-Auth-Token") authHeader: String,
         @Body request: Map<String, @JvmSuppressWildcards Any>
     ): ApiResponse<ContentModerationApiResponse>
 

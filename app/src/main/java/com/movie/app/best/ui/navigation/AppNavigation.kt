@@ -133,6 +133,8 @@ fun AppNavigation(
     navController: NavHostController,
     isOnline: Boolean = true,
     onMenuClick: () -> Unit = {},
+    onRetryConnection: () -> Unit = {},
+    onGoToDownloads: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     fun navigateToContent(slug: String, isSeries: Boolean, imdbId: String = "") {
@@ -210,6 +212,9 @@ fun AppNavigation(
             HomeScreen(
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
+                isOnline = isOnline,
+                onRetryConnection = onRetryConnection,
+                onGoToDownloads = onGoToDownloads,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onDownloadClick = { navController.navigate(Screen.Downloads.route) },
                 onMenuClick = onMenuClick

@@ -33,6 +33,9 @@ import com.movie.app.best.data.model.UnifiedChannel
 fun HomeScreen(
     onContentClick: (String, Boolean, String) -> Unit,
     navController: NavController,
+    isOnline: Boolean = true,
+    onRetryConnection: () -> Unit = {},
+    onGoToDownloads: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onDownloadClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
@@ -69,22 +72,31 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier.fillMaxSize()
         ) {
-            item {
-                LiveChannelsCarousel(
-                    channels = uiState.liveChannels,
-                    onChannelClick = { channel ->
-                        navController.navigate(
-                            "videoPlayer?playerUrl=${channel.streamUrl}&title=${channel.name}&isLive=true"
-                        )
-                    },
-                    onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
-                    applyTopPadding = true
-                )
-            }
-
-            if (uiState.isAllTabLoading && allMovies.isEmpty()) {
+            if (uiState.isPageLoading) {
                 item { SkeletonHomeContent() }
+            } else if (!isOnline) {
+                item {
+                    NoInternetHomeContent(
+                        onRetry = onRetryConnection,
+                        onGoToDownloads = onGoToDownloads
+                    )
+                }
             } else {
+                if (uiState.liveChannels.isNotEmpty()) {
+                    item {
+                        LiveChannelsCarousel(
+                            channels = uiState.liveChannels,
+                            onChannelClick = { channel ->
+                                navController.navigate(
+                                    "videoPlayer?playerUrl=${channel.streamUrl}&title=${channel.name}&isLive=true"
+                                )
+                            },
+                            onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
+                            applyTopPadding = true
+                        )
+                    }
+                }
+
                 if (trending.isNotEmpty()) {
                     item {
                         MovieRowSection(
@@ -97,26 +109,28 @@ fun HomeScreen(
                     }
                 }
 
-                item {
-                    MovieRowSection(
-                        title        = "Newly Indian Releases 🎬",
-                        movies       = uiState.newIndiaReleases,
-                        isLoading    = uiState.isNewIndiaLoading && uiState.newIndiaReleases.isEmpty(),
-                        cardSize     = CardSize.LARGE,
-                        onMovieClick = onContentClick,
-                        onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("in")) }
-                    )
+                if (uiState.newIndiaReleases.isNotEmpty()) {
+                    item {
+                        MovieRowSection(
+                            title        = "Newly Indian Releases 🎬",
+                            movies       = uiState.newIndiaReleases,
+                            cardSize     = CardSize.LARGE,
+                            onMovieClick = onContentClick,
+                            onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("in")) }
+                        )
+                    }
                 }
 
-                item {
-                    MovieRowSection(
-                        title        = "Hollywood Crazy Drops 🗽",
-                        movies       = uiState.newUsReleases,
-                        isLoading    = uiState.isNewUsLoading && uiState.newUsReleases.isEmpty(),
-                        cardSize     = CardSize.NORMAL,
-                        onMovieClick = onContentClick,
-                        onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("us")) }
-                    )
+                if (uiState.newUsReleases.isNotEmpty()) {
+                    item {
+                        MovieRowSection(
+                            title        = "Hollywood Crazy Drops 🗽",
+                            movies       = uiState.newUsReleases,
+                            cardSize     = CardSize.NORMAL,
+                            onMovieClick = onContentClick,
+                            onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("us")) }
+                        )
+                    }
                 }
 
                 if (newReleases.isNotEmpty()) {
@@ -131,12 +145,11 @@ fun HomeScreen(
                     }
                 }
 
-                if (series.isNotEmpty() || uiState.isSeriesLoading) {
+                if (series.isNotEmpty()) {
                     item {
                         MovieRowSection(
                             title        = "Binge-Worthy Series",
                             movies       = series,
-                            isLoading    = uiState.isSeriesLoading && series.isEmpty(),
                             cardSize     = CardSize.NORMAL,
                             onMovieClick = onContentClick,
                             onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.SeriesList.route) }
@@ -197,5 +210,107 @@ fun HomeScreen(
             hasNotification     = uiState.notification?.isActive == true,
             modifier            = Modifier.align(Alignment.TopCenter)
         )
+    }
+}
+
+@Composable
+private fun NoInternetHomeContent(
+    onRetry: () -> Unit,
+    onGoToDownloads: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(top = 48.dp, bottom = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .background(Color(0xFF1A1A1A), androidx.compose.foundation.shape.RoundedCornerShape(24.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.WifiOff,
+                contentDescription = "No internet",
+                tint = Color(0xFFE50914),
+                modifier = Modifier.size(64.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "No Internet Connection",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Check your connection and try again",
+            color = Color.White.copy(alpha = 0.5f),
+            fontSize = 14.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onRetry,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 40.dp)
+                .height(52.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.error
+            )
+        ) {
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Retry",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        OutlinedButton(
+            onClick = onGoToDownloads,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 40.dp)
+                .height(52.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+        ) {
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.Download,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Go to Downloads",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }

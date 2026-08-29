@@ -421,7 +421,20 @@ fun MainContent(
                 AppNavigation(
                     navController = navController,
                     isOnline = isConnected,
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    onRetryConnection = {
+                        isConnected = isCurrentlyConnected(connectivityManager)
+                        if (isConnected) {
+                            offlineOverlayDismissed = false
+                            NetworkMonitor.onBackOnline()
+                        }
+                    },
+                    onGoToDownloads = {
+                        offlineOverlayDismissed = true
+                        navController.navigate(Screen.Downloads.route) {
+                            launchSingleTop = true
+                        }
+                    }
                 )
 
                 AnimatedVisibility(
@@ -438,24 +451,6 @@ fun MainContent(
                     exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(tween(200))
                 ) {
                     BackOnlineBanner()
-                }
-
-                if (!isConnected && !offlineOverlayDismissed) {
-                    NoInternetOverlay(
-                        onRetry = {
-                            isConnected = isCurrentlyConnected(connectivityManager)
-                            if (isConnected) {
-                                offlineOverlayDismissed = false
-                                NetworkMonitor.onBackOnline()
-                            }
-                        },
-                        onGoToDownloads = {
-                            offlineOverlayDismissed = true
-                            navController.navigate(Screen.Downloads.route) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
                 }
             }
         }

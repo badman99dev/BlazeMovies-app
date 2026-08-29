@@ -118,6 +118,13 @@ fun SkeletonHomeContent() {
             .fillMaxWidth()
             .background(Color.Black)
     ) {
+        // Top clearance for AppHeader overlay
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Live TV
+        SkeletonHomeSectionHeader()
+        SkeletonHomeChannelRow(count = 6)
+
         // Latest Uploads
         SkeletonHomeSectionHeader()
         SkeletonHomeMovieRow(cardSize = CardSize.LARGE, count = 6)
@@ -134,6 +141,24 @@ fun SkeletonHomeContent() {
         SkeletonHomeSectionHeader(showSeeAll = false)
         SkeletonHomeGridSection(showSeeAll = false)
         Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun SkeletonHomeChannelRow(count: Int) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(count) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SkeletonCircle(size = 56.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                SkeletonLine(width = 48.dp, height = 10.dp)
+            }
+        }
     }
 }
 

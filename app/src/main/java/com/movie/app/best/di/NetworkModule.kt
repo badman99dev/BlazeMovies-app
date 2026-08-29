@@ -82,7 +82,7 @@ object NetworkModule {
             val token = getLiveFirebaseToken(context)
             val request = if (token != null) {
                 chain.request().newBuilder()
-                    .header("Authorization", "Bearer $token")
+                    .header("X-Auth-Token", "Bearer $token")
                     .build()
             } else {
                 chain.request()
@@ -261,7 +261,7 @@ class FirebaseTokenAuthenticator(
         context.getSharedPreferences("app_auth", Context.MODE_PRIVATE)
             .edit().putString("token", fresh).apply()
         return response.request.newBuilder()
-            .header("Authorization", "Bearer $fresh")
+            .header("X-Auth-Token", "Bearer $fresh")
             .build()
     }
 }
