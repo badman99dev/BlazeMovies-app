@@ -90,6 +90,11 @@ fun LiveChannelsCarousel(
                 animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
                 label = "alpha"
             )
+            val redGradient = Brush.linearGradient(
+                colors = listOf(Color(0xFFFF0000), Color(0xFFFF4081)),
+                start = Offset(0f, 0f),
+                end = Offset(1f, 1f)
+            )
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -102,10 +107,37 @@ fun LiveChannelsCarousel(
                         Box(
                             modifier = Modifier
                                 .size(72.dp)
+                                .drawWithCache {
+                                    onDrawWithContent {
+                                        drawCircle(
+                                            brush = redGradient,
+                                            radius = size.minDimension / 2,
+                                            center = center,
+                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density)
+                                        )
+                                        drawContent()
+                                    }
+                                }
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = alpha * 0.5f))
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .offset(y = (-6).dp)
+                                .background(Color(0xFFFF0000).copy(alpha = alpha), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(26.dp)
+                                    .height(9.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color.White.copy(alpha = 0.7f))
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(2.dp))
                         Box(
                             modifier = Modifier
                                 .width(56.dp)
@@ -247,7 +279,7 @@ private fun ChannelCircle(
             )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
         // ── Channel name below — center aligned ──────────────────
         Text(
