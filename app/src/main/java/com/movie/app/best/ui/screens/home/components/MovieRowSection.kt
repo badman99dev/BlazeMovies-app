@@ -343,7 +343,7 @@ fun SkeletonMovieRow(cardSize: CardSize = CardSize.NORMAL) {
                         .width(cardSize.width)
                         .height(cardSize.height)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White.copy(alpha = alpha))
+                        .background(Color(0xFF2A2A2A).copy(alpha = alpha))
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Box(
@@ -351,7 +351,7 @@ fun SkeletonMovieRow(cardSize: CardSize = CardSize.NORMAL) {
                         .width(cardSize.width * 0.85f)
                         .height(12.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(Color.White.copy(alpha = alpha * 0.8f))
+                        .background(Color(0xFF2A2A2A).copy(alpha = alpha * 0.8f))
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Box(
@@ -359,7 +359,7 @@ fun SkeletonMovieRow(cardSize: CardSize = CardSize.NORMAL) {
                         .width(cardSize.width * 0.6f)
                         .height(10.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(Color.White.copy(alpha = alpha * 0.6f))
+                        .background(Color(0xFF2A2A2A).copy(alpha = alpha * 0.6f))
                 )
             }
         }

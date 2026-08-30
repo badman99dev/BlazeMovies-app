@@ -114,7 +114,7 @@ fun LiveChannelsCarousel(
                                 modifier = Modifier
                                     .size(72.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = alpha * 0.5f))
+                                    .background(Color(0xFF2A2A2A).copy(alpha = alpha * 0.5f))
                                     .border(1.5.dp, redGradient, CircleShape)
                             )
 
@@ -124,13 +124,13 @@ fun LiveChannelsCarousel(
                                     .background(Color(0xFFFF0000), RoundedCornerShape(4.dp))
                                     .padding(horizontal = 4.dp, vertical = 1.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(26.dp)
-                                        .height(9.dp)
-                                        .clip(RoundedCornerShape(2.dp))
-                                        .background(Color.White)
-                                )
+                                    Box(
+                                        modifier = Modifier
+                                            .width(26.dp)
+                                            .height(9.dp)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .background(Color(0xFF2A2A2A))
+                                    )
                             }
 
                             Spacer(modifier = Modifier.height(13.dp))
@@ -139,7 +139,7 @@ fun LiveChannelsCarousel(
                                     .width(56.dp)
                                     .height(10.dp)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.White.copy(alpha = alpha * 0.4f))
+                                    .background(Color(0xFF2A2A2A).copy(alpha = alpha * 0.4f))
                             )
                         }
                     }
