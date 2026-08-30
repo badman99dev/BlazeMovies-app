@@ -291,7 +291,7 @@ fun Zee5WatchScreen(
                         AsyncImage(
                             model = ImageRequest.Builder(context)
                                 .data(url)
-                                .crossfade(true)
+                                .crossfade(600)
                                 .build(),
                             contentDescription = state.currentEpisode?.title ?: state.detail?.title,
                             contentScale = ContentScale.Crop,

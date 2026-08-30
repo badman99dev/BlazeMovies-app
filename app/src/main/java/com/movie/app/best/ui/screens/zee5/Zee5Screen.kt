@@ -307,7 +307,7 @@ fun Zee5HeroCarousel(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.effectiveLandscapeUrl ?: item.effectiveImageUrl)
-                        .crossfade(true)
+                        .crossfade(600)
                         .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
@@ -538,7 +538,7 @@ fun Zee5Card(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(item.effectiveLandscapeUrl ?: item.effectiveImageUrl)
-                    .crossfade(true)
+                    .crossfade(600)
                     .build(),
                 contentDescription = item.title,
                 contentScale = ContentScale.Crop,

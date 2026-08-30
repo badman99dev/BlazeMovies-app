@@ -26,7 +26,7 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
 
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
-            .crossfade(300)
+            .crossfade(600)
             .build()
     }
 

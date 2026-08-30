@@ -188,7 +188,7 @@ private fun CelebIntroCard(
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(intro.photoUrl)
-                        .crossfade(true)
+                        .crossfade(600)
                         .build(),
                     contentDescription = intro.displayName,
                     contentScale = ContentScale.Crop,

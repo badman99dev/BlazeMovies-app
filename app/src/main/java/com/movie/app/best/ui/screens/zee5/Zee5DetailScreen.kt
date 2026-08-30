@@ -328,7 +328,7 @@ fun Zee5DetailHero(
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(detail.effectiveLandscapeUrl ?: detail.effectiveImageUrl)
-                .crossfade(true)
+                .crossfade(600)
                 .build(),
             contentDescription = detail.title,
             contentScale = ContentScale.Crop,
@@ -593,7 +593,7 @@ fun Zee5EpisodeRow(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(episode.effectiveLandscapeUrl ?: episode.effectiveImageUrl)
-                    .crossfade(true)
+                    .crossfade(600)
                     .build(),
                 contentDescription = episode.title,
                 contentScale = ContentScale.Crop,

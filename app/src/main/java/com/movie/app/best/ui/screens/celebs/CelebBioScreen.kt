@@ -122,7 +122,7 @@ private fun BioDetailsCard(state: CelebBioUiState) {
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(state.photoUrl)
-                        .crossfade(true)
+                        .crossfade(600)
                         .build(),
                     contentDescription = state.displayName,
                     contentScale = ContentScale.Crop,
