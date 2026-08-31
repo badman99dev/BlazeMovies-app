@@ -189,8 +189,10 @@ jobs:
       - name: Set whats_new content
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         id: whats_new
+        env:
+          WHATSNEW_RAW: ${{ github.event.inputs.whats_new }}
         run: |
-          INPUT_WN="${{ github.event.inputs.whats_new }}"
+          INPUT_WN="$WHATSNEW_RAW"
           if [ -z "$INPUT_WN" ] || [ "$INPUT_WN" = "" ]; then
             WN="## What's New
 
