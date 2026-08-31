@@ -1005,7 +1005,7 @@ private fun extractTechnicalInfo(item: UnifiedDownloadItem): TechnicalInfo? {
 private fun MediaStoreInfo.toRows(item: UnifiedDownloadItem): List<Pair<String, String>> = buildList {
     add("File Name" to item.fileName)
     add("File Path" to item.filePath)
-    add("Size" to (size?.let { formatFileSize(it) } ?: formatFileSize(File(item.filePath).length())))
+    add("Size" to (this@toRows.size?.let { formatFileSize(it) } ?: formatFileSize(File(item.filePath).length())))
     add("Duration" to formatDuration(durationMs))
     add("Resolution" to (if (width != null && height != null) "${width} x ${height}" else "—"))
     add("Format" to (mime ?: "—"))
