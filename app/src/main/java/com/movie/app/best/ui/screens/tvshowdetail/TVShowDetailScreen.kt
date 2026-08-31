@@ -94,7 +94,9 @@ import com.movie.app.best.ui.components.SkeletonDetailPage
 import com.movie.app.best.ui.components.ErrorView
 import com.movie.app.best.ui.components.CollapsibleCrewRow
 import com.movie.app.best.ui.components.InterestsGenreSection
+import com.movie.app.best.ui.components.LoginRequiredDialog
 import com.movie.app.best.ui.components.StorylineWarningBadge
+import com.movie.app.best.ui.screens.auth.AuthViewModel
 import com.movie.app.best.ui.screens.moviedetail.components.DetailActionButtons
 import com.movie.app.best.ui.screens.moviedetail.components.DetailHeroSection
 import com.movie.app.best.ui.screens.moviedetail.components.MetaChipsRow
@@ -129,10 +131,17 @@ fun TVShowDetailScreen(
     onOpenExtractedSeries: (String, String, String) -> Unit = { _, _, _ -> },
     onCelebClick: (String, String) -> Unit = { _, _ -> },
     onInterestClick: (String, String) -> Unit = { _, _ -> },
+    onLoginRequired: () -> Unit = {},
     viewModel: TVShowDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.uiState.collectAsState()
+    var showLoginDialog by remember { mutableStateOf(false) }
+    val gate: (() -> Unit) -> Unit = { action ->
+        if (authState.isLoggedIn) action() else showLoginDialog = true
+    }
 
     var hasStoragePermission by remember {
         mutableStateOf(
@@ -222,14 +231,14 @@ fun TVShowDetailScreen(
                     onPlayClick = onPlayClick,
                     onTrailerClick = onTrailerClick,
                     onWatchNow = onWatchNow,
-                    onPostComment = viewModel::postComment,
-                    onRequestStream = viewModel::requestStream,
+                    onPostComment = { name, msg -> gate { viewModel.postComment(name, msg) } },
+                    onRequestStream = { gate { viewModel.requestStream() } },
                     onStartDownload = { linkUrl, linkId -> requestDownload(linkUrl, linkId) },
                     onOpenEpisodeDownloadSheet = { links, title -> openEpisodeDownloadSheet(links, title) },
                     onResetCommentState = viewModel::resetCommentState,
-                    onToggleBookmark = viewModel::toggleBookmark,
-                    onToggleLike = viewModel::toggleLike,
-                    onReportClick = viewModel::openReportDrawer,
+                    onToggleBookmark = { gate { viewModel.toggleBookmark() } },
+                    onToggleLike = { gate { viewModel.toggleLike() } },
+                    onReportClick = { gate { viewModel.openReportDrawer() } },
                     onContentClick = { slug, isSeries, imdbId ->
                         if (isSeries) onSeriesClick(slug, imdbId)
                         else onMovieClick(slug, imdbId)
@@ -379,6 +388,16 @@ fun TVShowDetailScreen(
             onSolved = { result -> viewModel.onBypassSolved(result) },
             onFailed = { viewModel.onBypassFailed() }
         )
+
+        if (showLoginDialog) {
+            LoginRequiredDialog(
+                onLoginClick = {
+                    showLoginDialog = false
+                    onLoginRequired()
+                },
+                onDismiss = { showLoginDialog = false }
+            )
+        }
     }
 }
 

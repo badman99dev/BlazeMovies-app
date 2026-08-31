@@ -87,6 +87,8 @@ import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.components.GlassBadge
 import com.movie.app.best.ui.components.CollapsibleCrewRow
 import com.movie.app.best.ui.components.InterestsGenreSection
+import com.movie.app.best.ui.components.LoginRequiredDialog
+import com.movie.app.best.ui.screens.auth.AuthViewModel
 import com.movie.app.best.ui.screens.moviedetail.components.FindingSimilarSection
 import com.movie.app.best.ui.screens.moviedetail.components.MoreLikeThisSection
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
@@ -108,12 +110,19 @@ fun MovieWatchScreen(
     onMovieClick: (String, String) -> Unit = { _, _ -> },
     onCelebClick: (String, String) -> Unit = { _, _ -> },
     onInterestClick: (String, String) -> Unit = { _, _ -> },
+    onLoginRequired: () -> Unit = {},
     viewModel: MovieWatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val activity = context as? android.app.Activity
     val lifecycleOwner = LocalLifecycleOwner.current
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.uiState.collectAsState()
+    var showLoginDialog by remember { mutableStateOf(false) }
+    val gate: (() -> Unit) -> Unit = { action ->
+        if (authState.isLoggedIn) action() else showLoginDialog = true
+    }
 
     val firebaseRepository = remember {
         dagger.hilt.android.EntryPointAccessors.fromApplication(
@@ -444,7 +453,7 @@ fun MovieWatchScreen(
                                         brush = borderBrush,
                                         shape = RoundedCornerShape(22.dp)
                                     )
-                                    .clickable(enabled = !state.streamRequested) { viewModel.requestStream() }
+                                    .clickable(enabled = !state.streamRequested) { gate { viewModel.requestStream() } }
                                     .padding(horizontal = 20.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -654,6 +663,16 @@ fun MovieWatchScreen(
                 onDismiss = { viewModel.dismissStreamRequestResult() }
             )
         }
+    }
+
+    if (showLoginDialog) {
+        LoginRequiredDialog(
+            onLoginClick = {
+                showLoginDialog = false
+                onLoginRequired()
+            },
+            onDismiss = { showLoginDialog = false }
+        )
     }
     }
 }

@@ -3,6 +3,8 @@ package com.movie.app.best.ui.screens.downloads
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -729,9 +731,11 @@ private data class TechnicalInfo(
     val durationMs: Long?,
     val width: Int?,
     val height: Int?,
-    val videoCodec: String?,
-    val audioCodec: String?,
-    val bitrate: Int?
+    val videoCodecName: String?,
+    val audioCodecName: String?,
+    val bitrate: Int?,
+    val sampleRate: Int?,
+    val channels: Int?
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -938,7 +942,7 @@ private fun openInExternalPlayer(context: Context, item: UnifiedDownloadItem) {
 }
 
 private fun queryMediaStoreInfo(context: Context, item: UnifiedDownloadItem): MediaStoreInfo? {
-    return try {
+    val storeResult: MediaStoreInfo? = try {
         val projection = arrayOf(
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.DURATION,
@@ -978,27 +982,135 @@ private fun queryMediaStoreInfo(context: Context, item: UnifiedDownloadItem): Me
     } catch (_: Exception) {
         null
     }
-}
 
-private fun extractTechnicalInfo(item: UnifiedDownloadItem): TechnicalInfo? {
+    if (storeResult?.durationMs != null && storeResult.width != null && storeResult.height != null) {
+        return storeResult
+    }
+
     val retriever = MediaMetadataRetriever()
     return try {
         retriever.setDataSource(item.filePath)
         val getMeta = { key: Int -> retriever.extractMetadata(key) }
-        TechnicalInfo(
-            mime = getMeta(MediaMetadataRetriever.METADATA_KEY_MIMETYPE),
+        val fallback = MediaStoreInfo(
+            size = storeResult?.size,
             durationMs = getMeta(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
             width = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull(),
             height = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull(),
-            videoCodec = getMeta(31),  // METADATA_KEY_VIDEO_CODEC (API 30+)
-            audioCodec = getMeta(32),  // METADATA_KEY_AUDIO_CODEC (API 30+)
-            bitrate = getMeta(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.let { it.toLongOrNull()?.toInt() }
+            mime = getMeta(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
+        )
+        MediaStoreInfo(
+            size = fallback.size ?: File(item.filePath).length(),
+            durationMs = fallback.durationMs,
+            width = fallback.width,
+            height = fallback.height,
+            mime = fallback.mime
         )
     } catch (_: Exception) {
-        null
+        storeResult
     } finally {
         try { retriever.release() } catch (_: Exception) {
         }
+    }
+}
+
+private fun extractTechnicalInfo(item: UnifiedDownloadItem): TechnicalInfo? {
+    var mime: String? = null
+    var durationMs: Long? = null
+    var width: Int? = null
+    var height: Int? = null
+    var bitrate: Int? = null
+
+    val retriever = MediaMetadataRetriever()
+    try {
+        retriever.setDataSource(item.filePath)
+        val getMeta = { key: Int -> retriever.extractMetadata(key) }
+        mime = getMeta(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
+        durationMs = getMeta(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+        width = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull()
+        height = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
+        bitrate = getMeta(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.let { it.toLongOrNull()?.toInt() }
+    } catch (_: Exception) {
+    } finally {
+        try { retriever.release() } catch (_: Exception) {
+        }
+    }
+
+    var videoCodecName: String? = null
+    var audioCodecName: String? = null
+    var sampleRate: Int? = null
+    var channels: Int? = null
+
+    val extractor = MediaExtractor()
+    try {
+        extractor.setDataSource(item.filePath)
+        for (i in 0 until extractor.trackCount) {
+            val format = extractor.getTrackFormat(i)
+            val trackMime = format.getString(MediaFormat.KEY_MIME) ?: continue
+            when {
+                trackMime.startsWith("video/") && videoCodecName == null -> {
+                    videoCodecName = codecDisplayName(trackMime)
+                    if (width == null && format.containsKey(MediaFormat.KEY_WIDTH)) {
+                        width = format.getInteger(MediaFormat.KEY_WIDTH)
+                    }
+                    if (height == null && format.containsKey(MediaFormat.KEY_HEIGHT)) {
+                        height = format.getInteger(MediaFormat.KEY_HEIGHT)
+                    }
+                }
+                trackMime.startsWith("audio/") && audioCodecName == null -> {
+                    audioCodecName = codecDisplayName(trackMime)
+                    if (format.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                        sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                    }
+                    if (format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                        channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+                    }
+                }
+            }
+        }
+    } catch (_: Exception) {
+    } finally {
+        try { extractor.release() } catch (_: Exception) {
+        }
+    }
+
+    return TechnicalInfo(
+        mime = mime,
+        durationMs = durationMs,
+        width = width,
+        height = height,
+        videoCodecName = videoCodecName,
+        audioCodecName = audioCodecName,
+        bitrate = bitrate,
+        sampleRate = sampleRate,
+        channels = channels
+    )
+}
+
+private fun codecDisplayName(mime: String?): String? {
+    if (mime == null) return null
+    return when (mime) {
+        "video/avc" -> "H.264"
+        "video/hevc" -> "H.265"
+        "video/vp8" -> "VP8"
+        "video/vp9" -> "VP9"
+        "video/av01" -> "AV1"
+        "video/mp4v-es" -> "MPEG-4"
+        "video/x-ms-wmv" -> "WMV"
+        "video/x-matroska" -> "Matroska"
+        "audio/mp4a-latm" -> "AAC"
+        "audio/mp3" -> "MP3"
+        "audio/mpeg" -> "MP3"
+        "audio/opus" -> "Opus"
+        "audio/vorbis" -> "Vorbis"
+        "audio/ac3" -> "AC3"
+        "audio/eac3" -> "E-AC3"
+        "audio/flac" -> "FLAC"
+        "audio/x-flac" -> "FLAC"
+        "audio/raw" -> "PCM"
+        "audio/x-ms-wma" -> "WMA"
+        "audio/amr-wb" -> "AMR-WB"
+        "audio/amr" -> "AMR"
+        else -> mime.substringAfterLast("/").uppercase()
     }
 }
 
@@ -1015,9 +1127,23 @@ private fun TechnicalInfo.toRows(): List<Pair<String, String>> = buildList {
     add("Format" to (mime ?: "—"))
     add("Duration" to formatDuration(durationMs))
     add("Resolution" to (if (width != null && height != null) "${width} x ${height}" else "—"))
-    add("Video Codec" to (videoCodec ?: "—"))
-    add("Audio Codec" to (audioCodec ?: "—"))
+    add("Video Codec" to (videoCodecName ?: "—"))
+    add("Audio Codec" to (audioCodecName ?: "—"))
+    if (sampleRate != null) add("Sample Rate" to formatSampleRate(sampleRate!!))
+    if (channels != null) add("Channels" to formatChannels(channels!!))
     add("Bitrate" to (bitrate?.let { formatFileSize(it.toLong()) + "/s" } ?: "—"))
+}
+
+private fun formatSampleRate(hz: Int): String {
+    return if (hz % 1000 == 0) "${hz / 1000} kHz" else "$hz Hz"
+}
+
+private fun formatChannels(count: Int): String {
+    return when (count) {
+        1 -> "Mono (1 ch)"
+        2 -> "Stereo (2 ch)"
+        else -> "$count ch"
+    }
 }
 
 private fun formatDuration(ms: Long?): String {
