@@ -48,8 +48,9 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -71,7 +72,8 @@ fun LoginRequiredDialog(
     val dialogScale = remember { Animatable(0.9f) }
     val dialogAlpha = remember { Animatable(0f) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
-    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -102,12 +104,12 @@ fun LoginRequiredDialog(
         }
     }
 
-    val transformOrigin = remember(anchorCenter, boxSize, windowInfo.containerSize) {
+    val computedOrigin = remember(anchorCenter, boxSize) {
         if (anchorCenter == null || boxSize == IntSize.Zero) {
             TransformOrigin.Center
         } else {
-            val screenW = windowInfo.containerSize.width.toFloat()
-            val screenH = windowInfo.containerSize.height.toFloat()
+            val screenW = with(density) { configuration.screenWidthDp.dp.toPx() }
+            val screenH = with(density) { configuration.screenHeightDp.dp.toPx() }
             val dialogLeft = (screenW - boxSize.width) / 2f
             val dialogTop = (screenH - boxSize.height) / 2f
             val originX = ((anchorCenter.x - dialogLeft) / boxSize.width).coerceIn(0f, 1f)
@@ -136,7 +138,7 @@ fun LoginRequiredDialog(
                         scaleX = dialogScale.value
                         scaleY = dialogScale.value
                         alpha = dialogAlpha.value
-                        transformOrigin = transformOrigin
+                        transformOrigin = computedOrigin
                     }
                     .clip(RoundedCornerShape(24.dp))
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A1A1A), Color(0xFF0D0D0D))))
