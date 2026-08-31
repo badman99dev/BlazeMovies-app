@@ -319,6 +319,11 @@ fun AppNavigation(
                 },
                 onInterestClick = { interestId, name ->
                     navController.navigate(Screen.Interests.createRoute(interestId, name))
+                },
+                onLoginRequired = {
+                    navController.navigate(Screen.Profile.route) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -347,11 +352,6 @@ fun AppNavigation(
                 },
                 onInterestClick = { interestId, name ->
                     navController.navigate(Screen.Interests.createRoute(interestId, name))
-                },
-                onLoginRequired = {
-                    navController.navigate(Screen.Profile.route) {
-                        launchSingleTop = true
-                    }
                 }
             )
         }
