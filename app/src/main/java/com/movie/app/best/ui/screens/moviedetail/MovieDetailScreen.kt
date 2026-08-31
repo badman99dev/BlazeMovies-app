@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +16,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,6 +63,8 @@ fun MovieDetailScreen(
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsState()
     var showLoginDialog by remember { mutableStateOf(false) }
+    var lastTap by remember { mutableStateOf(Offset.Unspecified) }
+    var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val gate: (() -> Unit) -> Unit = { action ->
         if (authState.isLoggedIn) action() else showLoginDialog = true
     }
@@ -117,7 +125,15 @@ fun MovieDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            .onGloballyPositioned { rootCoords = it }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    val coords = rootCoords ?: return@awaitEachGesture
+                    lastTap = coords.localToWindow(down.position)
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         when {
@@ -274,7 +290,8 @@ fun MovieDetailScreen(
                     showLoginDialog = false
                     onLoginRequired()
                 },
-                onDismiss = { showLoginDialog = false }
+                onDismiss = { showLoginDialog = false },
+                anchorCenter = lastTap.takeIf { it != Offset.Unspecified }
             )
         }
     }

@@ -12,6 +12,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,7 +74,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -139,6 +145,8 @@ fun TVShowDetailScreen(
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsState()
     var showLoginDialog by remember { mutableStateOf(false) }
+    var lastTap by remember { mutableStateOf(Offset.Unspecified) }
+    var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val gate: (() -> Unit) -> Unit = { action ->
         if (authState.isLoggedIn) action() else showLoginDialog = true
     }
@@ -210,7 +218,15 @@ fun TVShowDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .onGloballyPositioned { rootCoords = it }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    val coords = rootCoords ?: return@awaitEachGesture
+                    lastTap = coords.localToWindow(down.position)
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         when {
@@ -395,7 +411,8 @@ fun TVShowDetailScreen(
                     showLoginDialog = false
                     onLoginRequired()
                 },
-                onDismiss = { showLoginDialog = false }
+                onDismiss = { showLoginDialog = false },
+                anchorCenter = lastTap.takeIf { it != Offset.Unspecified }
             )
         }
     }

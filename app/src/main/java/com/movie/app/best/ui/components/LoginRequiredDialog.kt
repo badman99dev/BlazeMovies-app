@@ -3,7 +3,9 @@ package com.movie.app.best.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.onSizeChanged
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,39 +38,85 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginRequiredDialog(
     onLoginClick: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    anchorCenter: Offset? = null
 ) {
     var visible by remember { mutableStateOf(false) }
+    var boxSize by remember { mutableStateOf(IntSize.Zero) }
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+
     LaunchedEffect(Unit) { visible = true }
 
+    fun dismiss(callback: () -> Unit) {
+        visible = false
+        scope.launch {
+            delay(230)
+            callback()
+        }
+    }
+
+    val transformOrigin = remember(anchorCenter, boxSize) {
+        if (anchorCenter == null || boxSize == IntSize.Zero) {
+            TransformOrigin.Center
+        } else {
+            val screenW = with(density) { configuration.screenWidthDp.dp.toPx() }
+            val screenH = with(density) { configuration.screenHeightDp.dp.toPx() }
+            val dialogLeft = (screenW - boxSize.width) / 2f
+            val dialogTop = (screenH - boxSize.height) / 2f
+            val originX = ((anchorCenter.x - dialogLeft) / boxSize.width).coerceIn(0f, 1f)
+            val originY = ((anchorCenter.y - dialogTop) / boxSize.height).coerceIn(0f, 1f)
+            TransformOrigin(originX, originY)
+        }
+    }
+
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { dismiss(onDismiss) },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.9f, animationSpec = tween(300))
+            enter = fadeIn(tween(200)) + scaleIn(
+                initialScale = 0.9f,
+                animationSpec = tween(300),
+                transformOrigin = transformOrigin
+            ),
+            exit = fadeOut(tween(200)) + scaleOut(
+                targetScale = 0.9f,
+                animationSpec = tween(200),
+                transformOrigin = transformOrigin
+            )
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 28.dp)
+                    .onSizeChanged { boxSize = it }
                     .clip(RoundedCornerShape(24.dp))
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A1A1A), Color(0xFF0D0D0D))))
                     .border(
@@ -137,7 +186,7 @@ fun LoginRequiredDialog(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                                onClick = onLoginClick
+                                onClick = { dismiss(onLoginClick) }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -150,7 +199,7 @@ fun LoginRequiredDialog(
                     }
 
                     Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = { dismiss(onDismiss) }) {
                         Text("Cancel", color = Color.White.copy(alpha = 0.5f))
                     }
                 }
