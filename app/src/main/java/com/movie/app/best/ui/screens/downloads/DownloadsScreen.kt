@@ -956,11 +956,11 @@ private fun queryMediaStoreInfo(context: Context, item: UnifiedDownloadItem): Me
             null
         )?.use { cursor ->
             if (cursor.moveToFirst()) {
-                val getLong = { col: String ->
+                val getLong: (String) -> Long? = { col ->
                     val idx = cursor.getColumnIndex(col)
                     if (idx >= 0 && !cursor.isNull(idx)) cursor.getLong(idx) else null
                 }
-                val getString = { col: String ->
+                val getString: (String) -> String? = { col ->
                     val idx = cursor.getColumnIndex(col)
                     if (idx >= 0 && !cursor.isNull(idx)) cursor.getString(idx) else null
                 }
@@ -990,9 +990,9 @@ private fun extractTechnicalInfo(item: UnifiedDownloadItem): TechnicalInfo? {
             durationMs = getMeta(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
             width = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull(),
             height = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull(),
-            videoCodec = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC),
-            audioCodec = getMeta(MediaMetadataRetriever.METADATA_KEY_AUDIO_CODEC),
-            bitrate = getMeta(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull()
+            videoCodec = getMeta(31),  // METADATA_KEY_VIDEO_CODEC (API 30+)
+            audioCodec = getMeta(32),  // METADATA_KEY_AUDIO_CODEC (API 30+)
+            bitrate = getMeta(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.let { it.toLongOrNull()?.toInt() }
         )
     } catch (_: Exception) {
         null
