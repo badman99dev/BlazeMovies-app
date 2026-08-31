@@ -340,6 +340,7 @@ fun MainContent(
 
     LaunchedEffect(isConnected) {
         if (isConnected && wasOffline) {
+            showConnectionLostBanner = false
             showBackOnlineBanner = true
             wasOffline = false
             delay(3000)

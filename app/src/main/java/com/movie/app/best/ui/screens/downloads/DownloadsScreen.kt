@@ -2,9 +2,12 @@ package com.movie.app.best.ui.screens.downloads
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
@@ -39,6 +42,11 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -49,34 +57,44 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.ui.theme.AccentPurple
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.movie.app.best.ui.theme.AppRed
 import com.movie.app.best.ui.util.CfBypassHost
 import java.io.File
@@ -400,6 +418,7 @@ private fun EmptyDownloadsState() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UnifiedDownloadCard(
     item: UnifiedDownloadItem,
@@ -410,6 +429,7 @@ private fun UnifiedDownloadCard(
     onRetry: () -> Unit,
     onDelete: () -> Unit
 ) {
+    var showSheet by remember { mutableStateOf(false) }
     val accentColor = when (item.phase) {
         UnifiedDownloadPhase.COMPLETE -> SuccessGreen
         UnifiedDownloadPhase.FAILED -> AppRed
@@ -597,11 +617,13 @@ private fun UnifiedDownloadCard(
                             )
                         }
                         UnifiedDownloadPhase.COMPLETE -> {
+                            val playBg = Brush.linearGradient(colors = listOf(Color(0xFFE50914), Color(0xFFB71C1C)))
+                            val playBorder = Brush.linearGradient(colors = listOf(Color(0xFFFF5252), Color(0xFFFFD700), Color(0xFFFF5252)))
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(20.dp))
-                                    .background(accentColor.copy(alpha = 0.15f))
-                                    .border(1.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                                    .background(playBg)
+                                    .border(1.dp, playBorder, RoundedCornerShape(20.dp))
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null,
@@ -614,20 +636,20 @@ private fun UnifiedDownloadCard(
                                     Icon(
                                         Icons.Default.PlayArrow,
                                         contentDescription = null,
-                                        tint = accentColor,
+                                        tint = Color.White,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(Modifier.width(4.dp))
                                     Text(
                                         "Play",
-                                        color = accentColor,
+                                        color = Color.White,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
-                            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Delete, "Delete", tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
+                            IconButton(onClick = { showSheet = true }, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.MoreVert, "More options", tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -661,6 +683,14 @@ private fun UnifiedDownloadCard(
             }
         }
     }
+
+    if (showSheet) {
+        DownloadItemSheet(
+            item = item,
+            onDismiss = { showSheet = false },
+            onDelete = onDelete
+        )
+    }
 }
 
 @Composable
@@ -684,4 +714,321 @@ private fun DeleteConfirmationDialog(
             }
         }
     )
+}
+
+private data class MediaStoreInfo(
+    val size: Long?,
+    val durationMs: Long?,
+    val width: Int?,
+    val height: Int?,
+    val mime: String?
+)
+
+private data class TechnicalInfo(
+    val mime: String?,
+    val durationMs: Long?,
+    val width: Int?,
+    val height: Int?,
+    val videoCodec: String?,
+    val audioCodec: String?,
+    val bitrate: Int?
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DownloadItemSheet(
+    item: UnifiedDownloadItem,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    var infoState by remember { mutableStateOf<MediaStoreInfo?>(null) }
+    var techState by remember { mutableStateOf<TechnicalInfo?>(null) }
+    var showInfo by remember { mutableStateOf(false) }
+    var showTech by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color(0xFF1E1E2E),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp)
+        ) {
+            SheetOptionRow(
+                icon = Icons.Default.OpenInNew,
+                title = "Open in External Player",
+                onClick = {
+                    openInExternalPlayer(context, item)
+                    onDismiss()
+                }
+            )
+
+            if (Build.VERSION.SDK_INT >= 30) {
+                SheetOptionRow(
+                    icon = Icons.Default.Settings,
+                    title = "Technical Details",
+                    showArrow = true,
+                    expanded = showTech,
+                    onClick = {
+                        if (!showTech && techState == null) {
+                            scope.launch {
+                                techState = withContext(Dispatchers.IO) { extractTechnicalInfo(item) }
+                            }
+                        }
+                        showTech = !showTech
+                    }
+                )
+                if (showTech) {
+                    val t = techState
+                    if (t == null) {
+                        SheetLoadingRow()
+                    } else {
+                        SheetInfoRows(t.toRows())
+                    }
+                }
+            }
+
+            SheetOptionRow(
+                icon = Icons.Default.Info,
+                title = "Info",
+                showArrow = true,
+                expanded = showInfo,
+                onClick = {
+                    if (!showInfo && infoState == null) {
+                        scope.launch {
+                            infoState = withContext(Dispatchers.IO) { queryMediaStoreInfo(context, item) }
+                        }
+                    }
+                    showInfo = !showInfo
+                }
+            )
+            if (showInfo) {
+                val i = infoState
+                if (i == null) {
+                    SheetLoadingRow()
+                } else {
+                    SheetInfoRows(i.toRows(item))
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            SheetOptionRow(
+                icon = Icons.Default.Delete,
+                title = "Delete",
+                destructive = true,
+                onClick = {
+                    onDismiss()
+                    onDelete()
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SheetOptionRow(
+    icon: ImageVector,
+    title: String,
+    destructive: Boolean = false,
+    showArrow: Boolean = false,
+    expanded: Boolean = false,
+    onClick: () -> Unit
+) {
+    val tint = if (destructive) Color(0xFFFF5252) else Color.White
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(16.dp))
+        Text(
+            title,
+            color = tint,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        if (showArrow) {
+            Icon(
+                if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                null,
+                tint = Color.White.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SheetLoadingRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 58.dp, end = 20.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(16.dp),
+            color = Color(0xFFE50914),
+            strokeWidth = 2.dp
+        )
+        Spacer(Modifier.width(10.dp))
+        Text("Loading...", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun SheetInfoRows(rows: List<Pair<String, String>>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 58.dp, end = 20.dp, bottom = 14.dp)
+    ) {
+        rows.forEach { (label, value) ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                Text(
+                    label,
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 12.sp,
+                    modifier = Modifier.width(110.dp)
+                )
+                Text(
+                    value,
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+private fun openInExternalPlayer(context: Context, item: UnifiedDownloadItem) {
+    try {
+        val file = File(item.filePath)
+        if (!file.exists()) return
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "video/*")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(intent)
+    } catch (_: Exception) {
+    }
+}
+
+private fun queryMediaStoreInfo(context: Context, item: UnifiedDownloadItem): MediaStoreInfo? {
+    return try {
+        val projection = arrayOf(
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DURATION,
+            MediaStore.Video.Media.WIDTH,
+            MediaStore.Video.Media.HEIGHT,
+            MediaStore.Video.Media.MIME_TYPE
+        )
+        val selection = "${MediaStore.Video.Media.DATA} = ?"
+        val selectionArgs = arrayOf(item.filePath)
+        context.contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val getLong = { col: String ->
+                    val idx = cursor.getColumnIndex(col)
+                    if (idx >= 0 && !cursor.isNull(idx)) cursor.getLong(idx) else null
+                }
+                val getString = { col: String ->
+                    val idx = cursor.getColumnIndex(col)
+                    if (idx >= 0 && !cursor.isNull(idx)) cursor.getString(idx) else null
+                }
+                MediaStoreInfo(
+                    size = getLong(MediaStore.Video.Media.SIZE),
+                    durationMs = getLong(MediaStore.Video.Media.DURATION),
+                    width = getLong(MediaStore.Video.Media.WIDTH)?.toInt(),
+                    height = getLong(MediaStore.Video.Media.HEIGHT)?.toInt(),
+                    mime = getString(MediaStore.Video.Media.MIME_TYPE)
+                )
+            } else {
+                null
+            }
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private fun extractTechnicalInfo(item: UnifiedDownloadItem): TechnicalInfo? {
+    val retriever = MediaMetadataRetriever()
+    return try {
+        retriever.setDataSource(item.filePath)
+        val getMeta = { key: Int -> retriever.extractMetadata(key) }
+        TechnicalInfo(
+            mime = getMeta(MediaMetadataRetriever.METADATA_KEY_MIMETYPE),
+            durationMs = getMeta(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
+            width = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull(),
+            height = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull(),
+            videoCodec = getMeta(MediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC),
+            audioCodec = getMeta(MediaMetadataRetriever.METADATA_KEY_AUDIO_CODEC),
+            bitrate = getMeta(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull()
+        )
+    } catch (_: Exception) {
+        null
+    } finally {
+        try { retriever.release() } catch (_: Exception) {
+        }
+    }
+}
+
+private fun MediaStoreInfo.toRows(item: UnifiedDownloadItem): List<Pair<String, String>> = buildList {
+    add("File Name" to item.fileName)
+    add("File Path" to item.filePath)
+    add("Size" to (size?.let { formatFileSize(it) } ?: formatFileSize(File(item.filePath).length())))
+    add("Duration" to formatDuration(durationMs))
+    add("Resolution" to (if (width != null && height != null) "${width} x ${height}" else "—"))
+    add("Format" to (mime ?: "—"))
+}
+
+private fun TechnicalInfo.toRows(): List<Pair<String, String>> = buildList {
+    add("Format" to (mime ?: "—"))
+    add("Duration" to formatDuration(durationMs))
+    add("Resolution" to (if (width != null && height != null) "${width} x ${height}" else "—"))
+    add("Video Codec" to (videoCodec ?: "—"))
+    add("Audio Codec" to (audioCodec ?: "—"))
+    add("Bitrate" to (bitrate?.let { formatFileSize(it.toLong()) + "/s" } ?: "—"))
+}
+
+private fun formatDuration(ms: Long?): String {
+    if (ms == null || ms <= 0) return "—"
+    val totalSec = ms / 1000
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return if (h > 0) {
+        String.format("%d:%02d:%02d", h, m, s)
+    } else {
+        String.format("%d:%02d", m, s)
+    }
 }
