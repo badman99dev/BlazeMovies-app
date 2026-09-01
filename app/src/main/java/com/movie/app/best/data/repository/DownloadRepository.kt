@@ -232,7 +232,7 @@ class DownloadRepository @Inject constructor(
 
         val headers = HashMap<String, String>().apply {
             put("User-Agent", DOWNLOAD_USER_AGENT)
-            put("Referer", "https://blazemovies.vercel.app/")
+            put("Referer", "https://blazemovies.badman993944.workers.dev/")
             put("Accept", "*/*")
             cookieHeaderForUrl(mirror.jackpot)?.let { put("Cookie", it) }
         }
@@ -261,7 +261,7 @@ class DownloadRepository @Inject constructor(
 
         val headers = HashMap<String, String>().apply {
             put("User-Agent", DOWNLOAD_USER_AGENT)
-            put("Referer", "https://blazemovies.vercel.app/")
+            put("Referer", "https://blazemovies.badman993944.workers.dev/")
             put("Accept", "*/*")
             cookieHeaderForUrl(url)?.let { put("Cookie", it) }
         }
@@ -310,7 +310,7 @@ class DownloadRepository @Inject constructor(
 
         val headers = HashMap<String, String>().apply {
             put("User-Agent", DOWNLOAD_USER_AGENT)
-            put("Referer", originUrl ?: "https://blazemovies.vercel.app/")
+            put("Referer", originUrl ?: "https://blazemovies.badman993944.workers.dev/")
             put("Accept", "*/*")
             if (cookies != null) put("Cookie", cookies)
         }
