@@ -41,7 +41,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://blazemovies.vercel.app/v1/\"")
+            buildConfigField("String", "BASE_URL", "\"https://blazemovies.badman993944.workers.dev/v1/\"")
             buildConfigField("String", "IMDB1_BASE_URL", "\"https://api.tiffara.com/\"")
             buildConfigField("String", "IMDB2_BASE_URL", "\"https://imdxapi.vercel.app/\"")
             buildConfigField("String", "MEILI_KEY_URL", "\"https://meilisearch.badman993944.workers.dev/\"")
@@ -54,7 +54,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://blazemovies.vercel.app/v1/\"")
+            buildConfigField("String", "BASE_URL", "\"https://blazemovies.badman993944.workers.dev/v1/\"")
             buildConfigField("String", "IMDB1_BASE_URL", "\"https://api.tiffara.com/\"")
             buildConfigField("String", "IMDB2_BASE_URL", "\"https://imdxapi.vercel.app/\"")
             buildConfigField("String", "MEILI_KEY_URL", "\"https://meilisearch.badman993944.workers.dev/\"")
