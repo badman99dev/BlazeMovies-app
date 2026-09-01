@@ -43,7 +43,7 @@ android {
             )
             buildConfigField("String", "BASE_URL", "\"https://blazemovies.badman993944.workers.dev/v1/\"")
             buildConfigField("String", "IMDB1_BASE_URL", "\"https://api.tiffara.com/\"")
-            buildConfigField("String", "IMDB2_BASE_URL", "\"https://imdxapi.vercel.app/\"")
+            buildConfigField("String", "IMDB2_BASE_URL", "\"https://imdxapi.badman993944.workers.dev/\"")
             buildConfigField("String", "MEILI_KEY_URL", "\"https://meilisearch.badman993944.workers.dev/\"")
             buildConfigField("String", "MEILI_SEARCH_URL", "\"https://meilisearch-rs25.onrender.com/indexes/movies/search\"")
             buildConfigField("String", "MEILI_PING_URL", "\"https://meilisearch-rs25.onrender.com/\"")
@@ -56,7 +56,7 @@ android {
         debug {
             buildConfigField("String", "BASE_URL", "\"https://blazemovies.badman993944.workers.dev/v1/\"")
             buildConfigField("String", "IMDB1_BASE_URL", "\"https://api.tiffara.com/\"")
-            buildConfigField("String", "IMDB2_BASE_URL", "\"https://imdxapi.vercel.app/\"")
+            buildConfigField("String", "IMDB2_BASE_URL", "\"https://imdxapi.badman993944.workers.dev/\"")
             buildConfigField("String", "MEILI_KEY_URL", "\"https://meilisearch.badman993944.workers.dev/\"")
             buildConfigField("String", "MEILI_SEARCH_URL", "\"https://meilisearch-rs25.onrender.com/indexes/movies/search\"")
             buildConfigField("String", "MEILI_PING_URL", "\"https://meilisearch-rs25.onrender.com/\"")
