@@ -169,7 +169,7 @@ fun MoviesScreen(
                     }
                 }
                 else -> {
-                    val visibleMovies = remember(uiState.movies, context) { ModerationSettings.filterMovies(context, uiState.movies) }
+                    val visibleMovies = remember(uiState.movies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.movies) }
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         state = gridState,

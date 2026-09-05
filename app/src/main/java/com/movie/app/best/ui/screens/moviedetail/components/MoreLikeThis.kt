@@ -53,7 +53,7 @@ fun MoreLikeThisSection(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val visibleMovies = remember(movies, context) { ModerationSettings.filterMovies(context, movies) }
+    val visibleMovies = remember(movies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, movies) }
     if (visibleMovies.isEmpty()) return
 
     Column(modifier = modifier.fillMaxWidth()) {

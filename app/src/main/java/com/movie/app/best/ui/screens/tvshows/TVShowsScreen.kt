@@ -146,7 +146,7 @@ fun TVShowsScreen(
                 }
                 else -> {
                     val context = androidx.compose.ui.platform.LocalContext.current
-                    val visibleShows = remember(uiState.tvShows, context) { ModerationSettings.filterMovies(context, uiState.tvShows) }
+                    val visibleShows = remember(uiState.tvShows, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.tvShows) }
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         state = gridState,

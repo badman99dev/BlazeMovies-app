@@ -42,7 +42,7 @@ fun TrendingScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val context = LocalContext.current
-    val filteredMovies = remember(uiState.popularMovies, context) { ModerationSettings.filterMovies(context, uiState.popularMovies) }
+    val filteredMovies = remember(uiState.popularMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.popularMovies) }
 
     val shouldLoadMore by remember(uiState) {
         derivedStateOf {

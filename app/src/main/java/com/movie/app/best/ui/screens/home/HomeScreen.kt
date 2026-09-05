@@ -41,13 +41,13 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     val context = LocalContext.current
 
-    val allMovies = remember(uiState.allTabMovies, context) { ModerationSettings.filterMovies(context, uiState.allTabMovies) }
-    val trending    = remember(uiState.trendingMovies, context) { ModerationSettings.filterMovies(context, uiState.trendingMovies) }
-    val myFeed      = remember(uiState.myFeedMovies, context) { ModerationSettings.filterMovies(context, uiState.myFeedMovies) }
+    val allMovies = remember(uiState.allTabMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.allTabMovies) }
+    val trending    = remember(uiState.trendingMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.trendingMovies) }
+    val myFeed      = remember(uiState.myFeedMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.myFeedMovies) }
     val newReleases = remember(allMovies) { allMovies.sortedByDescending { it.id }.take(12) }
-    val series      = remember(uiState.seriesMovies, context) { ModerationSettings.filterMovies(context, uiState.seriesMovies) }
-    val newIndia    = remember(uiState.newIndiaReleases, context) { ModerationSettings.filterMovies(context, uiState.newIndiaReleases) }
-    val newUs       = remember(uiState.newUsReleases, context) { ModerationSettings.filterMovies(context, uiState.newUsReleases) }
+    val series      = remember(uiState.seriesMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.seriesMovies) }
+    val newIndia    = remember(uiState.newIndiaReleases, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.newIndiaReleases) }
+    val newUs       = remember(uiState.newUsReleases, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.newUsReleases) }
 
     val shouldLoadMore by remember {
         derivedStateOf {

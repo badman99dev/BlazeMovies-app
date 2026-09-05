@@ -60,6 +60,8 @@ data class Movie(
 ) : Parcelable {
     val shouldBlurPoster: Boolean
         get() = contentModeration?.isPosterSexual == true || posterModeration == "sexual"
+    val hasAnyModerationFlag: Boolean
+        get() = contentModeration?.hasAnyFlag == true || posterModeration == "sexual"
 }
 
 @Parcelize

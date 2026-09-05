@@ -64,7 +64,7 @@ fun CelebsScreen(
         viewModel.configure(nameId)
     }
 
-    val filteredMovies = remember(uiState.movies, context) { ModerationSettings.filterMovies(context, uiState.movies) }
+    val filteredMovies = remember(uiState.movies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.movies) }
 
     val shouldLoadMore by remember(uiState) {
         derivedStateOf {

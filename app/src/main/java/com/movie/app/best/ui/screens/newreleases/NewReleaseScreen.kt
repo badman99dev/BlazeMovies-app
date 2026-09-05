@@ -55,7 +55,7 @@ fun NewReleaseScreen(
 
     val activeCountry = uiState.activeCountry
     val activeTab = if (activeCountry == NewReleaseViewModel.COUNTRY_US) uiState.usTab else uiState.inTab
-    val filteredMovies = remember(activeTab.movies, context) { ModerationSettings.filterMovies(context, activeTab.movies) }
+    val filteredMovies = remember(activeTab.movies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, activeTab.movies) }
 
     val shouldLoadMore by remember(activeTab) {
         derivedStateOf {

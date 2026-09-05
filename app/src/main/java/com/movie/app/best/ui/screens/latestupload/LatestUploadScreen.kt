@@ -44,7 +44,7 @@ fun LatestUploadScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val context = LocalContext.current
-    val filteredMovies = remember(uiState.movies, context) { ModerationSettings.filterMovies(context, uiState.movies) }
+    val filteredMovies = remember(uiState.movies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.movies) }
 
     LaunchedEffect(Unit) {
         viewModel.configure(type)

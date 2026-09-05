@@ -2,6 +2,9 @@ package com.movie.app.best.data.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 
 object ModerationSettings {
     private const val PREFS_NAME = "app_moderation"
@@ -14,6 +17,9 @@ object ModerationSettings {
     var cachedEnabled: Boolean = true
     var cachedMode: String = MODE_BLUR
 
+    var changeVersion by mutableIntStateOf(0)
+        private set
+
     private fun prefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -25,6 +31,7 @@ object ModerationSettings {
     fun setEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_ENABLED, enabled).apply()
         cachedEnabled = enabled
+        changeVersion++
     }
 
     fun getMode(context: Context): String {
@@ -34,6 +41,7 @@ object ModerationSettings {
     fun setMode(context: Context, mode: String) {
         prefs(context).edit().putString(KEY_MODE, mode).apply()
         cachedMode = mode
+        changeVersion++
     }
 
     fun initCache(context: Context) {
@@ -97,6 +105,6 @@ object ModerationSettings {
 
     fun filterMovies(context: Context, movies: List<com.movie.app.best.data.model.Movie>): List<com.movie.app.best.data.model.Movie> {
         if (!isEnabled(context) || getMode(context) != MODE_HIDE) return movies
-        return movies.filter { !it.shouldBlurPoster }
+        return movies.filter { !it.hasAnyModerationFlag }
     }
 }
