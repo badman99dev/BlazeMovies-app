@@ -73,6 +73,7 @@ fun MoviesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val gridState = rememberLazyGridState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val shouldPaginate by remember {
         derivedStateOf {
@@ -168,6 +169,7 @@ fun MoviesScreen(
                     }
                 }
                 else -> {
+                    val visibleMovies = remember(uiState.movies, context) { ModerationSettings.filterMovies(context, uiState.movies) }
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         state = gridState,
@@ -176,7 +178,7 @@ fun MoviesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.movies, key = { it.slug }) { movie ->
+                        items(visibleMovies, key = { it.slug }) { movie ->
                             MovieGridItem(
                                 movie = movie,
                                 onClick = { onContentClick(movie.slug, movie.isSeries, movie.imdbId) }

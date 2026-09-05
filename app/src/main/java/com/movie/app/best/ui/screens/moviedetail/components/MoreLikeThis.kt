@@ -52,7 +52,9 @@ fun MoreLikeThisSection(
     onMovieClick: (String, Boolean, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (movies.isEmpty()) return
+    val context = LocalContext.current
+    val visibleMovies = remember(movies, context) { ModerationSettings.filterMovies(context, movies) }
+    if (visibleMovies.isEmpty()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
         DetailSectionTitle(title = "More Like This")
@@ -60,7 +62,7 @@ fun MoreLikeThisSection(
             contentPadding        = PaddingValues(horizontal = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(movies, key = { it.slug }) { movie ->
+            items(visibleMovies, key = { it.slug }) { movie ->
                 SimilarMovieCard(
                     movie   = movie,
                     onClick = { onMovieClick(movie.slug, movie.isSeries, movie.imdbId) }

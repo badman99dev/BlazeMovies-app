@@ -46,6 +46,8 @@ fun HomeScreen(
     val myFeed      = remember(uiState.myFeedMovies, context) { ModerationSettings.filterMovies(context, uiState.myFeedMovies) }
     val newReleases = remember(allMovies) { allMovies.sortedByDescending { it.id }.take(12) }
     val series      = remember(uiState.seriesMovies, context) { ModerationSettings.filterMovies(context, uiState.seriesMovies) }
+    val newIndia    = remember(uiState.newIndiaReleases, context) { ModerationSettings.filterMovies(context, uiState.newIndiaReleases) }
+    val newUs       = remember(uiState.newUsReleases, context) { ModerationSettings.filterMovies(context, uiState.newUsReleases) }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -100,12 +102,12 @@ fun HomeScreen(
             }
 
             // Newly Indian Releases
-            if (uiState.newIndiaError == null || uiState.newIndiaReleases.isNotEmpty()) {
+            if (uiState.newIndiaError == null || newIndia.isNotEmpty()) {
                 item {
                     MovieRowSection(
                         title        = "Newly Indian Releases 🎬",
-                        movies       = uiState.newIndiaReleases,
-                        isLoading    = uiState.isNewIndiaLoading && uiState.newIndiaReleases.isEmpty(),
+                        movies       = newIndia,
+                        isLoading    = uiState.isNewIndiaLoading && newIndia.isEmpty(),
                         cardSize     = CardSize.LARGE,
                         onMovieClick = onContentClick,
                         onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("in")) }
@@ -114,12 +116,12 @@ fun HomeScreen(
             }
 
             // Hollywood Crazy Drops
-            if (uiState.newUsError == null || uiState.newUsReleases.isNotEmpty()) {
+            if (uiState.newUsError == null || newUs.isNotEmpty()) {
                 item {
                     MovieRowSection(
                         title        = "Hollywood Crazy Drops 🗽",
-                        movies       = uiState.newUsReleases,
-                        isLoading    = uiState.isNewUsLoading && uiState.newUsReleases.isEmpty(),
+                        movies       = newUs,
+                        isLoading    = uiState.isNewUsLoading && newUs.isEmpty(),
                         cardSize     = CardSize.NORMAL,
                         onMovieClick = onContentClick,
                         onSeeAllClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.NewRelease.createRoute("us")) }
