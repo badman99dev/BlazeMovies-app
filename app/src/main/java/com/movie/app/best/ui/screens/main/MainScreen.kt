@@ -83,7 +83,7 @@ import com.movie.app.best.FcmService
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.model.UpdateResponse
 import com.movie.app.best.data.repository.PrefetchCache
-import com.movie.app.best.ui.components.CategoryDrawerContent
+import com.movie.app.best.ui.components.AppDrawerContent
 import com.movie.app.best.ui.navigation.AppNavigation
 import com.movie.app.best.ui.navigation.BottomNavigationBar
 import com.movie.app.best.ui.navigation.Screen
@@ -386,7 +386,7 @@ fun MainContent(
             Screen.Categories.route
         ) && isConnected,
         drawerContent = {
-            CategoryDrawerContent(
+            AppDrawerContent(
                 onCategoryClick = { slug, name ->
                     scope.launch { drawerState.close() }
                     navController.navigate(Screen.CategoryPage.createRoute(slug, name))

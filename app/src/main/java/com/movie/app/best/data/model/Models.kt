@@ -102,7 +102,8 @@ data class Category(
     @SerializedName("category_name") val categoryName: String,
     val slug: String,
     @SerializedName("banner_url") val bannerUrl: String,
-    val count: Int
+    val count: Int,
+    @SerializedName("is_adult") val isAdult: Boolean = false
 ) : Parcelable
 
 @Parcelize

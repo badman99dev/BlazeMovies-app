@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -102,8 +103,16 @@ fun MoviesScreen(
             )
 
             if (uiState.categories.isNotEmpty()) {
+                val visibleCategories = remember(uiState.categories, context, ModerationSettings.changeVersion) {
+                    ModerationSettings.filterCategories(context, uiState.categories)
+                }
+                LaunchedEffect(visibleCategories, uiState.currentCategorySlug) {
+                    if (uiState.currentCategorySlug != null && visibleCategories.none { it.slug == uiState.currentCategorySlug }) {
+                        viewModel.selectCategory(null)
+                    }
+                }
                 CategoryChipsRow(
-                    categories = uiState.categories,
+                    categories = visibleCategories,
                     selectedSlug = uiState.currentCategorySlug,
                     onSelect = viewModel::selectCategory
                 )

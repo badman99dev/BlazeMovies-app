@@ -107,4 +107,9 @@ object ModerationSettings {
         if (!isEnabled(context) || getMode(context) != MODE_HIDE) return movies
         return movies.filter { !it.hasAnyModerationFlag }
     }
+
+    fun filterCategories(context: Context, categories: List<com.movie.app.best.data.model.Category>): List<com.movie.app.best.data.model.Category> {
+        if (!isEnabled(context) || getMode(context) != MODE_HIDE) return categories
+        return categories.filter { !it.isAdult }
+    }
 }

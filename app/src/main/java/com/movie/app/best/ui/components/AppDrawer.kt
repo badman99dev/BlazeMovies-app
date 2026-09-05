@@ -28,11 +28,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,6 +43,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.Category
 import com.movie.app.best.data.repository.PrefetchCache
+import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.screens.categories.CategoriesViewModel
 import com.movie.app.best.ui.theme.AppBg
 import com.movie.app.best.ui.theme.CardDark
@@ -50,13 +53,17 @@ import com.movie.app.best.ui.theme.SecondaryText
 import androidx.compose.foundation.shape.CircleShape
 
 @Composable
-fun CategoryDrawerContent(
+fun AppDrawerContent(
     onCategoryClick: (slug: String, name: String) -> Unit,
     onAllCategoriesClick: () -> Unit = {},
     onUpdateClick: () -> Unit = {},
     viewModel: CategoriesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val visibleCategories = remember(uiState.categories, context, ModerationSettings.changeVersion) {
+        ModerationSettings.filterCategories(context, uiState.categories)
+    }
 
     Column(
         modifier = Modifier
@@ -157,7 +164,7 @@ fun CategoryDrawerContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                items(uiState.categories, key = { it.slug }) { category ->
+                items(visibleCategories, key = { it.slug }) { category ->
                     DrawerCategoryItem(
                         category = category,
                         onClick = { onCategoryClick(category.slug, category.categoryName) }

@@ -122,6 +122,10 @@ fun CategoriesScreen(
                         )
                     }
                     else -> {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val visibleCategories = remember(uiState.categories, context, ModerationSettings.changeVersion) {
+                            ModerationSettings.filterCategories(context, uiState.categories)
+                        }
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             contentPadding = PaddingValues(8.dp),
@@ -129,7 +133,7 @@ fun CategoriesScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(uiState.categories, key = { it.slug }) { category ->
+                            items(visibleCategories, key = { it.slug }) { category ->
                                 CategoryCard(
                                     category = category,
                                     onClick = {
