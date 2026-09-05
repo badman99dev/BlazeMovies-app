@@ -472,6 +472,15 @@ private fun MovieDetailContent(
                 )
             }
 
+            // 8b. More Versions (same IMDb ID uploads)
+            if (uiState.moreVersions.isNotEmpty()) {
+                Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
+                MoreVersionsSection(
+                    versions     = uiState.moreVersions,
+                    onMovieClick = onContentClick
+                )
+            }
+
             // 9. More Like This (after screenshots)
             if (movie.imdbId.startsWith("tt")) {
                 Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp))

@@ -235,7 +235,8 @@ data class ContentDetailResponse(
     @SerializedName("episodes_by_season") val episodesBySeason: Map<String, List<Episode>> = emptyMap(),
     @SerializedName("links_by_episode") val linksByEpisode: Map<String, List<DownloadLink>> = emptyMap(),
     @SerializedName("links_no_episode") val linksNoEpisode: List<DownloadLink> = emptyList(),
-    @SerializedName("more_seasons") val moreSeasons: List<Season> = emptyList()
+    @SerializedName("more_seasons") val moreSeasons: List<Season> = emptyList(),
+    @SerializedName("more_versions") val moreVersions: List<Movie> = emptyList()
 )
 
 @Parcelize

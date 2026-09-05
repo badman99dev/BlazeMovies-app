@@ -93,6 +93,7 @@ class MovieDetailViewModel @Inject constructor(
                                 categories = emptyList(),
                                 allMovies = emptyList(),
                                 fallbackGenres = detailData?.genres ?: emptyList(),
+                                moreVersions = detailData?.moreVersions ?: emptyList(),
                                 contentReady = true,
                                 imdbReady = if (noImdbNeeded) true else it.imdbReady,
                                 isLoading = false,
@@ -737,6 +738,8 @@ data class MovieDetailUiState(
     val similarMovies: List<com.movie.app.best.data.model.Movie> = emptyList(),
     val isSimilarLoading: Boolean = false,
     val similarError: String? = null,
+
+    val moreVersions: List<com.movie.app.best.data.model.Movie> = emptyList(),
 
     val crewCredits: List<CrewPerson> = emptyList(),
     val titleDetails: ImdbTitleDetails? = null,
