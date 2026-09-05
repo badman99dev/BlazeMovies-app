@@ -54,6 +54,7 @@ import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.Category
 import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.repository.MovieRepository
+import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.AppHeader
 import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.components.ErrorView
@@ -296,12 +297,14 @@ fun CategoryPageScreen(
                     )
                 }
                 else -> {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val visibleMovies = remember(uiState.movies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.movies) }
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize()
                     ) {
                         movieGridItems(
-                            movies = uiState.movies,
+                            movies = visibleMovies,
                             onMovieClick = onContentClick
                         )
 
