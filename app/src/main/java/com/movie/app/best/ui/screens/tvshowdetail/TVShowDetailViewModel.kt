@@ -88,6 +88,7 @@ class TVShowDetailViewModel @Inject constructor(
                                     comments = data.comments,
                                     screenshots = data.screenshots,
                                     moreSeasons = data.moreSeasons,
+                                    moreVersions = data.moreVersions,
                                     downloadLinks = data.linksNoEpisode,
                                     fallbackGenres = data.genres,
                                     contentReady = true,
@@ -711,6 +712,7 @@ data class TVShowDetailUiState(
     val comments: List<Comment> = emptyList(),
     val screenshots: List<String> = emptyList(),
     val moreSeasons: List<Season> = emptyList(),
+    val moreVersions: List<com.movie.app.best.data.model.Movie> = emptyList(),
 
     val similarMovies: List<com.movie.app.best.data.model.Movie> = emptyList(),
     val isSimilarLoading: Boolean = false,

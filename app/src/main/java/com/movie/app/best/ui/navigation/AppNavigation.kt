@@ -237,14 +237,10 @@ fun AppNavigation(
                 onWatchClick = { imdbId, mTitle, mId, mSlug, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector, mDescription, mGenres ->
                     navController.navigate(Screen.MovieWatch.createRoute(mSlug, imdbId, mTitle, mId, mHasStream, mPlayerUrl, mPosterUrl, mCast, mDirector, mDescription, mGenres))
                 },                onSeriesClick = { seriesSlug, seriesImdbId ->
-                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug, seriesImdbId)) {
-                        popUpTo(Screen.MovieDetail.route) { inclusive = true }
-                    }
+                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug, seriesImdbId))
                 },
                 onMovieClick = { movieSlug, movieImdbId ->
-                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug, movieImdbId)) {
-                        popUpTo(Screen.MovieDetail.route) { inclusive = true }
-                    }
+                    navController.navigate(Screen.MovieDetail.createRoute(movieSlug, movieImdbId))
                 },
                 onDownloadClick = { },
                 onGoToDownloads = {
@@ -298,9 +294,7 @@ fun AppNavigation(
                     navController.navigate(Screen.MovieDetail.createRoute(movieSlug, movieImdbId))
                 },
                 onSeriesClick = { seriesSlug, seriesImdbId ->
-                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug, seriesImdbId)) {
-                        popUpTo(Screen.SeriesDetail.route) { inclusive = true }
-                    }
+                    navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug, seriesImdbId))
                 },
                 onGoToDownloads = {
                     navController.navigate(Screen.Downloads.route) {

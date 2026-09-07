@@ -4,6 +4,8 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,6 +42,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
@@ -72,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
@@ -699,15 +703,21 @@ private fun TVShowDetailContent(
         }
 
         if (uiState.moreSeasons.isNotEmpty()) {
-            SectionTitle("More Seasons")
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(uiState.moreSeasons, key = { it.id }) { season ->
-                    MoreSeasonCard(season = season, onClick = { onContentClick(season.slug, true, "") })
-                }
-            }
+            CollapsibleSeasonsSection(
+                seasons = uiState.moreSeasons,
+                onSeasonClick = { onContentClick(it.slug, true, "") }
+            )
+        }
+
+        if (uiState.moreVersions.isNotEmpty()) {
+            HorizontalDivider(
+                color = Color.White.copy(alpha = 0.07f),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            com.movie.app.best.ui.screens.moviedetail.components.MoreVersionsSection(
+                versions = uiState.moreVersions,
+                onMovieClick = onContentClick
+            )
         }
 
         if (series.imdbId.startsWith("tt")) {
@@ -935,6 +945,67 @@ private fun CommentItem(comment: Comment) {
 }
 
 @Composable
+@Composable
+private fun CollapsibleSeasonsSection(
+    seasons: List<Season>,
+    onSeasonClick: (Season) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(300),
+        label = "seasons_arrow_rot"
+    )
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .size(22.dp)
+                    .rotate(arrowRotation)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "More Seasons",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "  (${seasons.size})",
+                color = Color.White.copy(alpha = 0.4f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(tween(300)),
+            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(tween(200))
+        ) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(seasons, key = { it.id }) { season ->
+                    MoreSeasonCard(season = season, onClick = { onSeasonClick(season) })
+                }
+            }
+        }
+    }
+}
+
 private fun MoreSeasonCard(
     season: Season,
     onClick: () -> Unit
