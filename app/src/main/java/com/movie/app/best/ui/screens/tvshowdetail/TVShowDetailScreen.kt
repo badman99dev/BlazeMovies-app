@@ -2,6 +2,7 @@ package com.movie.app.best.ui.screens.tvshowdetail
 
 import android.Manifest
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -253,7 +254,6 @@ fun TVShowDetailScreen(
                     onWatchNow = onWatchNow,
                     onPostComment = { name, msg -> gate { viewModel.postComment(name, msg) } },
                     onRequestStream = { gate { viewModel.requestStream() } },
-                    onStartDownload = { linkUrl, linkId -> requestDownload(linkUrl, linkId) },
                     onOpenEpisodeDownloadSheet = { links, title -> openEpisodeDownloadSheet(links, title) },
                     onResetCommentState = viewModel::resetCommentState,
                     onToggleBookmark = { gate { viewModel.toggleBookmark() } },
@@ -427,7 +427,6 @@ private fun TVShowDetailContent(
     onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String, genres: String) -> Unit,
     onPostComment: (name: String, msg: String) -> Unit,
     onRequestStream: () -> Unit,
-    onStartDownload: (linkUrl: String, linkId: Int?) -> Unit,
     onOpenEpisodeDownloadSheet: (List<DownloadLink>, String) -> Unit,
     onResetCommentState: () -> Unit,
     onToggleBookmark: () -> Unit,
@@ -519,9 +518,14 @@ private fun TVShowDetailContent(
                 onWatchNow(series.imdbId, series.title, series.id.toString(), series.slug, selectedSeason, series.cast, series.director, series.description, uiState.fallbackGenres.joinToString(","))
             },
             onDownloadClick = {
-                val allLinks = uiState.linksByEpisode.values.flatten() + uiState.downloadLinks
-                if (allLinks.isNotEmpty()) {
-                    onOpenEpisodeDownloadSheet(allLinks, series.title)
+                if (uiState.downloadLinks.isNotEmpty()) {
+                    onOpenEpisodeDownloadSheet(uiState.downloadLinks, series.title)
+                } else {
+                    Toast.makeText(
+                        context,
+                        "No full season pack available — download episodes individually",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             },
             onMyListClick = onToggleBookmark,
@@ -618,11 +622,6 @@ private fun TVShowDetailContent(
                 }
             }
         }
-
-        TVDownloadSection(
-            uiState = uiState,
-            onStartDownload = onStartDownload
-        )
 
         TrailersRow(
             youtubeId = series.youtubeId,
@@ -1071,190 +1070,6 @@ private fun MoreSeasonCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.6f)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TVDownloadSection(
-    uiState: TVShowDetailUiState,
-    onStartDownload: (linkUrl: String, linkId: Int?) -> Unit
-) {
-    val context = LocalContext.current
-    val links = uiState.downloadLinks
-
-    if (links.isEmpty()) return
-
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        SectionTitle("Full Season Pack")
-
-        links.forEach { link ->
-            val isLoading = uiState.downloadLoadingLinkId == link.id
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color.White.copy(alpha = 0.06f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        enabled = !isLoading,
-                        onClick = { onStartDownload(link.linkUrl, link.id) }
-                    )
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(AppRed.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = AppRed,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            Icons.Default.Download,
-                            contentDescription = null,
-                            tint = AppRed,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = link.label.ifEmpty { "Download" },
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    if (link.fileSize.isNotEmpty()) {
-                        Text(
-                            text = link.fileSize,
-                            color = Color.White.copy(0.5f),
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = AppRed.copy(0.6f),
-                        strokeWidth = 2.dp
-                    )
-                }
-            }
-        }
-
-        if (uiState.downloadError != null) {
-            Text(
-                text = uiState.downloadError,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TVCommentFormSection(
-    isPosting: Boolean,
-    posted: Boolean,
-    error: String?,
-    onPost: (name: String, msg: String) -> Unit,
-    onReset: () -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        SectionTitle("Post a Comment")
-
-        if (posted) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20))
-            ) {
-                Text(
-                    text = "Comment posted successfully!",
-                    color = Color.White,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-            LaunchedEffect(posted) {
-                if (posted) {
-                    delay(2000)
-                    onReset()
-                }
-            }
-        }
-
-        if (error != null) {
-            Text(
-                text = error,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Your Name") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.DarkGray.copy(alpha = 0.3f),
-                focusedContainerColor = Color.DarkGray.copy(alpha = 0.3f)
-            )
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = message,
-            onValueChange = { message = it },
-            label = { Text("Comment") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-            maxLines = 5,
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.DarkGray.copy(alpha = 0.3f),
-                focusedContainerColor = Color.DarkGray.copy(alpha = 0.3f)
-            )
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
-            onClick = {
-                if (name.isNotBlank() && message.isNotBlank()) {
-                    onPost(name, message)
-                }
-            },
-            enabled = !isPosting && name.isNotBlank() && message.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isPosting) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-            } else {
-                Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Post Comment")
             }
         }
     }

@@ -111,7 +111,7 @@ data class DownloadLink(
     val id: Int,
     val label: String,
     @SerializedName("link_url") val linkUrl: String,
-    val type: String,
+    val type: String?,
     @SerializedName("file_size") val fileSize: String,
     @SerializedName("episode_id") val episodeId: Int?
 ) : Parcelable

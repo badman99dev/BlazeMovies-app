@@ -733,7 +733,7 @@ private fun QualityOptionRow(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (link.type.isNotEmpty()) {
+                    if (!link.type.isNullOrBlank()) {
                         Spacer(Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
@@ -742,7 +742,7 @@ private fun QualityOptionRow(
                                 .padding(horizontal = 7.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                link.type.uppercase(),
+                                text = link.type?.uppercase() ?: "",
                                 color = Color(0xFFB388FF),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
