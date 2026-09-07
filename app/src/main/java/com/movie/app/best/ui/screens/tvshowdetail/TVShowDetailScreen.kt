@@ -1005,6 +1005,7 @@ private fun CollapsibleSeasonsSection(
     }
 }
 
+@Composable
 private fun MoreSeasonCard(
     season: Season,
     onClick: () -> Unit
