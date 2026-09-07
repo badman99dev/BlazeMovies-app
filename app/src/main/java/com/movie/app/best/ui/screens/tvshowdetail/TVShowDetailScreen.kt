@@ -945,7 +945,6 @@ private fun CommentItem(comment: Comment) {
 }
 
 @Composable
-@Composable
 private fun CollapsibleSeasonsSection(
     seasons: List<Season>,
     onSeasonClick: (Season) -> Unit
