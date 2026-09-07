@@ -1075,6 +1075,100 @@ private fun MoreSeasonCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TVCommentFormSection(
+    isPosting: Boolean,
+    posted: Boolean,
+    error: String?,
+    onPost: (name: String, msg: String) -> Unit,
+    onReset: () -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        SectionTitle("Post a Comment")
+
+        if (posted) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20))
+            ) {
+                Text(
+                    text = "Comment posted successfully!",
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            LaunchedEffect(posted) {
+                if (posted) {
+                    delay(2000)
+                    onReset()
+                }
+            }
+        }
+
+        if (error != null) {
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Your Name") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = Color.DarkGray.copy(alpha = 0.3f),
+                focusedContainerColor = Color.DarkGray.copy(alpha = 0.3f)
+            )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = message,
+            onValueChange = { message = it },
+            label = { Text("Comment") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            maxLines = 5,
+            colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = Color.DarkGray.copy(alpha = 0.3f),
+                focusedContainerColor = Color.DarkGray.copy(alpha = 0.3f)
+            )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                if (name.isNotBlank() && message.isNotBlank()) {
+                    onPost(name, message)
+                }
+            },
+            enabled = !isPosting && name.isNotBlank() && message.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isPosting) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+            } else {
+                Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Post Comment")
+            }
+        }
+    }
+}
+
 private fun formatVoteCount(count: Int): String = when {
     count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
     count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
