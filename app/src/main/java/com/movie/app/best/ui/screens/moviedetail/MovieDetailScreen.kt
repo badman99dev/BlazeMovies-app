@@ -180,6 +180,7 @@ fun MovieDetailScreen(
         if (showDownloadSheet && uiState.movie != null) {
             androidx.compose.material3.ModalBottomSheet(
                 onDismissRequest = { showDownloadSheet = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = Color.Transparent,
                 dragHandle = null,
                 tonalElevation = 0.dp,

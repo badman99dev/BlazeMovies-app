@@ -63,6 +63,7 @@ import androidx.compose.material3.MaterialTheme
 
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -370,6 +371,7 @@ fun TVShowDetailScreen(
         if (showDownloadSheet && sheetDownloadLinks.isNotEmpty()) {
             androidx.compose.material3.ModalBottomSheet(
                 onDismissRequest = { showDownloadSheet = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = Color.Transparent,
                 dragHandle = null,
                 tonalElevation = 0.dp,
