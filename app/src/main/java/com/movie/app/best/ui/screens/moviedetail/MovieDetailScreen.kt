@@ -183,7 +183,6 @@ fun MovieDetailScreen(
                 containerColor = Color.Transparent,
                 dragHandle = null,
                 tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
                 shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
             ) {
                 DownloadBottomSheetContent(

@@ -52,7 +52,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -317,8 +316,6 @@ fun DownloadBottomSheetContent(
                                             shadowElevation = if (pressed) 4.dp.toPx() else 14.dp.toPx()
                                             shape = RoundedCornerShape(28.dp)
                                             clip = false
-                                            ambientColor = Color(0xFF000000).copy(alpha = 0.55f).toArgb()
-                                            spotColor = Color(0xFFE50914).copy(alpha = 0.6f).toArgb()
                                         }
                                         .clip(RoundedCornerShape(28.dp))
                                         .background(
