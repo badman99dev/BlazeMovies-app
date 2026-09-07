@@ -209,36 +209,36 @@ class TVShowDetailViewModel @Inject constructor(
                     is Resource.Loading -> {}
                     is Resource.Success -> {
                         val mirrors = result.data ?: emptyList()
-                        if (mirrors.size == 1) {
-                            val m = mirrors.first()
-                            _uiState.update { it.copy(downloadPhase = DownloadPhase.INITIALIZING, downloadLoadingLinkId = null, downloadIsZip = m.isZip) }
-                            val ketchId = downloadRepository.startDownloadWithMetadata(
-                                m, slug, posterUrl, title, "series", episodeId, episodeLabel
+                        _uiState.update {
+                            it.copy(
+                                downloadPhase = DownloadPhase.INITIALIZING,
+                                downloadLoadingLinkId = null,
+                                pendingMirrorQueue = mirrors,
+                                pendingMirrorIndex = 0,
+                                pendingMirrorEpisodeId = episodeId,
+                                pendingMirrorEpisodeLabel = episodeLabel,
+                                downloadFallbackInfo = if (mirrors.size > 1) "Server 1 of ${mirrors.size}" else null
                             )
-                            val meta = downloadRepository.getMetadata(slug + (episodeLabel ?: ""))
-                            _uiState.update {
-                                it.copy(
-                                    downloadKetchId = ketchId,
-                                    downloadPhase = DownloadPhase.DOWNLOADING,
-                                    downloadStarted = true,
-                                    downloadError = null,
-                                    downloadIsZip = m.isZip,
-                                    downloadFilePath = meta?.filePath,
-                                    downloadTitle = title,
-                                    downloadStartedLinkIds = it.downloadStartedLinkIds + (linkId ?: 0)
-                                )
-                            }
-                            observeDownloadStatus(ketchId, slug + (episodeLabel ?: ""))
-                        } else {
-                            _uiState.update {
-                                it.copy(
-                                    downloadLoadingLinkId = null,
-                                    resolvedMirrors = it.resolvedMirrors + (linkId to mirrors),
-                                    expandedLinkId = linkId,
-                                    downloadError = null
-                                )
-                            }
                         }
+                        val first = mirrors.first()
+                        com.movie.app.best.data.debug.NetworkLogger.logAction("FALLBACK_TV", "queue=${mirrors.size} starting server 1")
+                        val ketchId = downloadRepository.startDownloadWithMetadata(
+                            first, slug, posterUrl, title, "series", episodeId, episodeLabel
+                        )
+                        val meta = downloadRepository.getMetadata(slug + (episodeLabel ?: ""))
+                        _uiState.update {
+                            it.copy(
+                                downloadKetchId = ketchId,
+                                downloadPhase = DownloadPhase.DOWNLOADING,
+                                downloadStarted = true,
+                                downloadError = null,
+                                downloadIsZip = first.isZip,
+                                downloadFilePath = meta?.filePath,
+                                downloadTitle = title,
+                                downloadStartedLinkIds = it.downloadStartedLinkIds + (linkId ?: 0)
+                            )
+                        }
+                        observeDownloadStatus(ketchId, slug + (episodeLabel ?: ""))
                     }
                     is Resource.Error -> {
                         _uiState.update {
@@ -333,7 +333,14 @@ class TVShowDetailViewModel @Inject constructor(
                     }
                     DownloadPhase.CANCELLED -> {
                         _uiState.update {
-                            it.copy(downloadPhase = DownloadPhase.CANCELLED, downloadKetchId = null, downloadStarted = false)
+                            it.copy(
+                                downloadPhase = DownloadPhase.CANCELLED,
+                                downloadKetchId = null,
+                                downloadStarted = false,
+                                pendingMirrorQueue = emptyList(),
+                                pendingMirrorIndex = 0,
+                                downloadFallbackInfo = null
+                            )
                         }
                     }
                     DownloadPhase.FAILED -> {
@@ -355,9 +362,22 @@ class TVShowDetailViewModel @Inject constructor(
                                 )
                             }
                             com.movie.app.best.data.debug.NetworkLogger.logAction("CF_BYPASS_TRIGGER_TV", "ketchId=$ketchId host=$url")
+                        } else if (_uiState.value.pendingMirrorIndex < _uiState.value.pendingMirrorQueue.size - 1) {
+                            advanceMirrorFallback(metaKey)
                         } else {
+                            val queueSize = _uiState.value.pendingMirrorQueue.size
                             _uiState.update {
-                                it.copy(downloadPhase = DownloadPhase.FAILED, downloadFailureReason = reason, downloadStarted = false)
+                                it.copy(
+                                    downloadPhase = DownloadPhase.FAILED,
+                                    downloadFailureReason = if (queueSize > 1) "All $queueSize servers failed — ${reason ?: "download error"}" else reason,
+                                    downloadStarted = false,
+                                    pendingMirrorQueue = emptyList(),
+                                    pendingMirrorIndex = 0,
+                                    downloadFallbackInfo = null,
+                                    downloadBypassUrl = null,
+                                    downloadBypassMetaKey = "",
+                                    downloadBypassLogs = emptyList()
+                                )
                             }
                         }
                     }
@@ -382,6 +402,56 @@ class TVShowDetailViewModel @Inject constructor(
         _uiState.update { it.copy(downloadBypassLogs = (it.downloadBypassLogs + line).takeLast(200)) }
     }
 
+    private fun advanceMirrorFallback(metaKey: String) {
+        val state = _uiState.value
+        val queue = state.pendingMirrorQueue
+        val nextIndex = state.pendingMirrorIndex + 1
+        if (nextIndex >= queue.size) return
+        val next = queue[nextIndex]
+        val series = state.series
+        val title = series?.title ?: "Series"
+        val slug = series?.slug ?: ""
+        val posterUrl = series?.posterUrl ?: ""
+        val episodeId = state.pendingMirrorEpisodeId
+        val episodeLabel = state.pendingMirrorEpisodeLabel
+        com.movie.app.best.data.debug.NetworkLogger.logAction("FALLBACK_TV", "server ${nextIndex + 1}/${queue.size} starting after failure")
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    pendingMirrorIndex = nextIndex,
+                    downloadPhase = DownloadPhase.INITIALIZING,
+                    downloadProgress = 0,
+                    downloadExtractionProgress = 0,
+                    downloadFailureReason = null,
+                    downloadError = null,
+                    downloadFallbackInfo = "Server ${state.pendingMirrorIndex + 1} failed — trying Server ${nextIndex + 2} (${nextIndex + 2}/${queue.size})",
+                    downloadBypassUrl = null,
+                    downloadBypassLogs = emptyList(),
+                    downloadBypassMetaKey = "",
+                    downloadKetchId = null,
+                    downloadIsZip = next.isZip
+                )
+            }
+            downloadRepository.getMetadata(metaKey)?.let {
+                downloadRepository.saveMetadataDirect(metaKey, it.copy(bypassAttempts = 0))
+            }
+            val ketchId = downloadRepository.startDownloadWithMetadata(
+                next, slug, posterUrl, title, "series", episodeId, episodeLabel
+            )
+            val meta = downloadRepository.getMetadata(metaKey)
+            _uiState.update {
+                it.copy(
+                    downloadKetchId = ketchId,
+                    downloadPhase = DownloadPhase.DOWNLOADING,
+                    downloadStarted = true,
+                    downloadIsZip = next.isZip,
+                    downloadFilePath = meta?.filePath
+                )
+            }
+            observeDownloadStatus(ketchId, metaKey)
+        }
+    }
+
     fun onBypassSolved(result: com.movie.app.best.util.cf.ModuleResult) {
         val ketchId = _uiState.value.downloadKetchId ?: return
         val bypassMetaKey = _uiState.value.downloadBypassMetaKey
@@ -397,6 +467,12 @@ class TVShowDetailViewModel @Inject constructor(
                 originUrl = bypassUrl.ifBlank { null },
                 fileNameOverride = result.fileName
             )
+            if (newId == null && _uiState.value.pendingMirrorIndex < _uiState.value.pendingMirrorQueue.size - 1) {
+                com.movie.app.best.data.debug.NetworkLogger.logAction("FALLBACK_TV", "bypass retry failed on server ${_uiState.value.pendingMirrorIndex + 1} → next server")
+                _uiState.update { it.copy(downloadBypassUrl = null, downloadBypassLogs = emptyList(), downloadBypassMetaKey = "") }
+                advanceMirrorFallback(bypassMetaKey)
+                return@launch
+            }
             _uiState.update {
                 it.copy(
                     downloadPhase = if (newId != null) DownloadPhase.DOWNLOADING else DownloadPhase.FAILED,
@@ -413,15 +489,32 @@ class TVShowDetailViewModel @Inject constructor(
     }
 
     fun onBypassFailed() {
-        _uiState.update {
-            it.copy(
-                downloadPhase = DownloadPhase.FAILED,
-                downloadBypassUrl = null,
-                downloadBypassLogs = emptyList(),
-                downloadBypassMetaKey = "",
-                downloadStarted = false,
-                downloadFailureReason = "Cloudflare bypass failed — 403"
-            )
+        val state = _uiState.value
+        val metaKey = state.downloadBypassMetaKey
+        if (state.pendingMirrorIndex < state.pendingMirrorQueue.size - 1) {
+            _uiState.update {
+                it.copy(
+                    downloadBypassUrl = null,
+                    downloadBypassLogs = emptyList(),
+                    downloadBypassMetaKey = ""
+                )
+            }
+            com.movie.app.best.data.debug.NetworkLogger.logAction("FALLBACK_TV", "bypass failed on server ${state.pendingMirrorIndex + 1} → next server")
+            advanceMirrorFallback(metaKey)
+        } else {
+            _uiState.update {
+                it.copy(
+                    downloadPhase = DownloadPhase.FAILED,
+                    downloadBypassUrl = null,
+                    downloadBypassLogs = emptyList(),
+                    downloadBypassMetaKey = "",
+                    downloadStarted = false,
+                    downloadFailureReason = "Cloudflare bypass failed — 403",
+                    pendingMirrorQueue = emptyList(),
+                    pendingMirrorIndex = 0,
+                    downloadFallbackInfo = null
+                )
+            }
         }
     }
 
@@ -756,6 +849,11 @@ data class TVShowDetailUiState(
     val downloadBypassUrl: String? = null,
     val downloadBypassLogs: List<String> = emptyList(),
     val downloadBypassMetaKey: String = "",
+    val pendingMirrorQueue: List<ResolvedMirror> = emptyList(),
+    val pendingMirrorIndex: Int = 0,
+    val downloadFallbackInfo: String? = null,
+    val pendingMirrorEpisodeId: Int? = null,
+    val pendingMirrorEpisodeLabel: String? = null,
 
     val isBookmarked: Boolean = false,
     val isLiked: Boolean = false,

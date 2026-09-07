@@ -240,32 +240,29 @@ class MovieDetailViewModel @Inject constructor(
                     is Resource.Loading -> {}
                     is Resource.Success -> {
                         val mirrors = result.data ?: emptyList()
-                        if (mirrors.size == 1) {
-                            val m = mirrors.first()
-                            _uiState.update { it.copy(downloadPhase = DownloadPhase.INITIALIZING, downloadLoadingLinkId = null) }
-                            val ketchId = downloadRepository.startDownloadWithMetadata(m, slug, posterUrl, title, "movie")
-                            val meta = downloadRepository.getMetadata(slug)
-                            _uiState.update {
-                                it.copy(
-                                    downloadKetchId = ketchId,
-                                    downloadPhase = DownloadPhase.DOWNLOADING,
-                                    downloadStarted = true,
-                                    downloadError = null,
-                                    downloadIsZip = m.isZip,
-                                    downloadFilePath = meta?.filePath
-                                )
-                            }
-                            observeDownloadStatus(ketchId, slug)
-                        } else {
-                            _uiState.update {
-                                it.copy(
-                                    downloadLoadingLinkId = null,
-                                    resolvedMirrors = it.resolvedMirrors + (linkId to mirrors),
-                                    expandedLinkId = linkId,
-                                    downloadError = null
-                                )
-                            }
+                        _uiState.update { it.copy(downloadPhase = DownloadPhase.INITIALIZING, downloadLoadingLinkId = null) }
+                        val first = mirrors.first()
+                        _uiState.update {
+                            it.copy(
+                                pendingMirrorQueue = mirrors,
+                                pendingMirrorIndex = 0,
+                                downloadFallbackInfo = if (mirrors.size > 1) "Server 1 of ${mirrors.size}" else null
+                            )
                         }
+                        NetworkLogger.logAction("FALLBACK", "queue=${mirrors.size} starting server 1")
+                        val ketchId = downloadRepository.startDownloadWithMetadata(first, slug, posterUrl, title, "movie")
+                        val meta = downloadRepository.getMetadata(slug)
+                        _uiState.update {
+                            it.copy(
+                                downloadKetchId = ketchId,
+                                downloadPhase = DownloadPhase.DOWNLOADING,
+                                downloadStarted = true,
+                                downloadError = null,
+                                downloadIsZip = first.isZip,
+                                downloadFilePath = meta?.filePath
+                            )
+                        }
+                        observeDownloadStatus(ketchId, slug)
                     }
                     is Resource.Error -> {
                         _uiState.update {
@@ -356,7 +353,14 @@ class MovieDetailViewModel @Inject constructor(
                     }
                     DownloadPhase.CANCELLED -> {
                         _uiState.update {
-                            it.copy(downloadPhase = DownloadPhase.CANCELLED, downloadKetchId = null, downloadStarted = false)
+                            it.copy(
+                                downloadPhase = DownloadPhase.CANCELLED,
+                                downloadKetchId = null,
+                                downloadStarted = false,
+                                pendingMirrorQueue = emptyList(),
+                                pendingMirrorIndex = 0,
+                                downloadFallbackInfo = null
+                            )
                         }
                     }
                     DownloadPhase.FAILED -> {
@@ -378,9 +382,22 @@ class MovieDetailViewModel @Inject constructor(
                                 )
                             }
                             NetworkLogger.logAction("CF_BYPASS_TRIGGER", "ketchId=$ketchId host=$url")
+                        } else if (_uiState.value.pendingMirrorIndex < _uiState.value.pendingMirrorQueue.size - 1) {
+                            advanceMirrorFallback(metaKey)
                         } else {
+                            val queueSize = _uiState.value.pendingMirrorQueue.size
                             _uiState.update {
-                                it.copy(downloadPhase = DownloadPhase.FAILED, downloadFailureReason = reason, downloadStarted = false)
+                                it.copy(
+                                    downloadPhase = DownloadPhase.FAILED,
+                                    downloadFailureReason = if (queueSize > 1) "All $queueSize servers failed — ${reason ?: "download error"}" else reason,
+                                    downloadStarted = false,
+                                    pendingMirrorQueue = emptyList(),
+                                    pendingMirrorIndex = 0,
+                                    downloadFallbackInfo = null,
+                                    downloadBypassUrl = null,
+                                    downloadBypassMetaKey = "",
+                                    downloadBypassLogs = emptyList()
+                                )
                             }
                         }
                     }
@@ -405,6 +422,51 @@ class MovieDetailViewModel @Inject constructor(
         _uiState.update { it.copy(downloadBypassLogs = (it.downloadBypassLogs + line).takeLast(200)) }
     }
 
+    private fun advanceMirrorFallback(metaKey: String) {
+        val queue = _uiState.value.pendingMirrorQueue
+        val nextIndex = _uiState.value.pendingMirrorIndex + 1
+        if (nextIndex >= queue.size) return
+        val next = queue[nextIndex]
+        val movie = _uiState.value.movie
+        val title = movie?.title ?: "Movie"
+        val slug = movie?.slug ?: ""
+        val posterUrl = movie?.posterUrl ?: ""
+        NetworkLogger.logAction("FALLBACK", "server ${nextIndex + 1}/${queue.size} starting after failure")
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    pendingMirrorIndex = nextIndex,
+                    downloadPhase = DownloadPhase.INITIALIZING,
+                    downloadProgress = 0,
+                    downloadExtractionProgress = 0,
+                    downloadFailureReason = null,
+                    downloadError = null,
+                    downloadFallbackInfo = "Server ${nextIndex + 1} failed — trying Server ${nextIndex + 1 + 1} (${nextIndex + 2}/${queue.size})",
+                    downloadBypassUrl = null,
+                    downloadBypassLogs = emptyList(),
+                    downloadBypassMetaKey = "",
+                    downloadKetchId = null,
+                    downloadIsZip = next.isZip
+                )
+            }
+            downloadRepository.getMetadata(metaKey)?.let {
+                downloadRepository.saveMetadataDirect(metaKey, it.copy(bypassAttempts = 0))
+            }
+            val ketchId = downloadRepository.startDownloadWithMetadata(next, slug, posterUrl, title, "movie")
+            val meta = downloadRepository.getMetadata(metaKey)
+            _uiState.update {
+                it.copy(
+                    downloadKetchId = ketchId,
+                    downloadPhase = DownloadPhase.DOWNLOADING,
+                    downloadStarted = true,
+                    downloadIsZip = next.isZip,
+                    downloadFilePath = meta?.filePath
+                )
+            }
+            observeDownloadStatus(ketchId, metaKey)
+        }
+    }
+
     fun onBypassSolved(result: com.movie.app.best.util.cf.ModuleResult) {
         val ketchId = _uiState.value.downloadKetchId ?: return
         val bypassMetaKey = _uiState.value.downloadBypassMetaKey
@@ -420,6 +482,12 @@ class MovieDetailViewModel @Inject constructor(
                 originUrl = bypassUrl.ifBlank { null },
                 fileNameOverride = result.fileName
             )
+            if (newId == null && _uiState.value.pendingMirrorIndex < _uiState.value.pendingMirrorQueue.size - 1) {
+                NetworkLogger.logAction("FALLBACK", "bypass retry failed on server ${_uiState.value.pendingMirrorIndex + 1} → next server")
+                _uiState.update { it.copy(downloadBypassUrl = null, downloadBypassLogs = emptyList(), downloadBypassMetaKey = "") }
+                advanceMirrorFallback(bypassMetaKey)
+                return@launch
+            }
             _uiState.update {
                 it.copy(
                     downloadPhase = if (newId != null) DownloadPhase.DOWNLOADING else DownloadPhase.FAILED,
@@ -436,15 +504,32 @@ class MovieDetailViewModel @Inject constructor(
     }
 
     fun onBypassFailed() {
-        _uiState.update {
-            it.copy(
-                downloadPhase = DownloadPhase.FAILED,
-                downloadBypassUrl = null,
-                downloadBypassLogs = emptyList(),
-                downloadBypassMetaKey = "",
-                downloadStarted = false,
-                downloadFailureReason = "Cloudflare bypass failed — 403"
-            )
+        val state = _uiState.value
+        val metaKey = state.downloadBypassMetaKey
+        if (state.pendingMirrorIndex < state.pendingMirrorQueue.size - 1) {
+            _uiState.update {
+                it.copy(
+                    downloadBypassUrl = null,
+                    downloadBypassLogs = emptyList(),
+                    downloadBypassMetaKey = ""
+                )
+            }
+            NetworkLogger.logAction("FALLBACK", "bypass failed on server ${state.pendingMirrorIndex + 1} → next server")
+            advanceMirrorFallback(metaKey)
+        } else {
+            _uiState.update {
+                it.copy(
+                    downloadPhase = DownloadPhase.FAILED,
+                    downloadBypassUrl = null,
+                    downloadBypassLogs = emptyList(),
+                    downloadBypassMetaKey = "",
+                    downloadStarted = false,
+                    downloadFailureReason = "Cloudflare bypass failed — 403",
+                    pendingMirrorQueue = emptyList(),
+                    pendingMirrorIndex = 0,
+                    downloadFallbackInfo = null
+                )
+            }
         }
     }
 
@@ -777,6 +862,9 @@ data class MovieDetailUiState(
     val downloadBypassUrl: String? = null,
     val downloadBypassLogs: List<String> = emptyList(),
     val downloadBypassMetaKey: String = "",
+    val pendingMirrorQueue: List<ResolvedMirror> = emptyList(),
+    val pendingMirrorIndex: Int = 0,
+    val downloadFallbackInfo: String? = null,
 
     val isBookmarked: Boolean = false,
     val isLiked: Boolean = false,

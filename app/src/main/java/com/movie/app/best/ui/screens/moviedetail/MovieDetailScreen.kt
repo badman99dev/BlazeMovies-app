@@ -180,26 +180,21 @@ fun MovieDetailScreen(
         if (showDownloadSheet && uiState.movie != null) {
             androidx.compose.material3.ModalBottomSheet(
                 onDismissRequest = { showDownloadSheet = false },
-                containerColor = Color(0xFF1A1A1A),
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                containerColor = Color.Transparent,
+                dragHandle = null,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+                shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
             ) {
                 DownloadBottomSheetContent(
                     downloadLinks = uiState.downloadLinks,
                     downloadLoadingLinkId = uiState.downloadLoadingLinkId,
                     downloadLogs = uiState.downloadLogs,
-                    expandedLogsLinkId = uiState.expandedLogsLinkId,
-                    onToggleLogs = { linkId -> viewModel.toggleLogs(linkId) },
                     downloadPhase = uiState.downloadPhase,
                     downloadProgress = uiState.downloadProgress,
                     downloadError = uiState.downloadError,
                     downloadFailureReason = uiState.downloadFailureReason,
-                    resolvedMirrors = uiState.resolvedMirrors,
-                    expandedLinkId = uiState.expandedLinkId,
                     onStartDownload = { linkUrl, linkId -> requestDownload(linkUrl, linkId) },
-                    onPickMirror = { mirror ->
-                        viewModel.startDirectDownload(mirror)
-                    },
-                    onToggleExpand = { linkId -> viewModel.toggleExpandLink(linkId) },
                     onDismiss = { showDownloadSheet = false },
                     onGoToDownloads = {
                         showDownloadSheet = false
@@ -207,7 +202,8 @@ fun MovieDetailScreen(
                     },
                     isZip = uiState.downloadIsZip,
                     extractionProgress = uiState.downloadExtractionProgress,
-                    bypassLogs = uiState.downloadBypassLogs
+                    bypassLogs = uiState.downloadBypassLogs,
+                    downloadFallbackInfo = uiState.downloadFallbackInfo
                 )
             }
         }
