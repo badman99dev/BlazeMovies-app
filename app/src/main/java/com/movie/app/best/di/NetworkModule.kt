@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.remote.AuthApiService
-import com.movie.app.best.data.remote.BypassApiService
+import com.movie.app.best.data.remote.BypassWsClient
 import com.movie.app.best.data.remote.ImdbApiService
 import com.movie.app.best.data.remote.ImdxApiService
 import com.movie.app.best.data.remote.MovieApiService
@@ -135,19 +135,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    @Named("bypass")
-    fun provideBypassRetrofit(gson: com.google.gson.Gson): Retrofit {
-        val bypassClient = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(180, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .addInterceptor(DebugInterceptor())
-            .build()
-        return Retrofit.Builder()
-            .baseUrl(BuildConfig.DL_AGENT_BASE_URL)
-            .client(bypassClient)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .build()
+    fun provideBypassWsClient(gson: com.google.gson.Gson): BypassWsClient {
+        return BypassWsClient(gson)
     }
 
     @Provides
@@ -182,12 +171,6 @@ object NetworkModule {
     @Singleton
     fun provideAuthApiService(@Named("main") retrofit: Retrofit): AuthApiService {
         return retrofit.create(AuthApiService::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideBypassApiService(@Named("bypass") retrofit: Retrofit): BypassApiService {
-        return retrofit.create(BypassApiService::class.java)
     }
 
     @Provides

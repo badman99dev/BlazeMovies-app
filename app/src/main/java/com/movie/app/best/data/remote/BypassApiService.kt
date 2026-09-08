@@ -1,34 +1,11 @@
 package com.movie.app.best.data.remote
 
 import com.google.gson.annotations.SerializedName
-import okhttp3.ResponseBody
-import retrofit2.http.Body
-import retrofit2.http.POST
-import retrofit2.http.Streaming
-
-interface BypassApiService {
-    @Streaming
-    @POST("/")
-    suspend fun bypassUrl(@Body request: BypassRequest): ResponseBody
-}
-
-data class BypassRequest(
-    val url: String,
-    @SerializedName("fetch_info") val fetchInfo: Boolean = true
-)
-
-data class BypassLogEvent(
-    val message: String = ""
-)
 
 data class BypassDoneEvent(
     val results: List<BypassResult> = emptyList(),
     @SerializedName("total_found") val totalFound: Int = 0,
     @SerializedName("success_count") val successCount: Int = 0
-)
-
-data class BypassErrorEvent(
-    val message: String = ""
 )
 
 data class BypassResult(

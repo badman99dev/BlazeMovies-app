@@ -7,13 +7,7 @@ import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.model.DownloadMetadata
 import com.movie.app.best.data.model.DownloadPhase
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.remote.BypassApiService
-import com.movie.app.best.data.remote.BypassDoneEvent
-import com.movie.app.best.data.remote.BypassErrorEvent
-import com.movie.app.best.data.remote.BypassLogEvent
-import com.movie.app.best.data.remote.BypassRequest
-import com.movie.app.best.data.remote.BypassResult
-import com.google.gson.Gson
+import com.movie.app.best.data.remote.BypassWsClient
 import com.ketch.Ketch
 import com.ketch.Status
 import com.ketch.DownloadModel
@@ -24,8 +18,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
-import okhttp3.ResponseBody
 import java.io.File
 import java.net.URL
 import java.util.Collections
@@ -57,8 +49,7 @@ data class DownloadStatusInfo(
 
 @Singleton
 class DownloadRepository @Inject constructor(
-    private val bypassApiService: BypassApiService,
-    private val gson: Gson,
+    private val bypassWsClient: BypassWsClient,
     private val ketch: Ketch,
     private val metadataStore: DownloadMetadataStore,
     private val zipExtractor: ZipExtractor,
@@ -95,9 +86,9 @@ class DownloadRepository @Inject constructor(
     fun resolveDownloadUrls(linkUrl: String, onLog: (String) -> Unit = {}): Flow<Resource<List<ResolvedMirror>>> = flow {
         emit(Resource.Loading())
         try {
-            NetworkLogger.logAction("RESOLVE", "linkUrl=$linkUrl")
-            val body = bypassApiService.bypassUrl(BypassRequest(linkUrl, fetchInfo = true))
-            val results = parseSse(body, onLog)
+            NetworkLogger.logAction("RESOLVE", "linkUrl=$linkUrl (ws)")
+            val done = bypassWsClient.resolve(linkUrl, fetchInfo = true, onLog = onLog)
+            val results = done.results
             val successItems = results.filter { it.status == "SUCCESS" && !it.jackpot.isNullOrEmpty() }
             if (successItems.isEmpty()) {
                 emit(Resource.Error("No direct download URL found"))
@@ -137,53 +128,6 @@ class DownloadRepository @Inject constructor(
             emit(Resource.Error(e.message ?: "Failed to resolve download URL"))
         }
     }
-
-    private suspend fun parseSse(body: ResponseBody, onLog: (String) -> Unit): List<BypassResult> =
-        withContext(Dispatchers.IO) {
-            var eventType: String? = null
-            val dataLines = StringBuilder()
-            var results: List<BypassResult> = emptyList()
-            var streamError: String? = null
-
-            body.byteStream().bufferedReader(Charsets.UTF_8).use { reader ->
-                var line: String?
-                while (true) {
-                    line = reader.readLine() ?: break
-                    if (line.isEmpty()) {
-                        if (dataLines.isNotEmpty()) {
-                            val data = dataLines.toString()
-                            runCatching {
-                                when (eventType) {
-                                    "log" -> {
-                                        val ev = gson.fromJson(data, BypassLogEvent::class.java)
-                                        onLog(ev.message)
-                                    }
-                                    "done" -> {
-                                        results = gson.fromJson(data, BypassDoneEvent::class.java).results
-                                    }
-                                    "error" -> {
-                                        streamError = gson.fromJson(data, BypassErrorEvent::class.java).message
-                                    }
-                                }
-                            }
-                            dataLines.setLength(0)
-                            eventType = null
-                        }
-                        continue
-                    }
-                    when {
-                        line.startsWith("event:") -> eventType = line.substringAfter("event:").trim()
-                        line.startsWith("data:") -> {
-                            if (dataLines.isNotEmpty()) dataLines.append('\n')
-                            dataLines.append(line.substringAfter("data:").trimStart())
-                        }
-                    }
-                }
-            }
-
-            if (streamError != null) throw Exception(streamError)
-            results
-        }
 
     suspend fun startDownloadWithMetadata(
         mirror: ResolvedMirror,
