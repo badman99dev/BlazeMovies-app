@@ -11,12 +11,18 @@ import com.movie.app.best.data.model.ImdbCertificatesResponse
 import com.movie.app.best.data.model.ImdbTitleDetails
 import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.Movie
+import com.movie.app.best.data.model.PlaybackKind
+import com.movie.app.best.data.model.PlaybackOption
+import com.movie.app.best.data.model.SourceHubRequest
+import com.movie.app.best.data.model.SourceHubSource
 import com.movie.app.best.data.remote.GemmaExtractorService
 import com.movie.app.best.data.remote.ImdbApiService
+import com.movie.app.best.data.remote.SourceHubClient
 import com.movie.app.best.data.remote.StreamRequestApiResponse
 import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.repository.MovieRepository
 import com.movie.app.best.data.repository.MyListRefreshState
+import com.movie.app.best.data.repository.SourceCacheStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,15 +34,12 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
-private sealed class StreamCandidate {
-    data class Backend(val url: String) : StreamCandidate()
-    object Gemma : StreamCandidate()
-}
-
 @HiltViewModel
 class MovieWatchViewModel @Inject constructor(
     private val gemmaExtractor: GemmaExtractorService,
     private val imdbApi: ImdbApiService,
+    private val sourceHubClient: SourceHubClient,
+    private val sourceCache: SourceCacheStore,
     private val repository: MovieRepository,
     private val firebaseRepository: FirebaseRepository,
     savedStateHandle: SavedStateHandle
@@ -59,27 +62,70 @@ class MovieWatchViewModel @Inject constructor(
     private val _state = MutableStateFlow(MovieWatchState())
     val state: StateFlow<MovieWatchState> = _state.asStateFlow()
 
-    private var backendTried = false
-    private var gemmaTried = false
     private var gemmaResult: GemmaExtractionResult? = null
+    private var sourceHubSources: List<SourceHubSource> = emptyList()
+    private val options = mutableListOf<PlaybackOption>()
+    private val cacheKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.movieKey(imdbId) else null
 
     init {
         MyListRefreshState.markStale()
         loadAll()
     }
 
-    private fun buildCandidates(): List<StreamCandidate> {
-        val list = mutableListOf<StreamCandidate>()
+    private fun nativeOption(): PlaybackOption? {
         if (hasStream || playerUrl.isNotEmpty()) {
-            list.add(StreamCandidate.Backend(
-                BuildConfig.SPARKLE_BASE_URL + "?id=$movieId"
-            ))
+            val url = if (playerUrl.isNotEmpty()) playerUrl else BuildConfig.SPARKLE_BASE_URL + "?id=$movieId"
+            return PlaybackOption(id = "native:main", label = "Native", kind = PlaybackKind.NATIVE, url = url)
         }
-        if (imdbId.startsWith("tt")) {
-            list.add(StreamCandidate.Gemma)
-        }
-        return list
+        return null
     }
+
+    private fun rebuildOptions() {
+        val list = mutableListOf<PlaybackOption>()
+        nativeOption()?.let { list.add(it) }
+        sourceHubSources.forEach { s ->
+            list.add(
+                PlaybackOption(
+                    id = "sourcehub:" + s.id,
+                    label = s.displayLabel,
+                    kind = PlaybackKind.SOURCE_HUB,
+                    url = s.url,
+                    headers = s.playbackHeaders()
+                )
+            )
+        }
+        val g = gemmaResult
+        if (g != null && g.seasons.isNotEmpty()) {
+            val episode = getMovieEpisode(g)
+            if (episode != null) {
+                val ordered = episode.languages.keys.sortedWith(languageComparator())
+                ordered.forEach { lang ->
+                    val file = episode.languages[lang] ?: return@forEach
+                    val resolved = cacheKey?.let { sourceCache.get(it) }?.resolved?.get("m1:$lang")
+                    list.add(
+                        PlaybackOption(
+                            id = "gemma:$lang",
+                            label = "Gemma • $lang",
+                            kind = PlaybackKind.GEMMA,
+                            url = resolved ?: "",
+                            language = lang
+                        )
+                    )
+                }
+            }
+        }
+        options.clear()
+        options.addAll(list)
+        _state.update { it.copy(options = list) }
+    }
+
+    private fun languageComparator(): Comparator<String> = compareBy { lang ->
+        when {
+            lang.contains("Hindi", ignoreCase = true) -> 0
+            lang.contains("English", ignoreCase = true) -> 1
+            else -> 2
+        }
+    }.thenBy { it }
 
     private fun loadAll() {
         val needsImdb = imdbId.startsWith("tt")
@@ -95,7 +141,6 @@ class MovieWatchViewModel @Inject constructor(
                 )
             }
 
-            // IMDb enrichment (title + certificates) in parallel asyncs
             val titleDetailsDeferred = viewModelScope.async {
                 try { imdbApi.getTitleDetails(imdbId) } catch (_: Exception) { null }
             }
@@ -103,14 +148,12 @@ class MovieWatchViewModel @Inject constructor(
                 try { imdbApi.getCertificates(imdbId) } catch (_: Exception) { null }
             }
 
-            // Stream resolution runs in parallel in the background (does not gate overlay)
-            viewModelScope.launch { tryNextCandidate() }
+            // Kick stream resolution immediately
+            viewModelScope.launch { resolveAndPlay() }
 
-            // Similar movies + bookmark status in parallel background
             loadSimilarMovies(imdbId)
             checkBookmarkStatus()
 
-            // Gate overlay ONLY on IMDb responses, max 4 seconds
             if (needsImdb) {
                 val titleDetails = withTimeoutOrNull(4000) { titleDetailsDeferred.await() }
                 val certificates = withTimeoutOrNull(4000) { certificatesDeferred.await() }
@@ -127,74 +170,181 @@ class MovieWatchViewModel @Inject constructor(
         }
     }
 
-    private suspend fun tryNextCandidate() {
-        val candidates = buildCandidates()
-        val next = candidates.firstOrNull { candidate ->
-            when (candidate) {
-                is StreamCandidate.Backend -> !backendTried
-                is StreamCandidate.Gemma -> !gemmaTried
-            }
-        }
+    private suspend fun resolveAndPlay() {
+        val cached = cacheKey?.let { sourceCache.get(it) }
 
-        if (next == null) {
-            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+        if (cached != null) {
+            sourceHubSources = cached.sources
+            gemmaResult = cached.gemma
+            cached.gemma?.let { if (it.seasons.isNotEmpty()) collectAvailableLanguages(it) }
+            rebuildOptions()
+            playFirstAvailable()
+            // refresh resolved gemma urls if cached gemma exists but not resolved
             return
         }
 
-        when (next) {
-            is StreamCandidate.Backend -> {
-                backendTried = true
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        currentM3u8 = next.url,
-                        activeSource = "backend",
-                        error = null
-                    )
-                }
+        // Cache miss → resolve SourceHub (streamed) + Gemma
+        val hasNative = nativeOption() != null
+        val nativePlayed = hasNative
+        if (hasNative) {
+            // Start playing native immediately, keep resolving in background
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    currentM3u8 = nativeOption()?.url,
+                    currentHeaders = emptyMap(),
+                    activeSource = "native",
+                    selectedOptionId = "native:main",
+                    error = null
+                )
             }
-            is StreamCandidate.Gemma -> {
-                gemmaTried = true
-                val result = gemmaExtractor.extract(imdbId)
-                gemmaResult = result
-                if (result.seasons.isEmpty()) {
-                    tryNextCandidate()
-                    return
-                }
-                collectAvailableLanguages(result)
-                val episode = getMovieEpisode(result)
-                if (episode == null) {
-                    tryNextCandidate()
-                    return
-                }
-                val lang = _state.value.selectedLanguage
-                val file = episode.languages[lang] ?: episode.languages.values.firstOrNull()
-                if (file == null) {
-                    tryNextCandidate()
-                    return
-                }
-                val m3u8 = gemmaExtractor.resolveFile(file, result.csrfKey)
-                if (m3u8 == null) {
-                    tryNextCandidate()
-                    return
-                }
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        currentM3u8 = m3u8,
-                        activeSource = "gemma",
-                        error = null
-                    )
-                }
+        }
+
+        val gemmaDeferred = viewModelScope.async {
+            if (imdbId.startsWith("tt")) {
+                try { gemmaExtractor.extract(imdbId) } catch (_: Exception) { null }
+            } else null
+        }
+
+        val sourceHubDeferred = viewModelScope.async {
+            if (imdbId.startsWith("tt")) {
+                try {
+                    sourceHubClient.resolve(SourceHubRequest(id = imdbId, type = "movie")) { partial ->
+                        if (partial.sources.isNotEmpty()) {
+                            sourceHubSources = sourceHubSources + partial.sources
+                            rebuildOptions()
+                        }
+                    }
+                } catch (_: Exception) { null }
+            } else null
+        }
+
+        val sh = sourceHubDeferred.await()
+        if (sh != null && sh.sources.isNotEmpty()) {
+            sourceHubSources = sh.sources.distinctBy { it.id }
+            rebuildOptions()
+        }
+
+        val g = gemmaDeferred.await()
+        gemmaResult = g
+        if (g != null && g.seasons.isNotEmpty()) collectAvailableLanguages(g)
+        rebuildOptions()
+
+        // persist to cache
+        if (cacheKey != null) {
+            val resolvedMap = mutableMapOf<String, String>()
+            cached?.resolved?.forEach { (k, v) -> resolvedMap[k] = v }
+            sourceCache.put(
+                cacheKey,
+                com.movie.app.best.data.repository.SourceCacheEntry(
+                    sources = sourceHubSources,
+                    gemma = gemmaResult,
+                    resolved = resolvedMap
+                )
+            )
+        }
+
+        if (!nativePlayed) {
+            playFirstAvailable()
+        } else {
+            // native already playing; ensure gemma first language resolved in background
+            resolveGemmaDefaults()
+        }
+    }
+
+    private fun playFirstAvailable() {
+        val first = options.firstOrNull() ?: run {
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+            return
+        }
+        playOption(first)
+    }
+
+    private fun playOption(opt: PlaybackOption) {
+        _state.update {
+            it.copy(
+                isLoading = true,
+                selectedOptionId = opt.id,
+                activeSource = opt.kind,
+                error = null
+            )
+        }
+        viewModelScope.launch {
+            val url = if (opt.kind == PlaybackKind.GEMMA && opt.url.isEmpty()) {
+                resolveGemmaUrl(opt.language)
+            } else opt.url
+            if (url.isNullOrEmpty()) {
+                advanceFrom(opt.id)
+                return@launch
+            }
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    currentM3u8 = url,
+                    currentHeaders = opt.headers,
+                    selectedOptionId = opt.id,
+                    activeSource = opt.kind,
+                    error = null
+                )
             }
         }
     }
 
+    private suspend fun resolveGemmaUrl(lang: String?): String? {
+        val result = gemmaResult ?: return null
+        val episode = getMovieEpisode(result) ?: return null
+        val chosen = lang?.let { episode.languages[it] } ?: episode.languages.values.firstOrNull()
+        if (chosen == null) return null
+        val ck = lang?.let { "m1:$it" }
+        if (ck != null) {
+            cacheKey?.let { sourceCache.get(it)?.resolved?.get(ck) }?.let { return it }
+        }
+        val m3u8 = gemmaExtractor.resolveFile(chosen, result.csrfKey) ?: return null
+        if (cacheKey != null && ck != null) {
+            sourceCache.update(cacheKey) { cur ->
+                val base = cur ?: com.movie.app.best.data.repository.SourceCacheEntry(gemma = gemmaResult)
+                base.copy(resolved = base.resolved.toMutableMap().apply { put(ck, m3u8) })
+            }
+        }
+        return m3u8
+    }
+
+    private fun resolveGemmaDefaults() {
+        viewModelScope.launch {
+            val g = gemmaResult ?: return@launch
+            val episode = getMovieEpisode(g) ?: return@launch
+            val lang = _state.value.selectedLanguage
+            val chosen = if (episode.languages.containsKey(lang)) lang else episode.languages.keys.firstOrNull()
+            if (chosen != null) resolveGemmaUrl(chosen)
+        }
+    }
+
+    private fun advanceFrom(failedId: String) {
+        val idx = options.indexOfFirst { it.id == failedId }
+        val next = options.getOrNull(idx + 1)
+        if (next == null) {
+            if (cacheKey != null && options.all { it.kind == PlaybackKind.SOURCE_HUB || it.kind == PlaybackKind.GEMMA }) {
+                sourceCache.invalidate(cacheKey)
+            }
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+            return
+        }
+        playOption(next)
+    }
+
+    fun selectOption(id: String) {
+        val opt = options.firstOrNull { it.id == id } ?: return
+        playOption(opt)
+    }
+
     fun onPlaybackError() {
         _state.update { it.copy(showBuffering = false, currentM3u8 = null) }
+        val failed = _state.value.selectedOptionId
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            tryNextCandidate()
+            if (failed != null) advanceFrom(failed) else {
+                _state.update { it.copy(isLoading = true) }
+                playFirstAvailable()
+            }
         }
     }
 
@@ -210,29 +360,16 @@ class MovieWatchViewModel @Inject constructor(
                 langs.addAll(ep.languages.keys)
             }
         }
-        val sorted = langs.sortedWith(compareBy<String> { lang ->
-            when {
-                lang.contains("Hindi", ignoreCase = true) -> 0
-                lang.contains("English", ignoreCase = true) -> 1
-                else -> 2
-            }
-        }.thenBy { it })
+        val sorted = langs.sortedWith(languageComparator())
         val default = sorted.firstOrNull { it.contains("Hindi", ignoreCase = true) } ?: sorted.firstOrNull() ?: "Hindi"
         _state.update { it.copy(availableLanguages = sorted, selectedLanguage = default) }
     }
 
     fun selectLanguage(lang: String) {
         _state.update { it.copy(selectedLanguage = lang) }
-        if (_state.value.activeSource != "gemma") return
-        val result = gemmaResult ?: return
-        val episode = getMovieEpisode(result) ?: return
-        val file = episode.languages[lang] ?: return
-        viewModelScope.launch {
-            _state.update { it.copy(currentM3u8 = null) }
-            val m3u8 = gemmaExtractor.resolveFile(file, result.csrfKey)
-            if (m3u8 != null) {
-                _state.update { it.copy(currentM3u8 = m3u8) }
-            }
+        val gemmaOpt = options.firstOrNull { it.kind == PlaybackKind.GEMMA && it.language == lang }
+        if (gemmaOpt != null) {
+            playOption(gemmaOpt)
         }
     }
 
@@ -337,7 +474,10 @@ data class MovieWatchState(
     val isLoading: Boolean = false,
     val showBuffering: Boolean = false,
     val currentM3u8: String? = null,
+    val currentHeaders: Map<String, String> = emptyMap(),
     val activeSource: String = "",
+    val selectedOptionId: String? = null,
+    val options: List<PlaybackOption> = emptyList(),
     val titleDetails: ImdbTitleDetails? = null,
     val ageRating: String = "",
     val availableLanguages: List<String> = emptyList(),

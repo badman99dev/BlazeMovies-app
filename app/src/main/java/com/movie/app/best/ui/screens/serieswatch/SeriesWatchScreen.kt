@@ -138,7 +138,7 @@ fun SeriesWatchScreen(
         }
     }
 
-    LaunchedEffect(state.currentM3u8) {
+    LaunchedEffect(state.currentM3u8, state.selectedOptionId) {
         val m3u8 = state.currentM3u8
         if (m3u8 == null) {
             exoPlayer?.release()
@@ -153,12 +153,17 @@ fun SeriesWatchScreen(
             .addInterceptor(Zee5False404Interceptor())
             .addInterceptor(DebugInterceptor()).build()
 
+        val requestProps = mutableMapOf(
+            "Referer" to BuildConfig.GEMMA_BASE_URL,
+            "Accept" to "*/*"
+        )
+        state.currentHeaders.forEach { (k, v) ->
+            if (k.isNotBlank() && v.isNotBlank()) requestProps[k] = v
+        }
+
         val okFactory = OkHttpDataSource.Factory(okClient)
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
-            .setDefaultRequestProperties(mapOf(
-                "Referer" to BuildConfig.GEMMA_BASE_URL,
-                "Accept" to "*/*"
-            ))
+            .setDefaultRequestProperties(requestProps)
 
         val dsFactory = DefaultDataSource.Factory(context, okFactory)
         val hlsFactory = HlsMediaSource.Factory(dsFactory)
@@ -197,6 +202,9 @@ fun SeriesWatchScreen(
                     val playing = player.isPlaying
                     ImmersiveMode.keepScreenOn(it, playing || playbackState == Player.STATE_BUFFERING)
                 }
+            }
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                viewModel.onPlaybackError()
             }
         }
         player.addListener(listener)
@@ -243,6 +251,15 @@ fun SeriesWatchScreen(
         viewModel.selectLanguage(lang)
     }
 
+    val onServerSelect: (String) -> Unit = { id ->
+        exoPlayer?.let { p ->
+            if (p.duration > 0) langSwitchSeek = p.currentPosition.coerceIn(0L, p.duration)
+        }
+        viewModel.selectOption(id)
+    }
+
+    val serverOptions = state.options.takeIf { it.isNotEmpty() }
+
     val customAudioTracks = state.availableLanguages.takeIf { it.size > 1 }
 
     BackHandler {
@@ -272,6 +289,9 @@ fun SeriesWatchScreen(
                 customAudioTracks = customAudioTracks,
                 selectedAudioTrack = state.selectedLanguage,
                 onAudioTrackSelected = onLangSelect,
+                serverOptions = serverOptions,
+                selectedServerOptionId = state.selectedOptionId,
+                onServerOptionSelected = onServerSelect,
             )
         }
         return
@@ -323,6 +343,9 @@ fun SeriesWatchScreen(
                     customAudioTracks = customAudioTracks,
                     selectedAudioTrack = state.selectedLanguage,
                     onAudioTrackSelected = onLangSelect,
+                    serverOptions = serverOptions,
+                    selectedServerOptionId = state.selectedOptionId,
+                    onServerOptionSelected = onServerSelect,
                 )
             } else {
                 val thumbUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }

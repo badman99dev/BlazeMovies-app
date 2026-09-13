@@ -108,6 +108,9 @@ fun MediaPlayerScreen(
     customAudioTracks: List<String>? = null,
     selectedAudioTrack: String? = null,
     onAudioTrackSelected: ((String) -> Unit)? = null,
+    serverOptions: List<com.movie.app.best.data.model.PlaybackOption>? = null,
+    selectedServerOptionId: String? = null,
+    onServerOptionSelected: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = context as? android.app.Activity
@@ -265,6 +268,11 @@ fun MediaPlayerScreen(
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayViewType.SUBTITLE_SELECTOR
                                     },
+                                    onServerClick = {
+                                        controlsVisibilityState.hideControls()
+                                        overlayView = OverlayViewType.SERVER_SELECTOR
+                                    },
+                                    showServerButton = !serverOptions.isNullOrEmpty(),
                                     onBackClick = onBackClick,
                                 )
                             }
@@ -408,6 +416,15 @@ fun MediaPlayerScreen(
                                 player = player,
                                 onDismiss = { overlayView = null }
                             )
+                            OverlayViewType.SERVER_SELECTOR -> if (!serverOptions.isNullOrEmpty()) {
+                                ServerSourceSelectorView(
+                                    show = true,
+                                    options = serverOptions,
+                                    selectedId = selectedServerOptionId,
+                                    onSelect = { onServerOptionSelected?.invoke(it) },
+                                    onDismiss = { overlayView = null }
+                                )
+                            }
                             OverlayViewType.PLAYBACK_SPEED -> PlaybackSpeedSelectorView(
                                 show = true,
                                 player = player
@@ -432,6 +449,9 @@ fun MediaPlayerScreen(
                     customAudioTracks = customAudioTracks,
                     selectedAudioTrack = selectedAudioTrack,
                     onAudioTrackSelected = onAudioTrackSelected,
+                    serverOptions = serverOptions,
+                    selectedServerOptionId = selectedServerOptionId,
+                    onServerOptionSelected = onServerOptionSelected,
                 )
             }
         }

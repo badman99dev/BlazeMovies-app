@@ -166,7 +166,7 @@ fun MovieWatchScreen(
     var resumePos by remember { mutableStateOf(0L) }
     var hasResumed by remember { mutableStateOf(false) }
 
-    LaunchedEffect(state.currentM3u8) {
+    LaunchedEffect(state.currentM3u8, state.selectedOptionId) {
         val m3u8 = state.currentM3u8
         hasResumed = false
         resumePos = 0L
@@ -197,12 +197,17 @@ fun MovieWatchScreen(
             .addInterceptor(Zee5False404Interceptor())
             .addInterceptor(DebugInterceptor()).build()
 
+        val requestProps = mutableMapOf(
+            "Referer" to referer,
+            "Accept" to "*/*"
+        )
+        state.currentHeaders.forEach { (k, v) ->
+            if (k.isNotBlank() && v.isNotBlank()) requestProps[k] = v
+        }
+
         val okFactory = OkHttpDataSource.Factory(okClient)
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
-            .setDefaultRequestProperties(mapOf(
-                "Referer" to referer,
-                "Accept" to "*/*"
-            ))
+            .setDefaultRequestProperties(requestProps)
 
         val dsFactory = DefaultDataSource.Factory(context, okFactory)
         val hlsFactory = HlsMediaSource.Factory(dsFactory)
@@ -328,6 +333,15 @@ fun MovieWatchScreen(
         viewModel.selectLanguage(lang)
     }
 
+    val onServerSelect: (String) -> Unit = { id ->
+        exoPlayer?.let { p ->
+            if (p.duration > 0) langSwitchSeek = p.currentPosition.coerceIn(0L, p.duration)
+        }
+        viewModel.selectOption(id)
+    }
+
+    val serverOptions = state.options.takeIf { it.isNotEmpty() }
+
     val customAudioTracks = state.availableLanguages
         .takeIf { it.size > 1 && state.activeSource == "gemma" }
 
@@ -358,6 +372,9 @@ fun MovieWatchScreen(
                 customAudioTracks = customAudioTracks,
                 selectedAudioTrack = state.selectedLanguage,
                 onAudioTrackSelected = onLangSelect,
+                serverOptions = serverOptions,
+                selectedServerOptionId = state.selectedOptionId,
+                onServerOptionSelected = onServerSelect,
             )
         }
         return
@@ -404,6 +421,9 @@ fun MovieWatchScreen(
                         customAudioTracks = customAudioTracks,
                         selectedAudioTrack = state.selectedLanguage,
                         onAudioTrackSelected = onLangSelect,
+                        serverOptions = serverOptions,
+                        selectedServerOptionId = state.selectedOptionId,
+                        onServerOptionSelected = onServerSelect,
                     )
                 } else if (state.error != null) {
                     Box(

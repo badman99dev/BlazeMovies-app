@@ -6,9 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.ExtractionState
 import com.movie.app.best.data.model.GemmaExtractionResult
 import com.movie.app.best.data.model.ImdbEpisode
+import com.movie.app.best.data.model.PlaybackKind
+import com.movie.app.best.data.model.PlaybackOption
+import com.movie.app.best.data.model.SourceHubRequest
+import com.movie.app.best.data.model.SourceHubSource
 import com.movie.app.best.data.model.WatchEpisode
 import com.movie.app.best.data.remote.GemmaExtractorService
 import com.movie.app.best.data.remote.ImdbApiService
+import com.movie.app.best.data.remote.SourceHubClient
+import com.movie.app.best.data.repository.SourceCacheStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +29,8 @@ import javax.inject.Inject
 class SeriesWatchViewModel @Inject constructor(
     private val gemmaExtractor: GemmaExtractorService,
     private val imdbApi: ImdbApiService,
+    private val sourceHubClient: SourceHubClient,
+    private val sourceCache: SourceCacheStore,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -40,6 +48,11 @@ class SeriesWatchViewModel @Inject constructor(
     val state: StateFlow<ExtractionState> = _state.asStateFlow()
 
     private val imdbCache = mutableMapOf<Int, List<ImdbEpisode>>()
+    private var sourceHubSources: List<SourceHubSource> = emptyList()
+    private val options = mutableListOf<PlaybackOption>()
+    private val gemmaTreeKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.gemmaTreeKey(imdbId) else null
+    private fun episodeCacheKey(season: Int, episode: Int): String? =
+        if (imdbId.startsWith("tt")) SourceCacheStore.episodeKey(imdbId, season, episode) else null
 
     init {
         loadAll()
@@ -72,9 +85,16 @@ class SeriesWatchViewModel @Inject constructor(
                 } catch (_: Exception) {}
             }
 
-            val gemmaResult = gemmaExtractor.extract(imdbId)
+            val gemmaResult = gemmaTreeKey?.let { sourceCache.get(it)?.gemma } ?: run {
+                val fresh = gemmaExtractor.extract(imdbId)
+                gemmaTreeKey?.let { key ->
+                    val cur = sourceCache.get(key)
+                    sourceCache.put(key, (cur ?: com.movie.app.best.data.repository.SourceCacheEntry()).copy(gemma = fresh))
+                }
+                fresh
+            }
 
-            if (gemmaResult.seasons.isEmpty()) {
+            if (gemmaResult.seasons.isEmpty() && !imdbId.startsWith("tt")) {
                 _state.update { it.copy(isLoading = false, error = "Source not found") }
                 return@launch
             }
@@ -105,10 +125,8 @@ class SeriesWatchViewModel @Inject constructor(
                 targetSeason != -1 && (targetSeason in availableSeasons || targetImdbEpisodes?.isNotEmpty() == true) -> targetSeason
                 targetSeason != -1 && availableSeasons.isNotEmpty() -> availableSeasons.maxOrNull() ?: availableSeasons.firstOrNull() ?: 1
                 availableSeasons.isNotEmpty() -> availableSeasons.maxOrNull() ?: availableSeasons.firstOrNull() ?: 1
-                else -> {
-                    _state.update { it.copy(isLoading = false, error = "Source not found") }
-                    return@launch
-                }
+                targetSeason != -1 -> targetSeason
+                else -> 1
             }
 
             // Start IMDb episodes for the selected season; observer updates cache/state when it arrives
@@ -162,9 +180,7 @@ class SeriesWatchViewModel @Inject constructor(
             if (episodes.isNotEmpty()) {
                 val first = episodes.first()
                 _state.update { it.copy(currentEpisode = first) }
-                if (first.available) {
-                    onEpisodeClick(first)
-                }
+                onEpisodeClick(first)
             }
         }
     }
@@ -223,35 +239,186 @@ class SeriesWatchViewModel @Inject constructor(
 
     fun selectLanguage(lang: String) {
         _state.update { it.copy(selectedLanguage = lang) }
-        val currentEp = _state.value.currentEpisode
-        if (currentEp != null) {
-            val m3u8 = currentEp.languages[lang]
-            if (m3u8 != null) {
-                resolveAndPlay(m3u8, currentEp)
-            }
-        }
+        val gemmaOpt = options.firstOrNull { it.kind == PlaybackKind.GEMMA && it.language == lang }
+        if (gemmaOpt != null) playOption(gemmaOpt)
     }
 
     fun onEpisodeClick(episode: WatchEpisode) {
-        if (!episode.available) {
-            _state.update { it.copy(currentEpisode = episode) }
-            return
-        }
-        val lang = _state.value.selectedLanguage
-        val file = episode.languages[lang] ?: episode.languages.values.firstOrNull() ?: return
         _state.update { it.copy(currentEpisode = episode) }
-        resolveAndPlay(file, episode)
+        if (!episode.available && !imdbId.startsWith("tt")) return
+        resolveEpisode(episode)
     }
 
-    private fun resolveAndPlay(file: String, episode: WatchEpisode) {
-        val csrfKey = _state.value.result?.csrfKey ?: return
-        viewModelScope.launch {
-            _state.update { it.copy(currentM3u8 = null) }
-            val m3u8 = gemmaExtractor.resolveFile(file, csrfKey)
-            if (m3u8 != null) {
-                _state.update { it.copy(currentM3u8 = m3u8) }
+    private fun buildOptions(episode: WatchEpisode?) {
+        val list = mutableListOf<PlaybackOption>()
+        sourceHubSources.forEach { s ->
+            list.add(
+                PlaybackOption(
+                    id = "sourcehub:" + s.id,
+                    label = s.displayLabel,
+                    kind = PlaybackKind.SOURCE_HUB,
+                    url = s.url,
+                    headers = s.playbackHeaders()
+                )
+            )
+        }
+        val result = _state.value.result
+        if (result != null && episode != null) {
+            val season = result.seasons[episode.seasonNo]
+            val gemmaEp = season?.episodes?.get(episode.episodeNo)
+            if (gemmaEp != null) {
+                gemmaEp.languages.keys.sortedWith(languageComparator()).forEach { lang ->
+                    val file = gemmaEp.languages[lang] ?: return@forEach
+                    val ck = "e:${episode.seasonNo}:${episode.episodeNo}:$lang"
+                    val resolved = episodeCacheKey(episode.seasonNo, episode.episodeNo)
+                        ?.let { sourceCache.get(it)?.resolved?.get(ck) }
+                    list.add(
+                        PlaybackOption(
+                            id = "gemma:$lang",
+                            label = "Gemma • $lang",
+                            kind = PlaybackKind.GEMMA,
+                            url = resolved ?: "",
+                            language = lang
+                        )
+                    )
+                }
             }
         }
+        options.clear()
+        options.addAll(list)
+        _state.update { it.copy(options = list) }
+    }
+
+    private fun languageComparator(): Comparator<String> = compareBy { lang ->
+        when {
+            lang.contains("Hindi", ignoreCase = true) -> 0
+            lang.contains("English", ignoreCase = true) -> 1
+            else -> 2
+        }
+    }.thenBy { it }
+
+    private fun resolveEpisode(episode: WatchEpisode) {
+        viewModelScope.launch {
+            val key = episodeCacheKey(episode.seasonNo, episode.episodeNo)
+            val cached = key?.let { sourceCache.get(it) }
+            if (cached != null) {
+                sourceHubSources = cached.sources
+                buildOptions(episode)
+                playFirstOption()
+                return@launch
+            }
+
+            _state.update { it.copy(isLoading = true) }
+            sourceHubSources = emptyList()
+            buildOptions(episode)
+
+            if (imdbId.startsWith("tt")) {
+                val sh = try {
+                    sourceHubClient.resolve(
+                        SourceHubRequest(
+                            id = imdbId,
+                            type = "tv",
+                            season = episode.seasonNo,
+                            episode = episode.episodeNo
+                        )
+                    ) { partial ->
+                        if (partial.sources.isNotEmpty()) {
+                            sourceHubSources = sourceHubSources + partial.sources
+                            buildOptions(episode)
+                        }
+                    }
+                } catch (_: Exception) { null }
+
+                if (sh != null && sh.sources.isNotEmpty()) {
+                    sourceHubSources = sh.sources.distinctBy { it.id }
+                    buildOptions(episode)
+                }
+            }
+
+            if (key != null) {
+                sourceCache.put(
+                    key,
+                    com.movie.app.best.data.repository.SourceCacheEntry(sources = sourceHubSources)
+                )
+            }
+            _state.update { it.copy(isLoading = false) }
+            playFirstOption()
+        }
+    }
+
+    private fun playFirstOption() {
+        val first = options.firstOrNull()
+        if (first == null) {
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+            return
+        }
+        playOption(first)
+    }
+
+    private fun playOption(opt: PlaybackOption) {
+        _state.update {
+            it.copy(isLoading = true, selectedOptionId = opt.id, activeSource = opt.kind, error = null)
+        }
+        viewModelScope.launch {
+            val url = if (opt.kind == PlaybackKind.GEMMA && opt.url.isEmpty()) {
+                resolveGemmaUrl(opt.language)
+            } else opt.url
+            if (url.isNullOrEmpty()) {
+                advanceFrom(opt.id)
+                return@launch
+            }
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    currentM3u8 = url,
+                    currentHeaders = opt.headers,
+                    selectedOptionId = opt.id,
+                    activeSource = opt.kind,
+                    error = null
+                )
+            }
+        }
+    }
+
+    private suspend fun resolveGemmaUrl(lang: String?): String? {
+        val episode = _state.value.currentEpisode ?: return null
+        val result = _state.value.result ?: return null
+        val season = result.seasons[episode.seasonNo] ?: return null
+        val gemmaEp = season.episodes[episode.episodeNo] ?: return null
+        val chosenLang = lang?.takeIf { gemmaEp.languages.containsKey(it) } ?: gemmaEp.languages.keys.firstOrNull() ?: return null
+        val file = gemmaEp.languages[chosenLang] ?: return null
+        val ck = "e:${episode.seasonNo}:${episode.episodeNo}:$chosenLang"
+        val key = episodeCacheKey(episode.seasonNo, episode.episodeNo)
+        key?.let { sourceCache.get(it)?.resolved?.get(ck) }?.let { return it }
+        val m3u8 = gemmaExtractor.resolveFile(file, result.csrfKey) ?: return null
+        if (key != null) {
+            sourceCache.update(key) { cur ->
+                val base = cur ?: com.movie.app.best.data.repository.SourceCacheEntry()
+                base.copy(resolved = base.resolved.toMutableMap().apply { put(ck, m3u8) })
+            }
+        }
+        return m3u8
+    }
+
+    private fun advanceFrom(failedId: String) {
+        val idx = options.indexOfFirst { it.id == failedId }
+        val next = options.getOrNull(idx + 1)
+        if (next == null) {
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+            return
+        }
+        playOption(next)
+    }
+
+    fun selectOption(id: String) {
+        val opt = options.firstOrNull { it.id == id } ?: return
+        playOption(opt)
+    }
+
+    fun onPlaybackError() {
+        val failed = _state.value.selectedOptionId
+        _state.update { it.copy(currentM3u8 = null) }
+        if (failed != null) advanceFrom(failed)
     }
 
     private fun extractAgeRating(response: com.movie.app.best.data.model.ImdbCertificatesResponse): String {

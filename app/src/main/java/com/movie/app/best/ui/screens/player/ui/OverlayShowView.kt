@@ -18,6 +18,9 @@ fun BoxScope.OverlayShowView(
     customAudioTracks: List<String>? = null,
     selectedAudioTrack: String? = null,
     onAudioTrackSelected: ((String) -> Unit)? = null,
+    serverOptions: List<com.movie.app.best.data.model.PlaybackOption>? = null,
+    selectedServerOptionId: String? = null,
+    onServerOptionSelected: ((String) -> Unit)? = null,
 ) {
     Box(
         modifier = Modifier
@@ -54,6 +57,16 @@ fun BoxScope.OverlayShowView(
         player = player,
         onDismiss = onDismiss,
     )
+
+    if (!serverOptions.isNullOrEmpty()) {
+        ServerSourceSelectorView(
+            show = overlayView == OverlayViewType.SERVER_SELECTOR,
+            options = serverOptions,
+            selectedId = selectedServerOptionId,
+            onSelect = { onServerOptionSelected?.invoke(it) },
+            onDismiss = onDismiss,
+        )
+    }
 
     PlaybackSpeedSelectorView(
         show = overlayView == OverlayViewType.PLAYBACK_SPEED,

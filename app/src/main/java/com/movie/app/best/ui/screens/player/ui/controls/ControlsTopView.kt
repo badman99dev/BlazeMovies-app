@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,6 +38,8 @@ fun ControlsTopView(
     onQualityClick: () -> Unit = {},
     onPlaybackSpeedClick: () -> Unit = {},
     onSubtitleClick: () -> Unit = {},
+    onServerClick: () -> Unit = {},
+    showServerButton: Boolean = false,
     onBackClick: () -> Unit,
 ) {
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
@@ -66,6 +69,11 @@ fun ControlsTopView(
                 }
                 PlayerButton(onClick = onQualityClick) {
                     Icon(imageVector = Icons.Default.HighQuality, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
+                }
+                if (showServerButton) {
+                    PlayerButton(onClick = onServerClick) {
+                        Icon(imageVector = Icons.Default.Storage, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
+                    }
                 }
             }
         }
@@ -104,6 +112,11 @@ fun ControlsTopView(
                 }
                 PlayerButton(onClick = onQualityClick) {
                     Icon(imageVector = Icons.Default.HighQuality, contentDescription = null)
+                }
+                if (showServerButton) {
+                    PlayerButton(onClick = onServerClick) {
+                        Icon(imageVector = Icons.Default.Storage, contentDescription = null)
+                    }
                 }
             }
         }
