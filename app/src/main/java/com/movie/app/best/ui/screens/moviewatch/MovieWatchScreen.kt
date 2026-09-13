@@ -188,6 +188,7 @@ fun MovieWatchScreen(
             resumePos = saved?.progressMs ?: 0L
         }
 
+        val isSourceHub = state.activeSource == "sourcehub"
         val referer = when (state.activeSource) {
             "gemma" -> BuildConfig.GEMMA_BASE_URL
             else -> "https://wasmer-jhns970ko-badals-projects-03fab3df.vercel.app/"
@@ -198,17 +199,22 @@ fun MovieWatchScreen(
             .addInterceptor(Zee5False404Interceptor())
             .addInterceptor(DebugInterceptor()).build()
 
-        val requestProps = mutableMapOf(
-            "Referer" to referer,
-            "Accept" to "*/*"
-        )
+        // SourceHub sources are strict about headers: some origins 403 on ANY Referer/Origin
+        // (anti-hotlink), so send ONLY the headers the source itself declares — no defaults.
+        val requestProps = mutableMapOf<String, String>()
+        if (!isSourceHub) {
+            requestProps["Referer"] = referer
+            requestProps["Accept"] = "*/*"
+        }
         state.currentHeaders.forEach { (k, v) ->
             if (k.isNotBlank() && v.isNotBlank()) requestProps[k] = v
         }
 
         val okFactory = OkHttpDataSource.Factory(okClient)
-            .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
-            .setDefaultRequestProperties(requestProps)
+        if (!isSourceHub) {
+            okFactory.setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
+        }
+        okFactory.setDefaultRequestProperties(requestProps)
 
         val dsFactory = DefaultDataSource.Factory(context, okFactory)
         val hlsFactory = HlsMediaSource.Factory(dsFactory)

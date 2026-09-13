@@ -154,17 +154,23 @@ fun SeriesWatchScreen(
             .addInterceptor(Zee5False404Interceptor())
             .addInterceptor(DebugInterceptor()).build()
 
-        val requestProps = mutableMapOf(
-            "Referer" to BuildConfig.GEMMA_BASE_URL,
-            "Accept" to "*/*"
-        )
+        // SourceHub sources are strict about headers: some origins 403 on ANY Referer/Origin
+        // (anti-hotlink), so send ONLY the headers the source itself declares — no defaults.
+        val isSourceHub = state.activeSource == "sourcehub"
+        val requestProps = mutableMapOf<String, String>()
+        if (!isSourceHub) {
+            requestProps["Referer"] = BuildConfig.GEMMA_BASE_URL
+            requestProps["Accept"] = "*/*"
+        }
         state.currentHeaders.forEach { (k, v) ->
             if (k.isNotBlank() && v.isNotBlank()) requestProps[k] = v
         }
 
         val okFactory = OkHttpDataSource.Factory(okClient)
-            .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
-            .setDefaultRequestProperties(requestProps)
+        if (!isSourceHub) {
+            okFactory.setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
+        }
+        okFactory.setDefaultRequestProperties(requestProps)
 
         val dsFactory = DefaultDataSource.Factory(context, okFactory)
         val hlsFactory = HlsMediaSource.Factory(dsFactory)
