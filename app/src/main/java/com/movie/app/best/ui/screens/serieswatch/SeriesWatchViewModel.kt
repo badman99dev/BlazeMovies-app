@@ -357,7 +357,7 @@ class SeriesWatchViewModel @Inject constructor(
 
     private fun playOption(opt: PlaybackOption) {
         _state.update {
-            it.copy(isLoading = true, selectedOptionId = opt.id, activeSource = opt.kind, error = null)
+            it.copy(isLoading = true, currentM3u8 = null, selectedOptionId = opt.id, activeSource = opt.kind, error = null)
         }
         viewModelScope.launch {
             val url = if (opt.kind == PlaybackKind.GEMMA && opt.url.isEmpty()) {

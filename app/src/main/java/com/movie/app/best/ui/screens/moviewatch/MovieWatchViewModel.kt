@@ -264,6 +264,7 @@ class MovieWatchViewModel @Inject constructor(
         _state.update {
             it.copy(
                 isLoading = true,
+                currentM3u8 = null,
                 selectedOptionId = opt.id,
                 activeSource = opt.kind,
                 error = null

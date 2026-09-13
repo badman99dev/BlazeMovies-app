@@ -48,6 +48,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -278,21 +279,23 @@ fun SeriesWatchScreen(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            MediaPlayerScreen(
-                player = exoPlayer,
-                modifier = Modifier.fillMaxSize(),
-                onBackClick = { exitFullscreen() },
-                onPlayInBackgroundClick = {},
-                onFullscreenClick = { exitFullscreen() },
-                isInline = false,
-                title = state.currentEpisode?.displayTitle ?: "",
-                customAudioTracks = customAudioTracks,
-                selectedAudioTrack = state.selectedLanguage,
-                onAudioTrackSelected = onLangSelect,
-                serverOptions = serverOptions,
-                selectedServerOptionId = state.selectedOptionId,
-                onServerOptionSelected = onServerSelect,
-            )
+            key(exoPlayer) {
+                MediaPlayerScreen(
+                    player = exoPlayer,
+                    modifier = Modifier.fillMaxSize(),
+                    onBackClick = { exitFullscreen() },
+                    onPlayInBackgroundClick = {},
+                    onFullscreenClick = { exitFullscreen() },
+                    isInline = false,
+                    title = state.currentEpisode?.displayTitle ?: "",
+                    customAudioTracks = customAudioTracks,
+                    selectedAudioTrack = state.selectedLanguage,
+                    onAudioTrackSelected = onLangSelect,
+                    serverOptions = serverOptions,
+                    selectedServerOptionId = state.selectedOptionId,
+                    onServerOptionSelected = onServerSelect,
+                )
+            }
         }
         return
     }
@@ -328,25 +331,27 @@ fun SeriesWatchScreen(
                 .zIndex(1f)
         ) {
             if (exoPlayer != null) {
-                MediaPlayerScreen(
-                    player = exoPlayer,
-                    modifier = Modifier.fillMaxSize(),
-                    onBackClick = {
-                        activity?.let { ImmersiveMode.exit(it) }
-                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                        onBackClick()
-                    },
-                    onPlayInBackgroundClick = {},
-                    onFullscreenClick = { enterFullscreen() },
-                    isInline = true,
-                    title = state.currentEpisode?.displayTitle ?: "",
-                    customAudioTracks = customAudioTracks,
-                    selectedAudioTrack = state.selectedLanguage,
-                    onAudioTrackSelected = onLangSelect,
-                    serverOptions = serverOptions,
-                    selectedServerOptionId = state.selectedOptionId,
-                    onServerOptionSelected = onServerSelect,
-                )
+                key(exoPlayer) {
+                    MediaPlayerScreen(
+                        player = exoPlayer,
+                        modifier = Modifier.fillMaxSize(),
+                        onBackClick = {
+                            activity?.let { ImmersiveMode.exit(it) }
+                            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            onBackClick()
+                        },
+                        onPlayInBackgroundClick = {},
+                        onFullscreenClick = { enterFullscreen() },
+                        isInline = true,
+                        title = state.currentEpisode?.displayTitle ?: "",
+                        customAudioTracks = customAudioTracks,
+                        selectedAudioTrack = state.selectedLanguage,
+                        onAudioTrackSelected = onLangSelect,
+                        serverOptions = serverOptions,
+                        selectedServerOptionId = state.selectedOptionId,
+                        onServerOptionSelected = onServerSelect,
+                    )
+                }
             } else {
                 val thumbUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }
                     ?: state.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() }

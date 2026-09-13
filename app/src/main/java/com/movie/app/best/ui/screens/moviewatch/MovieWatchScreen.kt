@@ -48,6 +48,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -361,21 +362,23 @@ fun MovieWatchScreen(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            MediaPlayerScreen(
-                player = exoPlayer,
-                modifier = Modifier.fillMaxSize(),
-                onBackClick = { exitFullscreen() },
-                onPlayInBackgroundClick = {},
-                onFullscreenClick = { exitFullscreen() },
-                isInline = false,
-                title = title,
-                customAudioTracks = customAudioTracks,
-                selectedAudioTrack = state.selectedLanguage,
-                onAudioTrackSelected = onLangSelect,
-                serverOptions = serverOptions,
-                selectedServerOptionId = state.selectedOptionId,
-                onServerOptionSelected = onServerSelect,
-            )
+            key(exoPlayer) {
+                MediaPlayerScreen(
+                    player = exoPlayer,
+                    modifier = Modifier.fillMaxSize(),
+                    onBackClick = { exitFullscreen() },
+                    onPlayInBackgroundClick = {},
+                    onFullscreenClick = { exitFullscreen() },
+                    isInline = false,
+                    title = title,
+                    customAudioTracks = customAudioTracks,
+                    selectedAudioTrack = state.selectedLanguage,
+                    onAudioTrackSelected = onLangSelect,
+                    serverOptions = serverOptions,
+                    selectedServerOptionId = state.selectedOptionId,
+                    onServerOptionSelected = onServerSelect,
+                )
+            }
         }
         return
     }
@@ -406,6 +409,7 @@ fun MovieWatchScreen(
                 .zIndex(1f)
         ) {
             if (exoPlayer != null) {
+                key(exoPlayer) {
                     MediaPlayerScreen(
                         player = exoPlayer,
                         modifier = Modifier.fillMaxSize(),
@@ -425,7 +429,8 @@ fun MovieWatchScreen(
                         selectedServerOptionId = state.selectedOptionId,
                         onServerOptionSelected = onServerSelect,
                     )
-                } else if (state.error != null) {
+                }
+            } else if (state.error != null) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
