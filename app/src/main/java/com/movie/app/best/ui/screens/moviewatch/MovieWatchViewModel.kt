@@ -119,7 +119,7 @@ class MovieWatchViewModel @Inject constructor(
         _state.update { it.copy(options = list) }
     }
 
-    private fun languageComparator(): Comparator<String> = compareBy { lang ->
+    private fun languageComparator(): Comparator<String> = compareBy<String> { lang ->
         when {
             lang.contains("Hindi", ignoreCase = true) -> 0
             lang.contains("English", ignoreCase = true) -> 1

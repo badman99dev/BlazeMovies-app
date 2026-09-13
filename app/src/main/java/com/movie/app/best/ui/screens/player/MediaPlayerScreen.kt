@@ -85,6 +85,7 @@ import com.movie.app.best.ui.screens.player.ui.OverlayViewType
 import com.movie.app.best.ui.screens.player.ui.PlaybackSpeedSelectorView
 import com.movie.app.best.ui.screens.player.ui.PlayerGestures
 import com.movie.app.best.ui.screens.player.ui.QualitySelectorView
+import com.movie.app.best.ui.screens.player.ui.ServerSourceSelectorView
 import com.movie.app.best.ui.screens.player.ui.ShutterView
 import com.movie.app.best.ui.screens.player.ui.VerticalProgressView
 import com.movie.app.best.ui.screens.player.ui.VideoContentScaleSelectorView
