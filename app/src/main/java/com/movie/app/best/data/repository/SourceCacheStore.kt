@@ -1,12 +1,14 @@
 package com.movie.app.best.data.repository
 
 import android.content.Context
+import android.net.Uri
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.model.GemmaExtractionResult
 import com.movie.app.best.data.model.SourceHubSource
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,6 +75,16 @@ class SourceCacheStore @Inject constructor(
         memory.remove(key)
         val all = readAll().toMutableMap()
         if (all.remove(key) != null) writeAll(all)
+    }
+
+    /** Hosts a synthetic multi-quality HLS master as a local .m3u8 and returns its file URI. */
+    @Synchronized
+    fun writeHlsMaster(name: String, content: String): String {
+        val dir = File(context.cacheDir, "hls_master")
+        if (!dir.exists()) dir.mkdirs()
+        val file = File(dir, "$name.m3u8")
+        file.writeText(content)
+        return Uri.fromFile(file).toString()
     }
 
     private fun readAll(): Map<String, SourceCacheEntry> {

@@ -10,6 +10,8 @@ import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.data.model.SourceHubRequest
 import com.movie.app.best.data.model.SourceHubSource
+import com.movie.app.best.data.model.buildMasterPlaylist
+import com.movie.app.best.data.model.groupByServer
 import com.movie.app.best.data.model.WatchEpisode
 import com.movie.app.best.data.remote.GemmaExtractorService
 import com.movie.app.best.data.remote.ImdbApiService
@@ -50,6 +52,7 @@ class SeriesWatchViewModel @Inject constructor(
     private val imdbCache = mutableMapOf<Int, List<ImdbEpisode>>()
     private var sourceHubSources: List<SourceHubSource> = emptyList()
     private val options = mutableListOf<PlaybackOption>()
+    private val altCursor = mutableMapOf<String, Int>()
     private val gemmaTreeKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.gemmaTreeKey(imdbId) else null
     private fun episodeCacheKey(season: Int, episode: Int): String? =
         if (imdbId.startsWith("tt")) SourceCacheStore.episodeKey(imdbId, season, episode) else null
@@ -251,16 +254,30 @@ class SeriesWatchViewModel @Inject constructor(
 
     private fun buildOptions(episode: WatchEpisode?) {
         val list = mutableListOf<PlaybackOption>()
-        sourceHubSources.forEach { s ->
-            list.add(
-                PlaybackOption(
-                    id = "sourcehub:" + s.id,
-                    label = s.displayLabel,
-                    kind = PlaybackKind.SOURCE_HUB,
-                    url = s.url,
-                    headers = s.playbackHeaders()
+        sourceHubSources.groupByServer().forEach { g ->
+            val master = g.buildMasterPlaylist()
+            if (master != null) {
+                list.add(
+                    PlaybackOption(
+                        id = "sourcehub:" + g.key,
+                        label = g.label,
+                        kind = PlaybackKind.SOURCE_HUB,
+                        url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
+                        headers = g.headers
+                    )
                 )
-            )
+            } else {
+                list.add(
+                    PlaybackOption(
+                        id = "sourcehub:" + g.key,
+                        label = g.label,
+                        kind = PlaybackKind.SOURCE_HUB,
+                        url = g.sources.first().url,
+                        headers = g.headers,
+                        alternates = g.sources.drop(1).map { it.url }
+                    )
+                )
+            }
         }
         val result = _state.value.result
         if (result != null && episode != null) {
@@ -356,6 +373,7 @@ class SeriesWatchViewModel @Inject constructor(
     }
 
     private fun playOption(opt: PlaybackOption) {
+        altCursor[opt.id] = 0
         _state.update {
             it.copy(isLoading = true, currentM3u8 = null, selectedOptionId = opt.id, activeSource = opt.kind, error = null)
         }
@@ -417,6 +435,21 @@ class SeriesWatchViewModel @Inject constructor(
 
     fun onPlaybackError() {
         val failed = _state.value.selectedOptionId
+        val opt = failed?.let { id -> options.firstOrNull { it.id == id } }
+        val idx = failed?.let { altCursor[it] ?: 0 } ?: 0
+        if (opt != null && opt.alternates.isNotEmpty() && idx < opt.alternates.size) {
+            altCursor[failed!!] = idx + 1
+            _state.update {
+                it.copy(
+                    currentM3u8 = opt.alternates[idx],
+                    currentHeaders = opt.headers,
+                    selectedOptionId = opt.id,
+                    activeSource = opt.kind,
+                    error = null
+                )
+            }
+            return
+        }
         _state.update { it.copy(currentM3u8 = null) }
         if (failed != null) advanceFrom(failed)
     }
