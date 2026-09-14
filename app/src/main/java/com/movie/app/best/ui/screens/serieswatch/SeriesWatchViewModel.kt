@@ -265,7 +265,8 @@ class SeriesWatchViewModel @Inject constructor(
                         kind = PlaybackKind.SOURCE_HUB,
                         url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
                         headers = g.headers,
-                        alternates = direct
+                        alternates = direct,
+                        playbackType = g.playbackType
                     )
                 )
             } else {
@@ -276,7 +277,8 @@ class SeriesWatchViewModel @Inject constructor(
                         kind = PlaybackKind.SOURCE_HUB,
                         url = g.sources.first().url,
                         headers = g.headers,
-                        alternates = g.sources.drop(1).map { it.url }
+                        alternates = g.sources.drop(1).map { it.url },
+                        playbackType = g.playbackType
                     )
                 )
             }
@@ -392,6 +394,7 @@ class SeriesWatchViewModel @Inject constructor(
                     isLoading = false,
                     currentM3u8 = url,
                     currentHeaders = opt.headers,
+                    currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
                     activeSource = opt.kind,
                     error = null
@@ -445,6 +448,7 @@ class SeriesWatchViewModel @Inject constructor(
                 it.copy(
                     currentM3u8 = opt.alternates[idx],
                     currentHeaders = opt.headers,
+                    currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
                     activeSource = opt.kind,
                     error = null

@@ -56,6 +56,7 @@ data class ExtractionState(
     val selectedLanguage: String = "Hindi",
     val availableLanguages: List<String> = emptyList(),
     val currentM3u8: String? = null,
+    val currentPlaybackType: String = "hls",
     val currentHeaders: Map<String, String> = emptyMap(),
     val activeSource: String = "",
     val selectedOptionId: String? = null,

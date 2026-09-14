@@ -78,6 +78,8 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.DebugInterceptor
@@ -173,11 +175,16 @@ fun SeriesWatchScreen(
         okFactory.setDefaultRequestProperties(requestProps)
 
         val dsFactory = DefaultDataSource.Factory(context, okFactory)
-        val hlsFactory = HlsMediaSource.Factory(dsFactory)
+        // hls → HLS playlist source; mp4/mkv → sniffing default factory (progressive with Range-based seeking)
+        val mediaFactory: MediaSource.Factory =
+            if (state.currentPlaybackType.equals("hls", ignoreCase = true))
+                HlsMediaSource.Factory(dsFactory)
+            else
+                DefaultMediaSourceFactory(dsFactory)
 
         val player = ExoPlayer.Builder(context)
             .setTrackSelector(trackSelector)
-            .setMediaSourceFactory(hlsFactory)
+            .setMediaSourceFactory(mediaFactory)
             .setLoadControl(
                 DefaultLoadControl.Builder()
                     .setBufferDurationsMs(5000, 30000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)

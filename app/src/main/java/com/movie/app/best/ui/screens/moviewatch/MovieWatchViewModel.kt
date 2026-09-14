@@ -97,7 +97,8 @@ class MovieWatchViewModel @Inject constructor(
                         kind = PlaybackKind.SOURCE_HUB,
                         url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
                         headers = g.headers,
-                        alternates = direct
+                        alternates = direct,
+                        playbackType = g.playbackType
                     )
                 )
             } else {
@@ -108,7 +109,8 @@ class MovieWatchViewModel @Inject constructor(
                         kind = PlaybackKind.SOURCE_HUB,
                         url = g.sources.first().url,
                         headers = g.headers,
-                        alternates = g.sources.drop(1).map { it.url }
+                        alternates = g.sources.drop(1).map { it.url },
+                        playbackType = g.playbackType
                     )
                 )
             }
@@ -303,6 +305,7 @@ class MovieWatchViewModel @Inject constructor(
                     isLoading = false,
                     currentM3u8 = url,
                     currentHeaders = opt.headers,
+                    currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
                     activeSource = opt.kind,
                     error = null
@@ -370,6 +373,7 @@ class MovieWatchViewModel @Inject constructor(
                     isLoading = false,
                     currentM3u8 = opt.alternates[idx],
                     currentHeaders = opt.headers,
+                    currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
                     activeSource = opt.kind,
                     error = null
@@ -513,6 +517,7 @@ data class MovieWatchState(
     val showBuffering: Boolean = false,
     val currentM3u8: String? = null,
     val currentHeaders: Map<String, String> = emptyMap(),
+    val currentPlaybackType: String = "hls",
     val activeSource: String = "",
     val selectedOptionId: String? = null,
     val options: List<PlaybackOption> = emptyList(),

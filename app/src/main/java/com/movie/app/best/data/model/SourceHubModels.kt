@@ -13,11 +13,12 @@ data class SourceHubSource(
     val service: String = "",
     val server: String? = null,
     val quality: String = "auto",
+    val language: String? = null,
     val url: String = "",
     val playback: SourceHubPlayback? = null
 ) {
     val id: String
-        get() = "$service|${server ?: ""}|$quality|$url"
+        get() = "$service|${server ?: ""}|${language ?: ""}|$quality|$url"
 
     private val serviceDisplayName: String
         get() = when (service.lowercase()) {
@@ -30,11 +31,14 @@ data class SourceHubSource(
             else -> service.replaceFirstChar { it.uppercase() }
         }
 
-    /** Server-only label (no quality) — used in the Server picker. */
+    /** Server-only label — used in the Server picker (language/format shown, quality not). */
     val serverLabel: String
         get() {
             val parts = mutableListOf(serviceDisplayName)
             server?.takeIf { it.isNotBlank() }?.let { parts.add(it.replaceFirstChar { c -> c.uppercase() }) }
+            language?.takeIf { it.isNotBlank() }?.let { parts.add(it.replaceFirstChar { c -> c.uppercase() }) }
+            val t = playback?.type?.lowercase()?.takeIf { it.isNotBlank() && it != "hls" }
+            if (t != null) parts.add(if (url.substringBefore('?').lowercase().endsWith(".mkv")) "MKV" else t.uppercase())
             return parts.joinToString(" • ")
         }
 
@@ -48,7 +52,7 @@ data class SourceHubSource(
     fun playbackHeaders(): Map<String, String> = playback?.headers ?: emptyMap()
 }
 
-/** Distinct qualities of one server collapse into a single picker row. */
+/** Distinct qualities of one server+language collapse into a single picker row. */
 data class SourceHubGroup(
     val key: String,
     val label: String,
@@ -56,6 +60,8 @@ data class SourceHubGroup(
     val sources: List<SourceHubSource>
 ) {
     fun fileBaseName(): String = key.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")
+    val playbackType: String get() = sources.firstOrNull()?.playback?.type?.lowercase()?.takeIf { it.isNotBlank() } ?: "hls"
+    val isProgressive: Boolean get() = playbackType != "hls"
 }
 
 fun qualityHeight(q: String?): Int? {
@@ -68,7 +74,7 @@ fun List<SourceHubSource>.groupByServer(): List<SourceHubGroup> {
     val buckets = LinkedHashMap<String, MutableList<SourceHubSource>>()
     for (s in this) {
         if (s.url.isBlank()) continue
-        val key = s.service.lowercase() + "|" + s.server.orEmpty().lowercase()
+        val key = s.service.lowercase() + "|" + s.server.orEmpty().lowercase() + "|" + s.language.orEmpty().lowercase()
         val list = buckets.getOrPut(key) { mutableListOf() }
         if (list.none { it.url == s.url }) list.add(s)
     }
@@ -84,8 +90,9 @@ fun List<SourceHubSource>.groupByServer(): List<SourceHubGroup> {
     }
 }
 
-/** Merges distinct single-quality playlists of one server into an HLS master (data is hosted locally). */
+/** Merges distinct single-quality HLS playlists of one server into a master. Progressive (mp4/mkv) never merged. */
 fun SourceHubGroup.buildMasterPlaylist(): String? {
+    if (isProgressive) return null
     val variants = sources.map { (qualityHeight(it.quality) ?: 0) to it.url }.filter { it.first > 0 }
     if (variants.size < 2) return null
     val sb = StringBuilder("#EXTM3U\n#EXT-X-VERSION:3\n")
@@ -134,5 +141,6 @@ data class PlaybackOption(
     val url: String = "",
     val headers: Map<String, String> = emptyMap(),
     val language: String? = null,
-    val alternates: List<String> = emptyList()
+    val alternates: List<String> = emptyList(),
+    val playbackType: String = "hls"
 )
