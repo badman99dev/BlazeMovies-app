@@ -256,6 +256,7 @@ class SeriesWatchViewModel @Inject constructor(
         val list = mutableListOf<PlaybackOption>()
         sourceHubSources.groupByServer().forEach { g ->
             val master = g.buildMasterPlaylist()
+            val direct = g.sources.map { it.url }
             if (master != null) {
                 list.add(
                     PlaybackOption(
@@ -263,7 +264,8 @@ class SeriesWatchViewModel @Inject constructor(
                         label = g.label,
                         kind = PlaybackKind.SOURCE_HUB,
                         url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
-                        headers = g.headers
+                        headers = g.headers,
+                        alternates = direct
                     )
                 )
             } else {

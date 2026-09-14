@@ -88,6 +88,7 @@ class MovieWatchViewModel @Inject constructor(
         nativeOption()?.let { list.add(it) }
         sourceHubSources.groupByServer().forEach { g ->
             val master = g.buildMasterPlaylist()
+            val direct = g.sources.map { it.url }
             if (master != null) {
                 list.add(
                     PlaybackOption(
@@ -95,7 +96,8 @@ class MovieWatchViewModel @Inject constructor(
                         label = g.label,
                         kind = PlaybackKind.SOURCE_HUB,
                         url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
-                        headers = g.headers
+                        headers = g.headers,
+                        alternates = direct
                     )
                 )
             } else {
