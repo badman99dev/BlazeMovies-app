@@ -124,7 +124,7 @@ class MovieWatchViewModel @Inject constructor(
                     list.add(
                         PlaybackOption(
                             id = "gemma:$lang",
-                            label = "Gemma • $lang",
+                            label = "Gemma",
                             kind = PlaybackKind.GEMMA,
                             url = resolved ?: "",
                             language = lang

@@ -347,7 +347,13 @@ fun MovieWatchScreen(
         viewModel.selectOption(id)
     }
 
-    val serverOptions = state.options.takeIf { it.isNotEmpty() }
+    // Gemma has per-language entries (used by the Audio selector); the Server picker only
+    // needs one "Gemma" row — pick the option matching the currently-selected audio language.
+    val repGemma = state.options.firstOrNull { it.kind == "gemma" && it.language == state.selectedLanguage }
+        ?: state.options.firstOrNull { it.kind == "gemma" }
+    val serverOptions = state.options
+        .filter { it.kind != "gemma" || it == repGemma }
+        .takeIf { it.isNotEmpty() }
 
     val customAudioTracks = state.availableLanguages
         .takeIf { it.size > 1 && state.activeSource == "gemma" }
