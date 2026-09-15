@@ -376,27 +376,36 @@ fun MovieWatchScreen(
         }
     }
 
-    if (isFullscreen && exoPlayer != null) {
+    if (isFullscreen) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            key(exoPlayer) {
-                MediaPlayerScreen(
-                    player = exoPlayer,
+            if (exoPlayer != null) {
+                key(exoPlayer) {
+                    MediaPlayerScreen(
+                        player = exoPlayer,
+                        modifier = Modifier.fillMaxSize(),
+                        onBackClick = { exitFullscreen() },
+                        onPlayInBackgroundClick = {},
+                        onFullscreenClick = { exitFullscreen() },
+                        isInline = false,
+                        title = title,
+                        customAudioTracks = customAudioTracks,
+                        selectedAudioTrack = state.selectedLanguage,
+                        onAudioTrackSelected = onLangSelect,
+                        serverOptions = serverOptions,
+                        selectedServerOptionId = state.selectedOptionId,
+                        onServerOptionSelected = onServerSelect,
+                    )
+                }
+            } else if (state.serverScan.isNotEmpty()) {
+                ServerScanOverlay(
                     modifier = Modifier.fillMaxSize(),
-                    onBackClick = { exitFullscreen() },
-                    onPlayInBackgroundClick = {},
-                    onFullscreenClick = { exitFullscreen() },
-                    isInline = false,
-                    title = title,
-                    customAudioTracks = customAudioTracks,
-                    selectedAudioTrack = state.selectedLanguage,
-                    onAudioTrackSelected = onLangSelect,
-                    serverOptions = serverOptions,
-                    selectedServerOptionId = state.selectedOptionId,
-                    onServerOptionSelected = onServerSelect,
+                    title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
+                    rows = state.serverScan,
+                    posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
                 )
             }
         }
@@ -688,32 +697,24 @@ fun MovieWatchScreen(
         }
     }
 
-    // Full-screen buffering overlay: shown until IMDb responds (max 4s) — or the live scan if the hub connected
-    if (state.showBuffering) {
-        if (state.serverScan.isNotEmpty()) {
-            ServerScanOverlay(
-                modifier = Modifier.fillMaxSize(),
-                title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
-                rows = state.serverScan,
-                posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "Loading...",
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+    // Full-screen buffering overlay: shown until IMDb responds (max 4s).
+    // Suppressed while the live scan is running so the scan stays inside the video box (not full-screen).
+    if (state.showBuffering && state.serverScan.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Loading...",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }

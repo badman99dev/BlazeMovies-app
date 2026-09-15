@@ -293,27 +293,38 @@ fun SeriesWatchScreen(
         }
     }
 
-    if (isFullscreen && exoPlayer != null) {
+    if (isFullscreen) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            key(exoPlayer) {
-                MediaPlayerScreen(
-                    player = exoPlayer,
+            if (exoPlayer != null) {
+                key(exoPlayer) {
+                    MediaPlayerScreen(
+                        player = exoPlayer,
+                        modifier = Modifier.fillMaxSize(),
+                        onBackClick = { exitFullscreen() },
+                        onPlayInBackgroundClick = {},
+                        onFullscreenClick = { exitFullscreen() },
+                        isInline = false,
+                        title = state.currentEpisode?.displayTitle ?: "",
+                        customAudioTracks = customAudioTracks,
+                        selectedAudioTrack = state.selectedLanguage,
+                        onAudioTrackSelected = onLangSelect,
+                        serverOptions = serverOptions,
+                        selectedServerOptionId = state.selectedOptionId,
+                        onServerOptionSelected = onServerSelect,
+                    )
+                }
+            } else if (state.serverScan.isNotEmpty() && !state.episodeNoSource) {
+                ServerScanOverlay(
                     modifier = Modifier.fillMaxSize(),
-                    onBackClick = { exitFullscreen() },
-                    onPlayInBackgroundClick = {},
-                    onFullscreenClick = { exitFullscreen() },
-                    isInline = false,
-                    title = state.currentEpisode?.displayTitle ?: "",
-                    customAudioTracks = customAudioTracks,
-                    selectedAudioTrack = state.selectedLanguage,
-                    onAudioTrackSelected = onLangSelect,
-                    serverOptions = serverOptions,
-                    selectedServerOptionId = state.selectedOptionId,
-                    onServerOptionSelected = onServerSelect,
+                    title = state.currentEpisode?.displayTitle?.takeIf { it.isNotBlank() }
+                        ?: state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: viewModel.seriesTitle,
+                    rows = state.serverScan,
+                    posterUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }
+                        ?: state.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() }
                 )
             }
         }
@@ -325,29 +336,19 @@ fun SeriesWatchScreen(
             .fillMaxSize()
             .background(AppBlack)
     ) {
-        if (state.isLoading) {
-            if (state.serverScan.isNotEmpty()) {
-                ServerScanOverlay(
-                    modifier = Modifier.fillMaxSize(),
-                    title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: viewModel.seriesTitle,
-                    rows = state.serverScan,
-                    posterUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }
-                        ?: state.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() }
-                )
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Loading...",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 14.sp
-                        )
-                    }
+        if (state.isLoading && state.currentEpisode == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Loading...",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 14.sp
+                    )
                 }
             }
             return
@@ -588,7 +589,7 @@ fun SeriesWatchScreen(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        if (state.isLoading) {
+        if (state.isLoading && state.currentEpisode == null) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
