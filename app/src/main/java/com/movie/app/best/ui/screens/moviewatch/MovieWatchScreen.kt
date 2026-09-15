@@ -400,7 +400,7 @@ fun MovieWatchScreen(
                         onServerOptionSelected = onServerSelect,
                     )
                 }
-            } else if (state.serverScan.isNotEmpty()) {
+            } else {
                 ServerScanOverlay(
                     modifier = Modifier.fillMaxSize(),
                     title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
@@ -555,35 +555,12 @@ fun MovieWatchScreen(
                         }
                     }
                 } else {
-                    if (state.serverScan.isNotEmpty()) {
-                        ServerScanOverlay(
-                            modifier = Modifier.fillMaxSize(),
-                            title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
-                            rows = state.serverScan,
-                            posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val thumbUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
-                            if (thumbUrl != null) {
-                                AsyncImage(
-                                    model = thumbUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.4f))
-                                )
-                            }
-                            CircularProgressIndicator(color = AppRed, modifier = Modifier.size(36.dp))
-                        }
-                    }
+                    ServerScanOverlay(
+                        modifier = Modifier.fillMaxSize(),
+                        title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
+                        rows = state.serverScan,
+                        posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
+                    )
                 }
             }
 
@@ -694,28 +671,6 @@ fun MovieWatchScreen(
             Spacer(modifier = Modifier.height(80.dp))
         } else {
             Spacer(modifier = Modifier.height(80.dp))
-        }
-    }
-
-    // Full-screen buffering overlay: shown until IMDb responds (max 4s).
-    // Suppressed while the live scan is running so the scan stays inside the video box (not full-screen).
-    if (state.showBuffering && state.serverScan.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Loading...",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
         }
     }
 

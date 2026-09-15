@@ -317,7 +317,7 @@ fun SeriesWatchScreen(
                         onServerOptionSelected = onServerSelect,
                     )
                 }
-            } else if (state.serverScan.isNotEmpty() && !state.episodeNoSource) {
+            } else if (!state.episodeNoSource) {
                 ServerScanOverlay(
                     modifier = Modifier.fillMaxSize(),
                     title = state.currentEpisode?.displayTitle?.takeIf { it.isNotBlank() }
@@ -336,24 +336,6 @@ fun SeriesWatchScreen(
             .fillMaxSize()
             .background(AppBlack)
     ) {
-        if (state.isLoading && state.currentEpisode == null) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Loading...",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            return
-        }
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -383,7 +365,7 @@ fun SeriesWatchScreen(
                         onServerOptionSelected = onServerSelect,
                     )
                 }
-            } else if (state.serverScan.isNotEmpty() && !state.episodeNoSource) {
+            } else if ((state.serverScan.isNotEmpty() || state.isLoading) && !state.episodeNoSource) {
                 ServerScanOverlay(
                     modifier = Modifier.fillMaxSize(),
                     title = state.currentEpisode?.displayTitle?.takeIf { it.isNotBlank() }

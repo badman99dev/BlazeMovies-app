@@ -156,7 +156,7 @@ fun ServerScanOverlay(
                         .clip(RoundedCornerShape(3.dp))
                         .background(Brush.horizontalGradient(listOf(Color(0xFFB8860B), ScanYellow, Color(0xFFFFF3A0))))
                 )
-                if (settled < total) ShimmerStripe()
+                if (settled < total || total == 0) ShimmerStripe()
             }
 
             Spacer(Modifier.height(8.dp))
@@ -166,8 +166,12 @@ fun ServerScanOverlay(
             ) {
                 Text("$settled ANALYZED", color = Color(0xFF8FA39A), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text(
-                    text = if (settled < total) "${total - settled} REMAINING" else "DONE · $foundCount FOUND",
-                    color = if (settled < total) ScanYellow else ScanGreen,
+                    text = when {
+                        total == 0 -> "\u25CF\u25CF\u25CF"
+                        settled < total -> "${total - settled} REMAINING"
+                        else -> "DONE \u00B7 $foundCount FOUND"
+                    },
+                    color = if (total == 0 || settled < total) ScanYellow else ScanGreen,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -177,12 +181,16 @@ fun ServerScanOverlay(
             Spacer(Modifier.height(16.dp))
 
             Box(modifier = Modifier.fillMaxWidth()) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(9.dp)
-                ) {
-                    itemsIndexed(rows, key = { _, r -> r.name }) { index, row ->
-                        ServerScanCard(row = row, index = index)
+                if (rows.isEmpty()) {
+                    InitialisingChip()
+                } else {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(9.dp)
+                    ) {
+                        itemsIndexed(rows, key = { _, r -> r.name }) { index, row ->
+                            ServerScanCard(row = row, index = index)
+                        }
                     }
                 }
                 Box(
@@ -198,6 +206,44 @@ fun ServerScanOverlay(
                         )
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun InitialisingChip() {
+    val t = rememberInfiniteTransition(label = "initPulse")
+    val alpha by t.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "initAlpha"
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF061A0E).copy(alpha = 0.9f))
+                .border(1.dp, ScanYellow.copy(alpha = 0.35f * alpha), RoundedCornerShape(20.dp))
+                .padding(horizontal = 14.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.size(12.dp), contentAlignment = Alignment.Center) {
+                RotatingNeonRing(color = ScanYellow, glow = alpha)
+            }
+            Spacer(Modifier.size(8.dp))
+            Text(
+                text = "Initialising...",
+                color = Color(0xFFBFF0D0).copy(alpha = alpha),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.5.sp
+            )
         }
     }
 }
