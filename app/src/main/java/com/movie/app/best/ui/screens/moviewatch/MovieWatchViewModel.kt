@@ -71,6 +71,11 @@ class MovieWatchViewModel @Inject constructor(
     private val altCursor = mutableMapOf<String, Int>()
     private var userPinned = false
     private var gemmaScanStatus = "resolving"
+    private var scanStarted = false
+    private var lastHubRows: List<ServerScanRow> = emptyList()
+    private var hubSettled = false
+    private var defaultPlaylistReady = false
+    private var playbackCommitted = false
     private val cacheKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.movieKey(imdbId) else null
 
     init {
@@ -228,7 +233,7 @@ class MovieWatchViewModel @Inject constructor(
                                         rebuildOptions()
                                     }
                                 },
-                                onScan = { rows -> publishScan(rows) }
+                                onScan = { rows -> onHubScan(rows) }
                             )
                             if (sh.sources.isNotEmpty()) {
                                 sourceHubSources = sh.sources.distinctBy { it.id }
@@ -245,11 +250,19 @@ class MovieWatchViewModel @Inject constructor(
             cacheKey?.let { sourceCache.invalidate(it) }
         }
 
-        // Cache miss → resolve SourceHub (streamed) + Gemma
+        // Cache miss → resolve SourceHub (streamed) + Gemma in parallel
+        scanStarted = false
+        lastHubRows = emptyList()
+        hubSettled = false
+        defaultPlaylistReady = false
+        playbackCommitted = false
+        gemmaScanStatus = "resolving"
+
         val hasNative = nativeOption() != null
         val nativePlayed = hasNative
         if (hasNative) {
-            // Start playing native immediately, keep resolving in background
+            // Native is already the playing source → commit is satisfied by it; scan overlay never gates native.
+            playbackCommitted = true
             _state.update {
                 it.copy(
                     isLoading = false,
@@ -261,9 +274,6 @@ class MovieWatchViewModel @Inject constructor(
                 )
             }
         }
-
-        gemmaScanStatus = "resolving"
-        publishScan(emptyList())
 
         val gemmaDeferred = viewModelScope.async {
             if (imdbId.startsWith("tt")) {
@@ -282,25 +292,52 @@ class MovieWatchViewModel @Inject constructor(
                                 rebuildOptions()
                             }
                         },
-                        onScan = { rows -> publishScan(rows) }
+                        onScan = { rows -> onHubScan(rows) }
                     )
                 } catch (_: Exception) { null }
             } else null
         }
 
-        val sh = sourceHubDeferred.await()
-        if (sh != null && sh.sources.isNotEmpty()) {
-            sourceHubSources = sh.sources.distinctBy { it.id }
+        // Gemma completion → start its playlist fetch immediately (does NOT wait for SourceHub)
+        viewModelScope.launch {
+            val g = gemmaDeferred.await()
+            gemmaResult = g
+            setGemmaScan(if (g != null && g.seasons.isNotEmpty()) "found" else "fail")
+            if (g != null && g.seasons.isNotEmpty()) collectAvailableLanguages(g)
             rebuildOptions()
+            if (!nativePlayed) {
+                val pref = preferredOption()
+                if (pref != null && pref.kind == PlaybackKind.GEMMA) {
+                    resolveGemmaUrl(pref.language) // warm the playlist; playOption reuses cache
+                    defaultPlaylistReady = true
+                } else if (pref != null) {
+                    defaultPlaylistReady = true
+                }
+                tryCommitPlayback()
+            } else {
+                resolveGemmaDefaults()
+                maybeSwitchToPreferred()
+            }
+            persistCache(cached)
         }
 
-        val g = gemmaDeferred.await()
-        gemmaResult = g
-        setGemmaScan(if (g != null && g.seasons.isNotEmpty()) "found" else "fail")
-        if (g != null && g.seasons.isNotEmpty()) collectAvailableLanguages(g)
-        rebuildOptions()
+        // SourceHub completion → all rows settle here; commit needs the default playlist too
+        viewModelScope.launch {
+            val sh = sourceHubDeferred.await()
+            if (sh != null && sh.sources.isNotEmpty()) {
+                sourceHubSources = sh.sources.distinctBy { it.id }
+                rebuildOptions()
+            }
+            hubSettled = true
+            if (!nativePlayed) {
+                if (preferredOption()?.kind != PlaybackKind.GEMMA) defaultPlaylistReady = true
+                tryCommitPlayback()
+            }
+            persistCache(cached)
+        }
+    }
 
-        // persist to cache (never store empty/poisoned entries)
+    private fun persistCache(cached: com.movie.app.best.data.repository.SourceCacheEntry?) {
         if (cacheKey != null && (sourceHubSources.isNotEmpty() || gemmaResult != null)) {
             val resolvedMap = mutableMapOf<String, String>()
             cached?.resolved?.forEach { (k, v) -> resolvedMap[k] = v }
@@ -313,24 +350,37 @@ class MovieWatchViewModel @Inject constructor(
                 )
             )
         }
-
-        if (!nativePlayed) {
-            playFirstAvailable()
-        } else {
-            // native already playing; ensure gemma first language resolved in background
-            resolveGemmaDefaults()
-            maybeSwitchToPreferred()
-        }
     }
 
-    private fun publishScan(rows: List<ServerScanRow>) {
-        val gemmaRow = ServerScanRow(name = "Gemma", status = gemmaScanStatus)
-        _state.update { it.copy(serverScan = rows + gemmaRow) }
+    /** Hub fanout began (WS connected + 'start' received) → this is what turns the scan overlay on. */
+    private fun onHubScan(rows: List<ServerScanRow>) {
+        lastHubRows = rows
+        scanStarted = true
+        publishScan()
+    }
+
+    /** Play only once BOTH the hub has responded AND the default playlist is fetched. */
+    private fun tryCommitPlayback() {
+        if (playbackCommitted) return
+        if (!hubSettled || !defaultPlaylistReady) return
+        playbackCommitted = true
+        val pref = preferredOption()
+        if (pref == null) {
+            cacheKey?.let { sourceCache.invalidate(it) }
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+            return
+        }
+        playOption(pref)
+    }
+
+    private fun publishScan() {
+        if (!scanStarted) return
+        _state.update { it.copy(serverScan = lastHubRows + ServerScanRow(name = "Gemma", status = gemmaScanStatus)) }
     }
 
     private fun setGemmaScan(status: String) {
         gemmaScanStatus = status
-        publishScan(_state.value.serverScan.filterNot { it.name == "Gemma" })
+        publishScan()
     }
 
     /** Gemma rows win by default (selected language first); otherwise list order (native → SourceHub). */
@@ -369,7 +419,6 @@ class MovieWatchViewModel @Inject constructor(
             it.copy(
                 isLoading = true,
                 currentM3u8 = null,
-                serverScan = emptyList(),
                 selectedOptionId = opt.id,
                 activeSource = opt.kind,
                 error = null

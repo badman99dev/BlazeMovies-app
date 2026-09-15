@@ -550,7 +550,8 @@ fun MovieWatchScreen(
                         ServerScanOverlay(
                             modifier = Modifier.fillMaxSize(),
                             title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
-                            rows = state.serverScan
+                            rows = state.serverScan,
+                            posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
                         )
                     } else {
                         Box(
@@ -687,23 +688,32 @@ fun MovieWatchScreen(
         }
     }
 
-    // Full-screen buffering overlay: shown until IMDb responds (max 4s)
+    // Full-screen buffering overlay: shown until IMDb responds (max 4s) — or the live scan if the hub connected
     if (state.showBuffering) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Loading...",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium
-                )
+        if (state.serverScan.isNotEmpty()) {
+            ServerScanOverlay(
+                modifier = Modifier.fillMaxSize(),
+                title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
+                rows = state.serverScan,
+                posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Loading...",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

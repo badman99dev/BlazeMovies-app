@@ -330,7 +330,9 @@ fun SeriesWatchScreen(
                 ServerScanOverlay(
                     modifier = Modifier.fillMaxSize(),
                     title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: viewModel.seriesTitle,
-                    rows = state.serverScan
+                    rows = state.serverScan,
+                    posterUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }
+                        ?: state.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() }
                 )
             } else {
                 Box(
@@ -385,7 +387,9 @@ fun SeriesWatchScreen(
                     modifier = Modifier.fillMaxSize(),
                     title = state.currentEpisode?.displayTitle?.takeIf { it.isNotBlank() }
                         ?: state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: viewModel.seriesTitle,
-                    rows = state.serverScan
+                    rows = state.serverScan,
+                    posterUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }
+                        ?: state.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() }
                 )
             } else {
                 val thumbUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }

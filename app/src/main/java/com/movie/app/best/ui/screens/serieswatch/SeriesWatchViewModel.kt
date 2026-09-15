@@ -56,6 +56,11 @@ class SeriesWatchViewModel @Inject constructor(
     private val altCursor = mutableMapOf<String, Int>()
     private var userPinned = false
     private var gemmaScanStatus = "resolving"
+    private var scanStarted = false
+    private var lastHubRows: List<ServerScanRow> = emptyList()
+    private var hubSettled = false
+    private var defaultPlaylistReady = false
+    private var playbackCommitted = false
     private val gemmaTreeKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.gemmaTreeKey(imdbId) else null
     private fun episodeCacheKey(season: Int, episode: Int): String? =
         if (imdbId.startsWith("tt")) SourceCacheStore.episodeKey(imdbId, season, episode) else null
@@ -330,6 +335,14 @@ class SeriesWatchViewModel @Inject constructor(
         viewModelScope.launch {
             val key = episodeCacheKey(episode.seasonNo, episode.episodeNo)
             val cached = key?.let { sourceCache.get(it) }
+
+            scanStarted = false
+            lastHubRows = emptyList()
+            hubSettled = false
+            defaultPlaylistReady = false
+            playbackCommitted = false
+            gemmaScanStatus = if (episode.languages.isNotEmpty()) "found" else "na"
+
             if (cached != null && cached.sources.isNotEmpty()) {
                 sourceHubSources = cached.sources
                 buildOptions(episode)
@@ -339,55 +352,87 @@ class SeriesWatchViewModel @Inject constructor(
             key?.let { sourceCache.invalidate(it) }
 
             _state.update { it.copy(isLoading = true) }
-            publishScan(emptyList())
             sourceHubSources = emptyList()
             buildOptions(episode)
 
-            if (imdbId.startsWith("tt")) {
-                val sh = try {
-                    sourceHubClient.resolve(
-                        SourceHubRequest(
-                            id = imdbId,
-                            type = "tv",
-                            season = episode.seasonNo,
-                            episode = episode.episodeNo
-                        ),
-                        onService = { partial ->
-                            if (partial.sources.isNotEmpty()) {
-                                sourceHubSources = sourceHubSources + partial.sources
-                                buildOptions(episode)
-                            }
-                        },
-                        onScan = { rows -> publishScan(rows) }
-                    )
-                } catch (_: Exception) { null }
-
-                if (sh != null && sh.sources.isNotEmpty()) {
-                    sourceHubSources = sh.sources.distinctBy { it.id }
-                    buildOptions(episode)
-                }
+            val hubDeferred = viewModelScope.async {
+                if (imdbId.startsWith("tt")) {
+                    try {
+                        sourceHubClient.resolve(
+                            SourceHubRequest(
+                                id = imdbId,
+                                type = "tv",
+                                season = episode.seasonNo,
+                                episode = episode.episodeNo
+                            ),
+                            onService = { partial ->
+                                if (partial.sources.isNotEmpty()) {
+                                    sourceHubSources = sourceHubSources + partial.sources
+                                    buildOptions(episode)
+                                }
+                            },
+                            onScan = { rows -> onHubScan(rows) }
+                        )
+                    } catch (_: Exception) { null }
+                } else null
             }
 
+            // Default playlist (Gemma) fetch runs in parallel with the hub resolve
+            viewModelScope.launch {
+                if (episode.languages.isNotEmpty()) {
+                    resolveGemmaUrl(_state.value.selectedLanguage)
+                }
+                defaultPlaylistReady = true
+                tryCommitPlayback()
+            }
+
+            val sh = hubDeferred.await()
+            if (sh != null && sh.sources.isNotEmpty()) {
+                sourceHubSources = sh.sources.distinctBy { it.id }
+                buildOptions(episode)
+            }
+            hubSettled = true
+            if (preferredOption()?.kind != PlaybackKind.GEMMA) defaultPlaylistReady = true
             if (key != null && sourceHubSources.isNotEmpty()) {
                 sourceCache.update(key) { cur ->
-                    (cur ?: com.movie.app.best.data.repository.SourceCacheEntry())
-                        .copy(sources = sourceHubSources)
+                    (cur ?: com.movie.app.best.data.repository.SourceCacheEntry()).copy(sources = sourceHubSources)
                 }
             }
-            _state.update { it.copy(isLoading = false) }
-            playFirstOption()
+            tryCommitPlayback()
         }
     }
 
-    /** Gemma rows win by default (selected language first); otherwise list order. */
-    private fun publishScan(rows: List<ServerScanRow>) {
-        val gemmaRow = ServerScanRow(name = "Gemma", status = gemmaScanStatus)
-        _state.update { it.copy(serverScan = rows + gemmaRow) }
+    /** Hub fanout began (WS 'start') → turns the scan overlay on. */
+    private fun onHubScan(rows: List<ServerScanRow>) {
+        lastHubRows = rows
+        scanStarted = true
+        publishScan()
+    }
+
+    /** Play only once BOTH the hub responded AND the default playlist is fetched. */
+    private fun tryCommitPlayback() {
+        if (playbackCommitted) return
+        if (!hubSettled || !defaultPlaylistReady) return
+        playbackCommitted = true
+        val pref = preferredOption()
+        if (pref == null) {
+            _state.value.currentEpisode?.let { ep ->
+                episodeCacheKey(ep.seasonNo, ep.episodeNo)?.let { sourceCache.invalidate(it) }
+            }
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, episodeNoSource = true, error = null) }
+            return
+        }
+        playOption(pref)
+    }
+
+    private fun publishScan() {
+        if (!scanStarted) return
+        _state.update { it.copy(serverScan = lastHubRows + ServerScanRow(name = "Gemma", status = gemmaScanStatus)) }
     }
 
     private fun setGemmaScan(status: String) {
         gemmaScanStatus = status
-        publishScan(_state.value.serverScan.filterNot { it.name == "Gemma" })
+        publishScan()
     }
 
     private fun preferredOption(): PlaybackOption? {
@@ -415,7 +460,7 @@ class SeriesWatchViewModel @Inject constructor(
     private fun playOption(opt: PlaybackOption) {
         altCursor[opt.id] = 0
         _state.update {
-            it.copy(isLoading = true, currentM3u8 = null, serverScan = emptyList(), selectedOptionId = opt.id, activeSource = opt.kind, error = null)
+            it.copy(isLoading = true, currentM3u8 = null, selectedOptionId = opt.id, activeSource = opt.kind, error = null)
         }
         viewModelScope.launch {
             val url = if (opt.kind == PlaybackKind.GEMMA && opt.url.isEmpty()) {
