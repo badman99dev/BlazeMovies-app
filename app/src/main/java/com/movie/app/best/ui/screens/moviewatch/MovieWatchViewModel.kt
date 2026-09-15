@@ -68,6 +68,7 @@ class MovieWatchViewModel @Inject constructor(
     private var sourceHubSources: List<SourceHubSource> = emptyList()
     private val options = mutableListOf<PlaybackOption>()
     private val altCursor = mutableMapOf<String, Int>()
+    private var userPinned = false
     private val cacheKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.movieKey(imdbId) else null
 
     init {
@@ -195,13 +196,47 @@ class MovieWatchViewModel @Inject constructor(
         val cached = cacheKey?.let { sourceCache.get(it) }
 
         if (cached != null) {
-            sourceHubSources = cached.sources
-            gemmaResult = cached.gemma
-            cached.gemma?.let { if (it.seasons.isNotEmpty()) collectAvailableLanguages(it) }
-            rebuildOptions()
-            playFirstAvailable()
-            // refresh resolved gemma urls if cached gemma exists but not resolved
-            return
+            val usable = cached.sources.isNotEmpty() || cached.gemma?.seasons?.isNotEmpty() == true
+            if (usable) {
+                sourceHubSources = cached.sources
+                gemmaResult = cached.gemma
+                cached.gemma?.let { if (it.seasons.isNotEmpty()) collectAvailableLanguages(it) }
+                rebuildOptions()
+                playFirstAvailable()
+                if (cached.gemma == null && imdbId.startsWith("tt")) {
+                    viewModelScope.launch {
+                        val g = try { gemmaExtractor.extract(imdbId) } catch (_: Exception) { null }
+                        if (g != null && g.seasons.isNotEmpty()) {
+                            gemmaResult = g
+                            collectAvailableLanguages(g)
+                            rebuildOptions()
+                            cacheKey?.let { k -> sourceCache.update(k) { cur -> cur?.copy(gemma = g) } }
+                            maybeSwitchToPreferred()
+                        }
+                    }
+                }
+                if (cached.sources.isEmpty() && imdbId.startsWith("tt")) {
+                    viewModelScope.launch {
+                        try {
+                            val sh = sourceHubClient.resolve(SourceHubRequest(id = imdbId, type = "movie")) { partial ->
+                                if (partial.sources.isNotEmpty()) {
+                                    sourceHubSources = sourceHubSources + partial.sources
+                                    rebuildOptions()
+                                }
+                            }
+                            if (sh.sources.isNotEmpty()) {
+                                sourceHubSources = sh.sources.distinctBy { it.id }
+                                rebuildOptions()
+                                cacheKey?.let { k -> sourceCache.update(k) { cur -> cur?.copy(sources = sourceHubSources) } }
+                                maybeSwitchToPreferred()
+                            }
+                        } catch (_: Exception) { }
+                    }
+                }
+                return
+            }
+            // poisoned/empty entry → drop it and re-resolve below
+            cacheKey?.let { sourceCache.invalidate(it) }
         }
 
         // Cache miss → resolve SourceHub (streamed) + Gemma
@@ -251,8 +286,8 @@ class MovieWatchViewModel @Inject constructor(
         if (g != null && g.seasons.isNotEmpty()) collectAvailableLanguages(g)
         rebuildOptions()
 
-        // persist to cache
-        if (cacheKey != null) {
+        // persist to cache (never store empty/poisoned entries)
+        if (cacheKey != null && (sourceHubSources.isNotEmpty() || gemmaResult != null)) {
             val resolvedMap = mutableMapOf<String, String>()
             cached?.resolved?.forEach { (k, v) -> resolvedMap[k] = v }
             sourceCache.put(
@@ -270,11 +305,34 @@ class MovieWatchViewModel @Inject constructor(
         } else {
             // native already playing; ensure gemma first language resolved in background
             resolveGemmaDefaults()
+            maybeSwitchToPreferred()
+        }
+    }
+
+    /** Gemma rows win by default (selected language first); otherwise list order (native → SourceHub). */
+    private fun preferredOption(): PlaybackOption? {
+        val gemmaOpts = options.filter { it.kind == PlaybackKind.GEMMA }
+        if (gemmaOpts.isNotEmpty()) {
+            val sel = _state.value.selectedLanguage
+            return gemmaOpts.firstOrNull { it.language == sel } ?: gemmaOpts.firstOrNull()
+        }
+        return options.firstOrNull()
+    }
+
+    /** Late-arrival upgrade: if native auto-started and Gemma just became available, switch to it. */
+    private fun maybeSwitchToPreferred() {
+        if (userPinned) return
+        val cur = _state.value
+        if (cur.currentM3u8 == null) { playFirstAvailable(); return }
+        if (cur.activeSource == "native") {
+            val p = preferredOption()
+            if (p != null && p.kind == PlaybackKind.GEMMA && p.id != cur.selectedOptionId) playOption(p)
         }
     }
 
     private fun playFirstAvailable() {
-        val first = options.firstOrNull() ?: run {
+        val first = preferredOption() ?: run {
+            cacheKey?.let { sourceCache.invalidate(it) }
             _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
             return
         }
@@ -347,9 +405,7 @@ class MovieWatchViewModel @Inject constructor(
         val idx = options.indexOfFirst { it.id == failedId }
         val next = options.getOrNull(idx + 1)
         if (next == null) {
-            if (cacheKey != null && options.all { it.kind == PlaybackKind.SOURCE_HUB || it.kind == PlaybackKind.GEMMA }) {
-                sourceCache.invalidate(cacheKey)
-            }
+            cacheKey?.let { sourceCache.invalidate(it) }
             _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
             return
         }
@@ -358,6 +414,7 @@ class MovieWatchViewModel @Inject constructor(
 
     fun selectOption(id: String) {
         val opt = options.firstOrNull { it.id == id } ?: return
+        userPinned = true
         playOption(opt)
     }
 
@@ -408,6 +465,7 @@ class MovieWatchViewModel @Inject constructor(
     }
 
     fun selectLanguage(lang: String) {
+        userPinned = true
         _state.update { it.copy(selectedLanguage = lang) }
         val gemmaOpt = options.firstOrNull { it.kind == PlaybackKind.GEMMA && it.language == lang }
         if (gemmaOpt != null) {

@@ -107,7 +107,7 @@ class SourceCacheStore @Inject constructor(
     }
 
     companion object {
-        const val TTL_MS = 2L * 60L * 60L * 1000L
+        const val TTL_MS = 30L * 60L * 1000L
         private const val KEY_DATA = "entries"
 
         fun movieKey(imdbId: String) = "$imdbId:movie"

@@ -64,6 +64,7 @@ data class ExtractionState(
     val currentEpisode: WatchEpisode? = null,
     val titleDetails: ImdbTitleDetails? = null,
     val ageRating: String = "",
+    val episodeNoSource: Boolean = false,
     val error: String? = null,
     val backendCast: String = "",
     val backendDirector: String = "",
@@ -106,7 +107,7 @@ data class ExtractionState(
                         releaseDate = imdb.formattedDate,
                         plot = imdb.plot,
                         languages = emptyMap(),
-                        available = false
+                        available = true
                     )
                 }.sortedBy { it.episodeNo }
             }

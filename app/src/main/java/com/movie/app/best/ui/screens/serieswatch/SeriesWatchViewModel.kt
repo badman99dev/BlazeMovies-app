@@ -53,6 +53,7 @@ class SeriesWatchViewModel @Inject constructor(
     private var sourceHubSources: List<SourceHubSource> = emptyList()
     private val options = mutableListOf<PlaybackOption>()
     private val altCursor = mutableMapOf<String, Int>()
+    private var userPinned = false
     private val gemmaTreeKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.gemmaTreeKey(imdbId) else null
     private fun episodeCacheKey(season: Int, episode: Int): String? =
         if (imdbId.startsWith("tt")) SourceCacheStore.episodeKey(imdbId, season, episode) else null
@@ -231,24 +232,27 @@ class SeriesWatchViewModel @Inject constructor(
                 val merged = _state.value.mergedEpisodes
                 if (merged.isNotEmpty()) {
                     val first = merged.first()
-                    _state.update { it.copy(currentEpisode = first) }
-                    if (first.available) {
-                        onEpisodeClick(first)
-                    }
+                    onEpisodeClick(first)
                 }
             }
         }
     }
 
     fun selectLanguage(lang: String) {
+        userPinned = true
         _state.update { it.copy(selectedLanguage = lang) }
         val gemmaOpt = options.firstOrNull { it.kind == PlaybackKind.GEMMA && it.language == lang }
         if (gemmaOpt != null) playOption(gemmaOpt)
     }
 
     fun onEpisodeClick(episode: WatchEpisode) {
-        _state.update { it.copy(currentEpisode = episode) }
-        if (!episode.available && !imdbId.startsWith("tt")) return
+        _state.update { it.copy(currentEpisode = episode, episodeNoSource = false) }
+        userPinned = false
+        if (!imdbId.startsWith("tt") && episode.languages.isEmpty()) {
+            // No Gemma entry and no IMDb id to query the hub with → nothing we can try.
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, episodeNoSource = true) }
+            return
+        }
         resolveEpisode(episode)
     }
 
@@ -322,12 +326,13 @@ class SeriesWatchViewModel @Inject constructor(
         viewModelScope.launch {
             val key = episodeCacheKey(episode.seasonNo, episode.episodeNo)
             val cached = key?.let { sourceCache.get(it) }
-            if (cached != null) {
+            if (cached != null && cached.sources.isNotEmpty()) {
                 sourceHubSources = cached.sources
                 buildOptions(episode)
                 playFirstOption()
                 return@launch
             }
+            key?.let { sourceCache.invalidate(it) }
 
             _state.update { it.copy(isLoading = true) }
             sourceHubSources = emptyList()
@@ -356,21 +361,35 @@ class SeriesWatchViewModel @Inject constructor(
                 }
             }
 
-            if (key != null) {
-                sourceCache.put(
-                    key,
-                    com.movie.app.best.data.repository.SourceCacheEntry(sources = sourceHubSources)
-                )
+            if (key != null && sourceHubSources.isNotEmpty()) {
+                sourceCache.update(key) { cur ->
+                    (cur ?: com.movie.app.best.data.repository.SourceCacheEntry())
+                        .copy(sources = sourceHubSources)
+                }
             }
             _state.update { it.copy(isLoading = false) }
             playFirstOption()
         }
     }
 
+    /** Gemma rows win by default (selected language first); otherwise list order. */
+    private fun preferredOption(): PlaybackOption? {
+        val gemmaOpts = options.filter { it.kind == PlaybackKind.GEMMA }
+        if (gemmaOpts.isNotEmpty()) {
+            val sel = _state.value.selectedLanguage
+            return gemmaOpts.firstOrNull { it.language == sel } ?: gemmaOpts.firstOrNull()
+        }
+        return options.firstOrNull()
+    }
+
     private fun playFirstOption() {
-        val first = options.firstOrNull()
+        val first = preferredOption()
         if (first == null) {
-            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+            _state.value.currentEpisode?.let { ep ->
+                episodeCacheKey(ep.seasonNo, ep.episodeNo)?.let { sourceCache.invalidate(it) }
+            }
+            // Hub was checked and returned nothing for this episode → "Available soon"
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, episodeNoSource = true, error = null) }
             return
         }
         playOption(first)
@@ -427,7 +446,10 @@ class SeriesWatchViewModel @Inject constructor(
         val idx = options.indexOfFirst { it.id == failedId }
         val next = options.getOrNull(idx + 1)
         if (next == null) {
-            _state.update { it.copy(isLoading = false, currentM3u8 = null, error = "Source not found") }
+            _state.value.currentEpisode?.let { ep ->
+                episodeCacheKey(ep.seasonNo, ep.episodeNo)?.let { sourceCache.invalidate(it) }
+            }
+            _state.update { it.copy(isLoading = false, currentM3u8 = null, episodeNoSource = true, error = null) }
             return
         }
         playOption(next)
@@ -435,6 +457,7 @@ class SeriesWatchViewModel @Inject constructor(
 
     fun selectOption(id: String) {
         val opt = options.firstOrNull { it.id == id } ?: return
+        userPinned = true
         playOption(opt)
     }
 

@@ -374,7 +374,7 @@ fun SeriesWatchScreen(
             } else {
                 val thumbUrl = state.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }
                     ?: state.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() }
-                val isAvailable = state.currentEpisode?.available == true
+                val isAvailable = !state.episodeNoSource
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -395,7 +395,7 @@ fun SeriesWatchScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable(
-                            enabled = state.currentEpisode != null && isAvailable,
+                            enabled = state.currentEpisode != null,
                             onClick = { state.currentEpisode?.let { viewModel.onEpisodeClick(it) } }
                         )
                     ) {
