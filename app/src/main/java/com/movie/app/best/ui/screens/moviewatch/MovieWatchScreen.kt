@@ -103,6 +103,7 @@ import com.movie.app.best.ui.screens.moviedetail.components.MoreLikeThisSection
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestWaitingPopup
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
+import com.movie.app.best.ui.screens.player.ServerScanOverlay
 import com.movie.app.best.ui.theme.AppBlack
 import com.movie.app.best.ui.theme.AppRed
 import com.movie.app.best.ui.theme.SecondaryText
@@ -545,25 +546,33 @@ fun MovieWatchScreen(
                         }
                     }
                 } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val thumbUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
-                        if (thumbUrl != null) {
-                            AsyncImage(
-                                model = thumbUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.4f))
-                            )
+                    if (state.serverScan.isNotEmpty()) {
+                        ServerScanOverlay(
+                            modifier = Modifier.fillMaxSize(),
+                            title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
+                            rows = state.serverScan
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val thumbUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
+                            if (thumbUrl != null) {
+                                AsyncImage(
+                                    model = thumbUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.4f))
+                                )
+                            }
+                            CircularProgressIndicator(color = AppRed, modifier = Modifier.size(36.dp))
                         }
-                        CircularProgressIndicator(color = AppRed, modifier = Modifier.size(36.dp))
                     }
                 }
             }

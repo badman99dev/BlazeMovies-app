@@ -8,6 +8,7 @@ import com.movie.app.best.data.model.GemmaExtractionResult
 import com.movie.app.best.data.model.ImdbEpisode
 import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
+import com.movie.app.best.data.model.ServerScanRow
 import com.movie.app.best.data.model.SourceHubRequest
 import com.movie.app.best.data.model.SourceHubSource
 import com.movie.app.best.data.model.buildMasterPlaylist
@@ -37,7 +38,7 @@ class SeriesWatchViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val imdbId: String = savedStateHandle["imdbId"] ?: ""
-    private val seriesTitle: String = savedStateHandle["title"] ?: ""
+    val seriesTitle: String = savedStateHandle["title"] ?: ""
     private val movieId: String = savedStateHandle["movieId"] ?: ""
     private val slug: String = savedStateHandle["slug"] ?: ""
     private val targetSeason: Int = savedStateHandle["targetSeason"] ?: -1
@@ -54,6 +55,7 @@ class SeriesWatchViewModel @Inject constructor(
     private val options = mutableListOf<PlaybackOption>()
     private val altCursor = mutableMapOf<String, Int>()
     private var userPinned = false
+    private var gemmaScanStatus = "resolving"
     private val gemmaTreeKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.gemmaTreeKey(imdbId) else null
     private fun episodeCacheKey(season: Int, episode: Int): String? =
         if (imdbId.startsWith("tt")) SourceCacheStore.episodeKey(imdbId, season, episode) else null
@@ -89,6 +91,7 @@ class SeriesWatchViewModel @Inject constructor(
                 } catch (_: Exception) {}
             }
 
+            gemmaScanStatus = "resolving"
             val gemmaResult = gemmaTreeKey?.let { sourceCache.get(it)?.gemma } ?: run {
                 val fresh = gemmaExtractor.extract(imdbId)
                 gemmaTreeKey?.let { key ->
@@ -98,6 +101,7 @@ class SeriesWatchViewModel @Inject constructor(
                 fresh
             }
 
+            setGemmaScan(if (gemmaResult.seasons.isNotEmpty()) "found" else "fail")
             if (gemmaResult.seasons.isEmpty() && !imdbId.startsWith("tt")) {
                 _state.update { it.copy(isLoading = false, error = "Source not found") }
                 return@launch
@@ -335,6 +339,7 @@ class SeriesWatchViewModel @Inject constructor(
             key?.let { sourceCache.invalidate(it) }
 
             _state.update { it.copy(isLoading = true) }
+            publishScan(emptyList())
             sourceHubSources = emptyList()
             buildOptions(episode)
 
@@ -346,13 +351,15 @@ class SeriesWatchViewModel @Inject constructor(
                             type = "tv",
                             season = episode.seasonNo,
                             episode = episode.episodeNo
-                        )
-                    ) { partial ->
-                        if (partial.sources.isNotEmpty()) {
-                            sourceHubSources = sourceHubSources + partial.sources
-                            buildOptions(episode)
-                        }
-                    }
+                        ),
+                        onService = { partial ->
+                            if (partial.sources.isNotEmpty()) {
+                                sourceHubSources = sourceHubSources + partial.sources
+                                buildOptions(episode)
+                            }
+                        },
+                        onScan = { rows -> publishScan(rows) }
+                    )
                 } catch (_: Exception) { null }
 
                 if (sh != null && sh.sources.isNotEmpty()) {
@@ -373,6 +380,16 @@ class SeriesWatchViewModel @Inject constructor(
     }
 
     /** Gemma rows win by default (selected language first); otherwise list order. */
+    private fun publishScan(rows: List<ServerScanRow>) {
+        val gemmaRow = ServerScanRow(name = "Gemma", status = gemmaScanStatus)
+        _state.update { it.copy(serverScan = rows + gemmaRow) }
+    }
+
+    private fun setGemmaScan(status: String) {
+        gemmaScanStatus = status
+        publishScan(_state.value.serverScan.filterNot { it.name == "Gemma" })
+    }
+
     private fun preferredOption(): PlaybackOption? {
         val gemmaOpts = options.filter { it.kind == PlaybackKind.GEMMA }
         if (gemmaOpts.isNotEmpty()) {
@@ -398,7 +415,7 @@ class SeriesWatchViewModel @Inject constructor(
     private fun playOption(opt: PlaybackOption) {
         altCursor[opt.id] = 0
         _state.update {
-            it.copy(isLoading = true, currentM3u8 = null, selectedOptionId = opt.id, activeSource = opt.kind, error = null)
+            it.copy(isLoading = true, currentM3u8 = null, serverScan = emptyList(), selectedOptionId = opt.id, activeSource = opt.kind, error = null)
         }
         viewModelScope.launch {
             val url = if (opt.kind == PlaybackKind.GEMMA && opt.url.isEmpty()) {

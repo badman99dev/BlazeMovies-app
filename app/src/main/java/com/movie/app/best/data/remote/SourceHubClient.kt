@@ -8,7 +8,9 @@ import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.model.SourceHubRequest
 import com.movie.app.best.data.model.SourceHubResolveResult
+import com.movie.app.best.data.model.ServerScanRow
 import com.movie.app.best.data.model.SourceHubServiceResult
+import com.movie.app.best.data.model.SourceHubStartEvent
 import com.movie.app.best.data.model.SourceHubSource
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -60,9 +62,10 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
 
     suspend fun resolve(
         request: SourceHubRequest,
-        onService: (SourceHubServiceResult) -> Unit = {}
+        onService: (SourceHubServiceResult) -> Unit = {},
+        onScan: (List<ServerScanRow>) -> Unit = {}
     ): SourceHubResolveResult = withContext(Dispatchers.IO) {
-        val session = Session(request, onService)
+        val session = Session(request, onService, onScan)
         try {
             withTimeout(SESSION_TIMEOUT_MS) { session.await() }
         } catch (e: Exception) {
@@ -74,8 +77,18 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
 
     private inner class Session(
         private val request: SourceHubRequest,
-        private val onService: (SourceHubServiceResult) -> Unit
+        private val onService: (SourceHubServiceResult) -> Unit,
+        private val onScan: (List<ServerScanRow>) -> Unit
     ) {
+        private val scan = LinkedHashMap<String, ServerScanRow>()
+
+        private fun pushScan(name: String, status: String, elapsedMs: Long = 0, error: String? = null) {
+            if (name.isBlank()) return
+            val prev = scan[name]
+            scan[name] = ServerScanRow(name = name, status = status, elapsedMs = if (elapsedMs > 0) elapsedMs else prev?.elapsedMs ?: 0, error = error)
+            runCatching { onScan(scan.values.toList()) }
+        }
+
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         private val result = CompletableDeferred<SourceHubResolveResult>()
         private val finished = AtomicBoolean(false)
@@ -115,9 +128,15 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
                                 .getOrElse { fetchError(msg, it.message ?: "fetch failed").toString() }
                             runCatching { webSocket.send(reply) }
                         }
+                        "start" -> {
+                            val start = runCatching { gson.fromJson(text, SourceHubStartEvent::class.java) }.getOrNull()
+                            start?.services?.forEach { pushScan(it.name, it.status) }
+                        }
                         "service" -> {
                             val svc = runCatching { gson.fromJson(text, SourceHubServiceResult::class.java) }
                                 .getOrNull() ?: SourceHubServiceResult()
+                            val st = svc.status ?: if (svc.skipped != null) "na" else if (svc.ok) "found" else "fail"
+                            pushScan(svc.service, st, elapsedMs = msg.get("elapsedMs")?.takeIf { !it.isJsonNull }?.asLong ?: 0, error = svc.error)
                             if (svc.sources.isNotEmpty()) {
                                 sources.addAll(svc.sources)
                                 runCatching { onService(svc) }
@@ -125,6 +144,10 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
                         }
                         "done" -> {
                             if (finished.compareAndSet(false, true)) {
+                                msg.getAsJsonArray("pending")?.forEach { el ->
+                                    val n = el.takeIf { !it.isJsonNull }?.asString ?: return@forEach
+                                    pushScan(n, "fail", error = "timeout")
+                                }
                                 val out = SourceHubResolveResult(
                                     ok = sources.isNotEmpty(),
                                     count = sources.size,

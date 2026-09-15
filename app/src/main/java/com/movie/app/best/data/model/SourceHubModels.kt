@@ -106,6 +106,7 @@ fun SourceHubGroup.buildMasterPlaylist(): String? {
 
 data class SourceHubServiceResult(
     val service: String = "",
+    val status: String? = null,
     val ok: Boolean = false,
     val sources: List<SourceHubSource> = emptyList(),
     @SerializedName("skipped") val skipped: String? = null,
@@ -119,6 +120,23 @@ data class SourceHubResolveResult(
     val sources: List<SourceHubSource> = emptyList(),
     val services: Map<String, SourceHubServiceResult> = emptyMap(),
     val elapsedMs: Long = 0
+)
+
+data class SourceHubStartService(
+    val name: String = "",
+    val status: String = "resolving"
+)
+
+data class SourceHubStartEvent(
+    val services: List<SourceHubStartService> = emptyList()
+)
+
+/** One live row in the player's server-scan animation. status: resolving | found | fail | na */
+data class ServerScanRow(
+    val name: String = "",
+    val status: String = "resolving",
+    val elapsedMs: Long = 0,
+    val error: String? = null
 )
 
 data class SourceHubRequest(

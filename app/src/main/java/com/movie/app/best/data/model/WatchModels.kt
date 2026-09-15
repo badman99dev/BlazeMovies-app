@@ -65,6 +65,7 @@ data class ExtractionState(
     val titleDetails: ImdbTitleDetails? = null,
     val ageRating: String = "",
     val episodeNoSource: Boolean = false,
+    val serverScan: List<ServerScanRow> = emptyList(),
     val error: String? = null,
     val backendCast: String = "",
     val backendDirector: String = "",

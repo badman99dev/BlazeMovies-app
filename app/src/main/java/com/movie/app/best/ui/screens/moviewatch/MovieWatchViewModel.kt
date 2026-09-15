@@ -13,6 +13,7 @@ import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
+import com.movie.app.best.data.model.ServerScanRow
 import com.movie.app.best.data.model.SourceHubRequest
 import com.movie.app.best.data.model.SourceHubSource
 import com.movie.app.best.data.model.buildMasterPlaylist
@@ -69,6 +70,7 @@ class MovieWatchViewModel @Inject constructor(
     private val options = mutableListOf<PlaybackOption>()
     private val altCursor = mutableMapOf<String, Int>()
     private var userPinned = false
+    private var gemmaScanStatus = "resolving"
     private val cacheKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.movieKey(imdbId) else null
 
     init {
@@ -218,12 +220,16 @@ class MovieWatchViewModel @Inject constructor(
                 if (cached.sources.isEmpty() && imdbId.startsWith("tt")) {
                     viewModelScope.launch {
                         try {
-                            val sh = sourceHubClient.resolve(SourceHubRequest(id = imdbId, type = "movie")) { partial ->
-                                if (partial.sources.isNotEmpty()) {
-                                    sourceHubSources = sourceHubSources + partial.sources
-                                    rebuildOptions()
-                                }
-                            }
+                            val sh = sourceHubClient.resolve(
+                                SourceHubRequest(id = imdbId, type = "movie"),
+                                onService = { partial ->
+                                    if (partial.sources.isNotEmpty()) {
+                                        sourceHubSources = sourceHubSources + partial.sources
+                                        rebuildOptions()
+                                    }
+                                },
+                                onScan = { rows -> publishScan(rows) }
+                            )
                             if (sh.sources.isNotEmpty()) {
                                 sourceHubSources = sh.sources.distinctBy { it.id }
                                 rebuildOptions()
@@ -256,6 +262,9 @@ class MovieWatchViewModel @Inject constructor(
             }
         }
 
+        gemmaScanStatus = "resolving"
+        publishScan(emptyList())
+
         val gemmaDeferred = viewModelScope.async {
             if (imdbId.startsWith("tt")) {
                 try { gemmaExtractor.extract(imdbId) } catch (_: Exception) { null }
@@ -265,12 +274,16 @@ class MovieWatchViewModel @Inject constructor(
         val sourceHubDeferred = viewModelScope.async {
             if (imdbId.startsWith("tt")) {
                 try {
-                    sourceHubClient.resolve(SourceHubRequest(id = imdbId, type = "movie")) { partial ->
-                        if (partial.sources.isNotEmpty()) {
-                            sourceHubSources = sourceHubSources + partial.sources
-                            rebuildOptions()
-                        }
-                    }
+                    sourceHubClient.resolve(
+                        SourceHubRequest(id = imdbId, type = "movie"),
+                        onService = { partial ->
+                            if (partial.sources.isNotEmpty()) {
+                                sourceHubSources = sourceHubSources + partial.sources
+                                rebuildOptions()
+                            }
+                        },
+                        onScan = { rows -> publishScan(rows) }
+                    )
                 } catch (_: Exception) { null }
             } else null
         }
@@ -283,6 +296,7 @@ class MovieWatchViewModel @Inject constructor(
 
         val g = gemmaDeferred.await()
         gemmaResult = g
+        setGemmaScan(if (g != null && g.seasons.isNotEmpty()) "found" else "fail")
         if (g != null && g.seasons.isNotEmpty()) collectAvailableLanguages(g)
         rebuildOptions()
 
@@ -307,6 +321,16 @@ class MovieWatchViewModel @Inject constructor(
             resolveGemmaDefaults()
             maybeSwitchToPreferred()
         }
+    }
+
+    private fun publishScan(rows: List<ServerScanRow>) {
+        val gemmaRow = ServerScanRow(name = "Gemma", status = gemmaScanStatus)
+        _state.update { it.copy(serverScan = rows + gemmaRow) }
+    }
+
+    private fun setGemmaScan(status: String) {
+        gemmaScanStatus = status
+        publishScan(_state.value.serverScan.filterNot { it.name == "Gemma" })
     }
 
     /** Gemma rows win by default (selected language first); otherwise list order (native → SourceHub). */
@@ -345,6 +369,7 @@ class MovieWatchViewModel @Inject constructor(
             it.copy(
                 isLoading = true,
                 currentM3u8 = null,
+                serverScan = emptyList(),
                 selectedOptionId = opt.id,
                 activeSource = opt.kind,
                 error = null
@@ -576,6 +601,7 @@ data class MovieWatchState(
     val currentM3u8: String? = null,
     val currentHeaders: Map<String, String> = emptyMap(),
     val currentPlaybackType: String = "hls",
+    val serverScan: List<ServerScanRow> = emptyList(),
     val activeSource: String = "",
     val selectedOptionId: String? = null,
     val options: List<PlaybackOption> = emptyList(),
