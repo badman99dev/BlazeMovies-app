@@ -210,7 +210,7 @@ class MovieWatchViewModel @Inject constructor(
                             gemmaResult = g
                             collectAvailableLanguages(g)
                             rebuildOptions()
-                            cacheKey?.let { k -> sourceCache.update(k) { cur -> cur?.copy(gemma = g) } }
+                            cacheKey?.let { k -> sourceCache.update(k) { cur -> (cur ?: com.movie.app.best.data.repository.SourceCacheEntry()).copy(gemma = g) } }
                             maybeSwitchToPreferred()
                         }
                     }
@@ -227,7 +227,7 @@ class MovieWatchViewModel @Inject constructor(
                             if (sh.sources.isNotEmpty()) {
                                 sourceHubSources = sh.sources.distinctBy { it.id }
                                 rebuildOptions()
-                                cacheKey?.let { k -> sourceCache.update(k) { cur -> cur?.copy(sources = sourceHubSources) } }
+                                cacheKey?.let { k -> sourceCache.update(k) { cur -> (cur ?: com.movie.app.best.data.repository.SourceCacheEntry()).copy(sources = sourceHubSources) } }
                                 maybeSwitchToPreferred()
                             }
                         } catch (_: Exception) { }
