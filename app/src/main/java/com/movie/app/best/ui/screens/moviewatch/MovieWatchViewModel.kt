@@ -162,7 +162,7 @@ class MovieWatchViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     isLoading = true,
-                    showBuffering = needsImdb,
+                    imdbReady = !needsImdb,
                     error = null,
                     backendCast = backendCast,
                     backendDirector = backendDirector,
@@ -188,13 +188,13 @@ class MovieWatchViewModel @Inject constructor(
                 val certificates = withTimeoutOrNull(4000) { certificatesDeferred.await() }
                 _state.update {
                     it.copy(
-                        showBuffering = false,
+                        imdbReady = true,
                         titleDetails = titleDetails,
                         ageRating = certificates?.let { c -> extractAgeRating(c) } ?: ""
                     )
                 }
             } else {
-                _state.update { it.copy(showBuffering = false) }
+                _state.update { it.copy(imdbReady = true) }
             }
         }
     }
@@ -500,7 +500,6 @@ class MovieWatchViewModel @Inject constructor(
             altCursor[failed!!] = idx + 1
             _state.update {
                 it.copy(
-                    showBuffering = false,
                     isLoading = false,
                     currentM3u8 = opt.alternates[idx],
                     currentHeaders = opt.headers,
@@ -512,7 +511,7 @@ class MovieWatchViewModel @Inject constructor(
             }
             return
         }
-        _state.update { it.copy(showBuffering = false, currentM3u8 = null) }
+        _state.update { it.copy(currentM3u8 = null) }
         viewModelScope.launch {
             if (failed != null) advanceFrom(failed) else {
                 _state.update { it.copy(isLoading = true) }
@@ -646,7 +645,7 @@ class MovieWatchViewModel @Inject constructor(
 
 data class MovieWatchState(
     val isLoading: Boolean = false,
-    val showBuffering: Boolean = false,
+    val imdbReady: Boolean = false,
     val currentM3u8: String? = null,
     val currentHeaders: Map<String, String> = emptyMap(),
     val currentPlaybackType: String = "hls",

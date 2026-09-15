@@ -376,6 +376,29 @@ fun MovieWatchScreen(
         }
     }
 
+    if (!state.imdbReady) {
+        // Full-screen gate: page needs IMDb title/cast details (interest, cast & crew...)
+        // before it can be built — max 4s. Stream/scan keep running behind this.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = AppRed, modifier = Modifier.size(48.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Loading...",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+        return
+    }
+
     if (isFullscreen) {
         Box(
             modifier = Modifier
