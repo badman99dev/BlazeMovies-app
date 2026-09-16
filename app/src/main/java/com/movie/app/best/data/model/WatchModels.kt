@@ -50,6 +50,8 @@ data class GemmaEpisodeInfo(
 
 data class ExtractionState(
     val isLoading: Boolean = false,
+    /** Bumped on every playOption() so the player subtree rebuilds even when the URL/id repeats. */
+    val playToken: Long = 0L,
     val result: GemmaExtractionResult? = null,
     val imdbEpisodes: Map<Int, List<ImdbEpisode>> = emptyMap(),
     val selectedSeason: Int = 1,

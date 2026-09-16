@@ -342,7 +342,7 @@ class SeriesWatchViewModel @Inject constructor(
                         ?.let { sourceCache.get(it)?.resolved?.get(ck) }
                     list.add(
                         PlaybackOption(
-                            id = "gemma:$lang",
+                            id = "gemma:${episode.seasonNo}x${episode.episodeNo}:$lang",
                             label = "Gemma",
                             kind = PlaybackKind.GEMMA,
                             url = resolved ?: "",
@@ -518,7 +518,14 @@ class SeriesWatchViewModel @Inject constructor(
     private fun playOption(opt: PlaybackOption) {
         altCursor[opt.id] = 0
         _state.update {
-            it.copy(isLoading = true, currentM3u8 = null, selectedOptionId = opt.id, activeSource = opt.kind, error = null)
+            it.copy(
+                isLoading = true,
+                currentM3u8 = null,
+                selectedOptionId = opt.id,
+                activeSource = opt.kind,
+                error = null,
+                playToken = it.playToken + 1
+            )
         }
         viewModelScope.launch {
             val url = if (opt.kind == PlaybackKind.GEMMA && opt.url.isEmpty()) {

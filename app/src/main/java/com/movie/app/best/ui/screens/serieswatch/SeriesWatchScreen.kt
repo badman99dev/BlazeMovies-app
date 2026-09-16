@@ -142,7 +142,7 @@ fun SeriesWatchScreen(
         }
     }
 
-    LaunchedEffect(state.currentM3u8, state.selectedOptionId) {
+    LaunchedEffect(state.playToken, state.currentM3u8, state.selectedOptionId) {
         val m3u8 = state.currentM3u8
         if (m3u8 == null) {
             exoPlayer?.release()

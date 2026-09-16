@@ -171,7 +171,7 @@ fun MovieWatchScreen(
     var resumePos by remember { mutableStateOf(0L) }
     var hasResumed by remember { mutableStateOf(false) }
 
-    LaunchedEffect(state.currentM3u8, state.selectedOptionId) {
+    LaunchedEffect(state.playToken, state.currentM3u8, state.selectedOptionId) {
         val m3u8 = state.currentM3u8
         hasResumed = false
         resumePos = 0L

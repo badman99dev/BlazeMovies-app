@@ -423,7 +423,8 @@ class MovieWatchViewModel @Inject constructor(
                 currentM3u8 = null,
                 selectedOptionId = opt.id,
                 activeSource = opt.kind,
-                error = null
+                error = null,
+                playToken = it.playToken + 1
             )
         }
         viewModelScope.launch {
@@ -647,6 +648,7 @@ class MovieWatchViewModel @Inject constructor(
 
 data class MovieWatchState(
     val isLoading: Boolean = false,
+    val playToken: Long = 0L,
     val imdbReady: Boolean = false,
     val currentM3u8: String? = null,
     val currentHeaders: Map<String, String> = emptyMap(),
