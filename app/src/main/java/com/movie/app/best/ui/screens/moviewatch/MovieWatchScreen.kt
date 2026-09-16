@@ -144,6 +144,7 @@ fun MovieWatchScreen(
     }
     val slug = viewModel.contentSlug
     val title = viewModel.title
+    val playerTitle = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title
 
     val trackSelector = remember {
         DefaultTrackSelector(context).apply {
@@ -414,7 +415,7 @@ fun MovieWatchScreen(
                         onPlayInBackgroundClick = {},
                         onFullscreenClick = { exitFullscreen() },
                         isInline = false,
-                        title = title,
+                        title = playerTitle,
                         customAudioTracks = customAudioTracks,
                         selectedAudioTrack = state.selectedLanguage,
                         onAudioTrackSelected = onLangSelect,
@@ -426,7 +427,7 @@ fun MovieWatchScreen(
             } else {
                 ServerScanOverlay(
                     modifier = Modifier.fillMaxSize(),
-                    title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
+                    title = playerTitle,
                     rows = state.serverScan,
                     posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
                 )
@@ -473,7 +474,7 @@ fun MovieWatchScreen(
                         onPlayInBackgroundClick = {},
                         onFullscreenClick = { enterFullscreen() },
                         isInline = true,
-                        title = title,
+                        title = playerTitle,
                         customAudioTracks = customAudioTracks,
                         selectedAudioTrack = state.selectedLanguage,
                         onAudioTrackSelected = onLangSelect,
@@ -580,7 +581,7 @@ fun MovieWatchScreen(
                 } else {
                     ServerScanOverlay(
                         modifier = Modifier.fillMaxSize(),
-                        title = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title,
+                        title = playerTitle,
                         rows = state.serverScan,
                         posterUrl = viewModel.posterUrl.takeIf { it.isNotEmpty() }
                     )
