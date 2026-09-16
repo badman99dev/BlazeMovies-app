@@ -14,11 +14,17 @@ data class SourceHubSource(
     val server: String? = null,
     val quality: String = "auto",
     val language: String? = null,
+    val languages: List<String> = emptyList(),
     val url: String = "",
     val playback: SourceHubPlayback? = null
 ) {
     val id: String
         get() = "$service|${server ?: ""}|${language ?: ""}|$quality|$url"
+
+    val allLanguages: List<String>
+        get() = (languages + listOfNotNull(language)).map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase() }
 
     private val serviceDisplayName: String
         get() = when (service.lowercase()) {
@@ -31,12 +37,11 @@ data class SourceHubSource(
             else -> service.replaceFirstChar { it.uppercase() }
         }
 
-    /** Server-only label — used in the Server picker (language/format shown, quality not). */
+    /** Server-only label — language(s) are rendered separately (red) by the Server picker. */
     val serverLabel: String
         get() {
             val parts = mutableListOf(serviceDisplayName)
             server?.takeIf { it.isNotBlank() }?.let { parts.add(it.replaceFirstChar { c -> c.uppercase() }) }
-            language?.takeIf { it.isNotBlank() }?.let { parts.add(it.replaceFirstChar { c -> c.uppercase() }) }
             val t = playback?.type?.lowercase()?.takeIf { it.isNotBlank() && it != "hls" }
             if (t != null) parts.add(if (url.substringBefore('?').lowercase().endsWith(".mkv")) "MKV" else t.uppercase())
             return parts.joinToString(" • ")
@@ -52,16 +57,25 @@ data class SourceHubSource(
     fun playbackHeaders(): Map<String, String> = playback?.headers ?: emptyMap()
 }
 
-/** Distinct qualities of one server+language collapse into a single picker row. */
+/** All sources of one service+server collapse into one picker row; languages are surfaced separately. */
 data class SourceHubGroup(
     val key: String,
     val label: String,
     val headers: Map<String, String>,
-    val sources: List<SourceHubSource>
+    val sources: List<SourceHubSource>,
+    val languages: List<String> = emptyList()
 ) {
     fun fileBaseName(): String = key.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")
     val playbackType: String get() = sources.firstOrNull()?.playback?.type?.lowercase()?.takeIf { it.isNotBlank() } ?: "hls"
     val isProgressive: Boolean get() = playbackType != "hls"
+
+    /** Hindi-first language order so the merged default matches the app's language priority. */
+    fun sortedLanguages(): List<String> = languages.sortedWith(
+        compareByDescending<String> { it.contains("Hindi", ignoreCase = true) }
+    )
+
+    /** The language whose variants get merged into one adaptive master (others stay as alternates). */
+    fun primaryLanguage(): String? = sortedLanguages().firstOrNull()
 }
 
 fun qualityHeight(q: String?): Int? {
@@ -70,30 +84,43 @@ fun qualityHeight(q: String?): Int? {
     return m.groupValues[1].toIntOrNull()
 }
 
+private fun langOfSource(s: SourceHubSource): String? =
+    s.allLanguages.firstOrNull()
+
 fun List<SourceHubSource>.groupByServer(): List<SourceHubGroup> {
     val buckets = LinkedHashMap<String, MutableList<SourceHubSource>>()
     for (s in this) {
         if (s.url.isBlank()) continue
-        val key = s.service.lowercase() + "|" + s.server.orEmpty().lowercase() + "|" + s.language.orEmpty().lowercase()
+        val key = s.service.lowercase() + "|" + s.server.orEmpty().lowercase()
         val list = buckets.getOrPut(key) { mutableListOf() }
         if (list.none { it.url == s.url }) list.add(s)
     }
     return buckets.map { (key, srcs) ->
         val sorted = srcs.sortedByDescending { qualityHeight(it.quality) ?: -1 }
         val first = sorted.first()
+        val langs = sorted.flatMap { it.allLanguages }
+            .distinctBy { it.lowercase() }
+            .sortedWith(
+                compareByDescending<String> { it.contains("Hindi", ignoreCase = true) }
+                    .thenByDescending { it.contains("English", ignoreCase = true) }
+            )
         SourceHubGroup(
             key = key,
             label = first.serverLabel,
             headers = first.playbackHeaders(),
-            sources = sorted
+            sources = sorted,
+            languages = langs
         )
     }
 }
 
-/** Merges distinct single-quality HLS playlists of one server into a master. Progressive (mp4/mkv) never merged. */
+/** Merges distinct single-quality HLS variants of the primary language into a master. Never mixes languages or progressive. */
 fun SourceHubGroup.buildMasterPlaylist(): String? {
     if (isProgressive) return null
-    val variants = sources.map { (qualityHeight(it.quality) ?: 0) to it.url }.filter { it.first > 0 }
+    val primary = primaryLanguage()
+    val sameLang = sources.filter { it.allLanguages.isEmpty() || langOfSource(it) == primary || it.allLanguages.any { l -> l.equals(primary, ignoreCase = true) } }
+    val pool = if (primary == null) sources else sameLang.ifEmpty { sources }
+    val variants = pool.map { (qualityHeight(it.quality) ?: 0) to it.url }.filter { it.first > 0 }
     if (variants.size < 2) return null
     val sb = StringBuilder("#EXTM3U\n#EXT-X-VERSION:3\n")
     for ((h, url) in variants) {
@@ -159,6 +186,7 @@ data class PlaybackOption(
     val url: String = "",
     val headers: Map<String, String> = emptyMap(),
     val language: String? = null,
+    val languages: List<String> = emptyList(),
     val alternates: List<String> = emptyList(),
     val playbackType: String = "hls"
 )

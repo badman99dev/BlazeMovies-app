@@ -282,11 +282,25 @@ class SeriesWatchViewModel @Inject constructor(
         resolveEpisode(episode)
     }
 
+    private fun isHindiOption(opt: PlaybackOption): Boolean {
+        val l = opt.language ?: opt.languages.firstOrNull() ?: return false
+        return l.contains("Hindi", ignoreCase = true)
+    }
+
+    /** Pure order-based priority: Hindi tier first (Gemma on top of its tier), then other languages. */
+    private fun orderOptions(opts: List<PlaybackOption>): List<PlaybackOption> {
+        val hindi = opts.filter { isHindiOption(it) }
+        val others = opts.filterNot { isHindiOption(it) }
+        fun byGemmaFirst(l: List<PlaybackOption>) = l.sortedWith(compareBy { if (it.kind == PlaybackKind.GEMMA) 0 else 1 })
+        return byGemmaFirst(hindi) + byGemmaFirst(others)
+    }
+
     private fun buildOptions(episode: WatchEpisode?) {
         val list = mutableListOf<PlaybackOption>()
         sourceHubSources.groupByServer().forEach { g ->
             val master = g.buildMasterPlaylist()
             val direct = g.sources.map { it.url }
+            val langs = g.sortedLanguages()
             if (master != null) {
                 list.add(
                     PlaybackOption(
@@ -296,7 +310,8 @@ class SeriesWatchViewModel @Inject constructor(
                         url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
                         headers = g.headers,
                         alternates = direct,
-                        playbackType = g.playbackType
+                        playbackType = g.playbackType,
+                        languages = langs
                     )
                 )
             } else {
@@ -308,7 +323,8 @@ class SeriesWatchViewModel @Inject constructor(
                         url = g.sources.first().url,
                         headers = g.headers,
                         alternates = g.sources.drop(1).map { it.url },
-                        playbackType = g.playbackType
+                        playbackType = g.playbackType,
+                        languages = langs
                     )
                 )
             }
@@ -318,7 +334,8 @@ class SeriesWatchViewModel @Inject constructor(
             val season = result.seasons[episode.seasonNo]
             val gemmaEp = season?.episodes?.get(episode.episodeNo)
             if (gemmaEp != null) {
-                gemmaEp.languages.keys.sortedWith(languageComparator()).forEach { lang ->
+                val orderedLangs = gemmaEp.languages.keys.sortedWith(languageComparator())
+                orderedLangs.forEach { lang ->
                     val file = gemmaEp.languages[lang] ?: return@forEach
                     val ck = "e:${episode.seasonNo}:${episode.episodeNo}:$lang"
                     val resolved = episodeCacheKey(episode.seasonNo, episode.episodeNo)
@@ -329,15 +346,17 @@ class SeriesWatchViewModel @Inject constructor(
                             label = "Gemma",
                             kind = PlaybackKind.GEMMA,
                             url = resolved ?: "",
-                            language = lang
+                            language = lang,
+                            languages = orderedLangs
                         )
                     )
                 }
             }
         }
+        val ordered = orderOptions(list)
         options.clear()
-        options.addAll(list)
-        _state.update { it.copy(options = list) }
+        options.addAll(ordered)
+        _state.update { it.copy(options = ordered) }
     }
 
     private fun languageComparator(): Comparator<String> = compareBy<String> { lang ->
@@ -480,14 +499,8 @@ class SeriesWatchViewModel @Inject constructor(
         publishScan()
     }
 
-    private fun preferredOption(): PlaybackOption? {
-        val gemmaOpts = options.filter { it.kind == PlaybackKind.GEMMA }
-        if (gemmaOpts.isNotEmpty()) {
-            val sel = _state.value.selectedLanguage
-            return gemmaOpts.firstOrNull { it.language == sel } ?: gemmaOpts.firstOrNull()
-        }
-        return options.firstOrNull()
-    }
+    /** Pure list order — whatever sits on top of the option list plays first. */
+    private fun preferredOption(): PlaybackOption? = options.firstOrNull()
 
     private fun playFirstOption() {
         val first = preferredOption()

@@ -32,6 +32,7 @@ fun BoxScope.ServerSourceSelectorView(
                 RadioButtonRow(
                     selected = option.id == selectedId,
                     text = option.label,
+                    languages = option.languages,
                     onClick = {
                         onSelect(option.id)
                         onDismiss()
