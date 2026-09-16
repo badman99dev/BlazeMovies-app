@@ -650,17 +650,20 @@ fun MovieWatchScreen(
             }
 
             val titleDetails = state.titleDetails
-            val crew = if (titleDetails != null) {
-                val directors = titleDetails.directors.map { CrewPerson.fromName(it, CrewPerson.CAT_DIRECTOR) }
-                val stars = titleDetails.stars.map { CrewPerson.fromName(it, CrewPerson.CAT_ACTOR) }
-                CrewPerson.sortCrew(directors + stars)
-            } else if (state.backendCast.isNotBlank()) {
-                state.backendCast.split(",").mapNotNull { name ->
-                    val trimmed = name.trim()
-                    if (trimmed.isNotBlank()) CrewPerson(displayName = trimmed) else null
+            val crew = when {
+                state.crewCredits.isNotEmpty() -> state.crewCredits
+                titleDetails != null -> {
+                    val directors = titleDetails.directors.map { CrewPerson.fromName(it, CrewPerson.CAT_DIRECTOR) }
+                    val stars = titleDetails.stars.map { CrewPerson.fromName(it, CrewPerson.CAT_ACTOR) }
+                    CrewPerson.sortCrew(directors + stars)
                 }
-            } else {
-                emptyList()
+                state.backendCast.isNotBlank() -> {
+                    state.backendCast.split(",").mapNotNull { name ->
+                        val trimmed = name.trim()
+                        if (trimmed.isNotBlank()) CrewPerson(displayName = trimmed) else null
+                    }
+                }
+                else -> emptyList()
             }
             if (crew.isNotEmpty()) {
                 CollapsibleCrewRow(crew, onNameClick = onCelebClick)

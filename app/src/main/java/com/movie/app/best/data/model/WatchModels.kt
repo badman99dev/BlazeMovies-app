@@ -65,6 +65,7 @@ data class ExtractionState(
     val options: List<PlaybackOption> = emptyList(),
     val currentEpisode: WatchEpisode? = null,
     val titleDetails: ImdbTitleDetails? = null,
+    val crewCredits: List<CrewPerson> = emptyList(),
     val ageRating: String = "",
     val episodeNoSource: Boolean = false,
     val serverScan: List<ServerScanRow> = emptyList(),

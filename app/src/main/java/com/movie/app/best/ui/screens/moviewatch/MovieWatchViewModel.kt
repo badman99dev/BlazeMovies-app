@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.GemmaEpisodeInfo
+import com.movie.app.best.data.model.CrewPerson
 import com.movie.app.best.data.model.GemmaExtractionResult
 import com.movie.app.best.data.model.ImdbCertificatesResponse
 import com.movie.app.best.data.model.ImdbTitleDetails
@@ -199,6 +200,9 @@ class MovieWatchViewModel @Inject constructor(
             val certificatesDeferred = viewModelScope.async {
                 try { imdbApi.getCertificates(imdbId) } catch (_: Exception) { null }
             }
+            val creditsDeferred = viewModelScope.async {
+                try { imdbApi.getCredits(imdbId, pageSize = 30) } catch (_: Exception) { null }
+            }
 
             // Kick stream resolution immediately
             viewModelScope.launch { resolveAndPlay() }
@@ -209,10 +213,14 @@ class MovieWatchViewModel @Inject constructor(
             if (needsImdb) {
                 val titleDetails = withTimeoutOrNull(4000) { titleDetailsDeferred.await() }
                 val certificates = withTimeoutOrNull(4000) { certificatesDeferred.await() }
+                val credits = withTimeoutOrNull(4000) { creditsDeferred.await() }
                 _state.update {
                     it.copy(
                         imdbReady = true,
                         titleDetails = titleDetails,
+                        crewCredits = CrewPerson.sortCrew(
+                            credits?.credits?.mapNotNull { c -> CrewPerson.fromCredit(c) } ?: emptyList()
+                        ),
                         ageRating = certificates?.let { c -> extractAgeRating(c) } ?: ""
                     )
                 }
@@ -651,6 +659,7 @@ data class MovieWatchState(
     val playToken: Long = 0L,
     val imdbReady: Boolean = false,
     val currentM3u8: String? = null,
+    val crewCredits: List<CrewPerson> = emptyList(),
     val currentHeaders: Map<String, String> = emptyMap(),
     val currentPlaybackType: String = "hls",
     val serverScan: List<ServerScanRow> = emptyList(),

@@ -3,6 +3,7 @@ package com.movie.app.best.ui.screens.serieswatch
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.movie.app.best.data.model.CrewPerson
 import com.movie.app.best.data.model.ExtractionState
 import com.movie.app.best.data.model.GemmaExtractionResult
 import com.movie.app.best.data.model.ImdbEpisode
@@ -83,6 +84,9 @@ class SeriesWatchViewModel @Inject constructor(
             }
             val certificatesDeferred = viewModelScope.async {
                 try { imdbApi.getCertificates(imdbId) } catch (_: Exception) { null }
+            }
+            val creditsDeferred = viewModelScope.async {
+                try { imdbApi.getCredits(imdbId, pageSize = 30) } catch (_: Exception) { null }
             }
 
             // Later-arrival observers: update state when the responses finally come in
@@ -167,6 +171,7 @@ class SeriesWatchViewModel @Inject constructor(
             // Wait up to 2 seconds for the IMDb requests (not cancelling them)
             val titleDetails = withTimeoutOrNull(2000) { titleDetailsDeferred.await() }
             val certificates = withTimeoutOrNull(2000) { certificatesDeferred.await() }
+            val credits = withTimeoutOrNull(2000) { creditsDeferred.await() }
             val episodesResponse = withTimeoutOrNull(2000) { episodesDeferred?.await() }
 
             episodesResponse?.let { resp ->
@@ -187,6 +192,9 @@ class SeriesWatchViewModel @Inject constructor(
                     error = null,
                     imdbEpisodes = imdbEpisodesMap,
                     titleDetails = titleDetails,
+                    crewCredits = CrewPerson.sortCrew(
+                        credits?.credits?.mapNotNull { CrewPerson.fromCredit(it) } ?: emptyList()
+                    ),
                     ageRating = certificates?.let { extractAgeRating(it) } ?: ""
                 )
             }
