@@ -1,22 +1,34 @@
 package com.movie.app.best.ui.screens.settings
 
-import com.movie.app.best.BuildConfig
+import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,25 +37,29 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CopyAll
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -56,9 +72,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -66,24 +83,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.data.settings.VideoQualitySettings
-import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material.icons.filled.SystemUpdate
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.window.Dialog
 import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,6 +110,7 @@ fun SettingsScreen(
     var uploadError by remember { mutableStateOf("") }
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+
     var moderationEnabled by remember { mutableStateOf(ModerationSettings.isEnabled(context)) }
     var moderationMode by remember { mutableStateOf(ModerationSettings.getMode(context)) }
     var videoQualityMode by remember { mutableStateOf(VideoQualitySettings.getMode(context)) }
@@ -111,15 +122,9 @@ fun SettingsScreen(
     if (showLogs) {
         LogViewerScreen(
             logs = logs,
-            onBackClick = {
-                showLogs = false
-            },
-            onRefresh = {
-                logs = NetworkLogger.getLogs()
-            },
-            onCopy = {
-                clipboardManager.setText(AnnotatedString(logs))
-            },
+            onBackClick = { showLogs = false },
+            onRefresh = { logs = NetworkLogger.getLogs() },
+            onCopy = { clipboardManager.setText(AnnotatedString(logs)) },
             onClear = {
                 NetworkLogger.clear()
                 logs = ""
@@ -140,6 +145,7 @@ fun SettingsScreen(
                         connection.doOutput = true
                         val boundary = "----FetchBoundary${System.currentTimeMillis()}"
                         connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+
                         val output = connection.outputStream
                         output.write("--$boundary\r\n".toByteArray())
                         output.write("Content-Disposition: form-data; name=\"mode\"\r\n\r\nfile\r\n".toByteArray())
@@ -153,12 +159,14 @@ fun SettingsScreen(
                         output.write(file.readBytes())
                         output.write("\r\n--$boundary--\r\n".toByteArray())
                         output.flush()
+
                         val responseCode = connection.responseCode
                         val responseBody = if (responseCode == 201) {
                             connection.inputStream.bufferedReader().readText()
                         } else {
                             connection.errorStream?.bufferedReader()?.readText() ?: "HTTP $responseCode"
                         }
+
                         withContext(Dispatchers.Main) {
                             if (responseCode == 201) {
                                 val slug = try {
@@ -196,26 +204,52 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(Color(0xFF090B10))
     ) {
         TopAppBar(
             title = {
-                Text(
-                    text = "Settings",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Column {
+                    Text(
+                        text = "Settings",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        letterSpacing = (-0.3).sp
+                    )
+                    Text(
+                        text = "Preferences & System",
+                        color = Color.White.copy(alpha = 0.45f),
+                        fontSize = 11.sp
+                    )
+                }
             },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
+                        contentDescription = "Back",
                         tint = Color.White
                     )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+            actions = {
+                Box(
+                    modifier = Modifier
+                        .padding(end = 16.dp)
+                        .clip(RoundedCornerShape(99.dp))
+                        .background(Color(0xFFE50914).copy(alpha = 0.15f))
+                        .border(1.dp, Color(0xFFE50914).copy(alpha = 0.35f), RoundedCornerShape(99.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "v${BuildConfig.VERSION_NAME}",
+                        color = Color(0xFFFF5252),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF090B10)),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
 
@@ -225,254 +259,290 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            SettingsSectionTitle("General")
+            // SECTION 1: STREAMING & FILTER
+            SettingsSectionHeader(title = "Streaming & Content")
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 3.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.04f))
-            ) {
+            SettingsGroupCard {
+                // Content Moderation Filter Row
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayCircle,
-                        contentDescription = null,
-                        tint = Color(0xFFE50914),
-                        modifier = Modifier.size(22.dp)
+                    IconBadge(
+                        icon = Icons.Default.Security,
+                        gradientColors = listOf(Color(0xFFE50914).copy(alpha = 0.3f), Color(0xFF8B0000).copy(alpha = 0.15f)),
+                        contentColor = Color(0xFFFF4D5E)
                     )
-                    Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Content Moderation Filter",
                             color = Color.White,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 15.sp
                         )
                         Text(
-                            text = if (!moderationEnabled) "Off — show all content" else if (moderationMode == ModerationSettings.MODE_BLUR) "Blur sexual/inappropriate content" else "Hide sexual/inappropriate content",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 12.sp
+                            text = if (!moderationEnabled) {
+                                "Off — Show all content uncensored"
+                            } else if (moderationMode == ModerationSettings.MODE_BLUR) {
+                                "Blur inappropriate scenes & posters"
+                            } else {
+                                "Hide sexual & inappropriate titles"
+                            },
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
                         )
                     }
-                    Switch(
+                    Spacer(modifier = Modifier.width(10.dp))
+                    MakkhanSwitch(
                         checked = moderationEnabled,
                         onCheckedChange = {
                             moderationEnabled = it
                             ModerationSettings.setEnabled(context, it)
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = Color(0xFFE50914),
-                            checkedThumbColor = Color.White
-                        )
+                        }
                     )
                 }
-            }
 
-            if (moderationEnabled) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                // Moderation Sliding Segment
+                AnimatedVisibility(
+                    visible = moderationEnabled,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
                 ) {
-                    PlayerOptionChip("Blur", moderationMode == ModerationSettings.MODE_BLUR) {
-                        moderationMode = ModerationSettings.MODE_BLUR
-                        ModerationSettings.setMode(context, ModerationSettings.MODE_BLUR)
-                    }
-                    PlayerOptionChip("Hide", moderationMode == ModerationSettings.MODE_HIDE) {
-                        moderationMode = ModerationSettings.MODE_HIDE
-                        ModerationSettings.setMode(context, ModerationSettings.MODE_HIDE)
+                    Column {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SlidingSegmentedControl(
+                            items = listOf(
+                                "Blur (Recommended)" to ModerationSettings.MODE_BLUR,
+                                "Hide Completely" to ModerationSettings.MODE_HIDE
+                            ),
+                            selectedItem = moderationMode,
+                            onItemSelected = { mode ->
+                                moderationMode = mode
+                                ModerationSettings.setMode(context, mode)
+                            }
+                        )
                     }
                 }
-            }
 
-            SettingsSectionTitle("Video Quality")
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                Spacer(modifier = Modifier.height(14.dp))
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 3.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.04f))
-            ) {
+                // Video Quality Row
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Videocam,
-                        contentDescription = null,
-                        tint = Color(0xFFE50914),
-                        modifier = Modifier.size(22.dp)
+                    IconBadge(
+                        icon = Icons.Default.Videocam,
+                        gradientColors = listOf(Color(0xFFA855F7).copy(alpha = 0.3f), Color(0xFF7E22CE).copy(alpha = 0.15f)),
+                        contentColor = Color(0xFFC084FC)
                     )
-                    Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Video Quality",
+                            text = "Playback Quality",
                             color = Color.White,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 15.sp
                         )
                         Text(
                             text = when (videoQualityMode) {
-                                VideoQualitySettings.MODE_HIGH -> "Up to 1080p for best quality"
-                                VideoQualitySettings.MODE_DATA_SAVING -> "Lowest quality to save data"
-                                else -> "Adaptive quality based on network"
+                                VideoQualitySettings.MODE_HIGH -> "Up to 1080p for crystal clear quality"
+                                VideoQualitySettings.MODE_DATA_SAVING -> "Lowest quality to save mobile data"
+                                else -> "Adaptive quality based on network speed"
                             },
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 12.sp
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Quality Sliding Segment
+                SlidingSegmentedControl(
+                    items = listOf(
+                        "Auto" to VideoQualitySettings.MODE_AUTO,
+                        "High (1080p)" to VideoQualitySettings.MODE_HIGH,
+                        "Data Saver" to VideoQualitySettings.MODE_DATA_SAVING
+                    ),
+                    selectedItem = videoQualityMode,
+                    onItemSelected = { q ->
+                        videoQualityMode = q
+                        VideoQualitySettings.setMode(context, q)
+                    }
+                )
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                PlayerOptionChip("Auto", videoQualityMode == VideoQualitySettings.MODE_AUTO) {
-                    videoQualityMode = VideoQualitySettings.MODE_AUTO
-                    VideoQualitySettings.setMode(context, VideoQualitySettings.MODE_AUTO)
-                }
-                PlayerOptionChip("High", videoQualityMode == VideoQualitySettings.MODE_HIGH) {
-                    videoQualityMode = VideoQualitySettings.MODE_HIGH
-                    VideoQualitySettings.setMode(context, VideoQualitySettings.MODE_HIGH)
-                }
-                PlayerOptionChip("Data Saving", videoQualityMode == VideoQualitySettings.MODE_DATA_SAVING) {
-                    videoQualityMode = VideoQualitySettings.MODE_DATA_SAVING
-                    VideoQualitySettings.setMode(context, VideoQualitySettings.MODE_DATA_SAVING)
-                }
-            }
+            Spacer(modifier = Modifier.height(18.dp))
 
-            SettingsSectionTitle("Developer")
+            // SECTION 2: DEVELOPER & DIAGNOSTICS
+            SettingsSectionHeader(title = "Developer & Diagnostics")
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 3.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.04f))
-            ) {
+            SettingsGroupCard {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.BugReport,
-                        contentDescription = null,
-                        tint = Color(0xFFFF9800),
-                        modifier = Modifier.size(22.dp)
+                    IconBadge(
+                        icon = Icons.Default.BugReport,
+                        gradientColors = listOf(Color(0xFFF59E0B).copy(alpha = 0.3f), Color(0xFFB45309).copy(alpha = 0.15f)),
+                        contentColor = Color(0xFFFBBF24)
                     )
-                    Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Debug Mode",
                             color = Color.White,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 15.sp
                         )
                         Text(
-                            text = if (debugEnabled) "Capturing ${NetworkLogger.getLogCount()} log entries" else "Record network requests & errors",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 12.sp
+                            text = if (debugEnabled) {
+                                "Capturing ${NetworkLogger.getLogCount()} network requests & errors"
+                            } else {
+                                "Record network requests & diagnose issues"
+                            },
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
                         )
                     }
-                    Switch(
+                    Spacer(modifier = Modifier.width(10.dp))
+                    MakkhanSwitch(
                         checked = debugEnabled,
-                        onCheckedChange = { debugEnabled = it },
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = Color(0xFFE50914),
-                            checkedThumbColor = Color.White
-                        )
+                        onCheckedChange = { debugEnabled = it }
                     )
                 }
-            }
 
-            if (debugEnabled) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                AnimatedVisibility(
+                    visible = debugEnabled,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
                 ) {
-                    Button(
-                        onClick = {
-                            logs = NetworkLogger.getLogs()
-                            showLogs = true
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
-                    ) {
-                        Icon(imageVector = Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = 0.7f))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("View Logs", color = Color.White, fontSize = 13.sp)
-                    }
+                    Column {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    logs = NetworkLogger.getLogs()
+                                    showLogs = true
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BugReport,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color.White.copy(alpha = 0.85f)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("View Logs", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
 
-                    Button(
-                        onClick = {
-                            NetworkLogger.clear()
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
-                    ) {
-                        Icon(imageVector = Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = 0.7f))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Clear", color = Color.White, fontSize = 13.sp)
+                            Button(
+                                onClick = { NetworkLogger.clear() },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color(0xFFFF5252)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Clear", color = Color(0xFFFF5252), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
                     }
                 }
             }
 
-            SettingsSectionTitle("About")
+            Spacer(modifier = Modifier.height(18.dp))
 
-            SettingsItem(
-                icon = Icons.Default.SystemUpdate,
-                title = "Check for Update",
-                subtitle = "Check if a new version is available",
-                onClick = { updateViewModel.checkForUpdate() }
-            )
+            // SECTION 3: SYSTEM & UPDATES
+            SettingsSectionHeader(title = "App & System")
 
-            SettingsItem(
-                icon = Icons.Default.Info,
-                title = "About Us",
-                subtitle = "Learn more about BlazeMovies",
-                onClick = {}
-            )
+            SettingsGroupCard {
+                SettingsClickableRow(
+                    icon = Icons.Default.SystemUpdate,
+                    iconGradient = listOf(Color(0xFF06B6D4).copy(alpha = 0.3f), Color(0xFF0891B2).copy(alpha = 0.15f)),
+                    iconTint = Color(0xFF22D3EE),
+                    title = "Check for Updates",
+                    subtitle = "Verify if a newer OTA build is released",
+                    onClick = { updateViewModel.checkForUpdate() }
+                )
 
-            SettingsItem(
-                icon = Icons.AutoMirrored.Filled.HelpOutline,
-                title = "Help & Feedback",
-                subtitle = "Coming soon",
-                onClick = {},
-                enabled = false
-            )
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(32.dp))
+                SettingsClickableRow(
+                    icon = Icons.Default.Info,
+                    iconGradient = listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.05f)),
+                    iconTint = Color.White,
+                    title = "About BlazeMovies",
+                    subtitle = "Fastest stream aggregation & failover player",
+                    onClick = {}
+                )
 
-            Text(
-                text = "BlazeMovies v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
-                color = Color.White.copy(alpha = 0.2f),
-                fontSize = 12.sp,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+                SettingsClickableRow(
+                    icon = Icons.AutoMirrored.Filled.HelpOutline,
+                    iconGradient = listOf(Color.White.copy(alpha = 0.1f), Color.White.copy(alpha = 0.03f)),
+                    iconTint = Color.White.copy(alpha = 0.4f),
+                    title = "Help & Feedback",
+                    subtitle = "Coming soon in upcoming release",
+                    onClick = {},
+                    enabled = false
+                )
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // FOOTER BRANDING
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "BlazeMovies Android • Built with Jetpack Compose",
+                    color = Color.White.copy(alpha = 0.25f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                    color = Color.White.copy(alpha = 0.35f),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
         }
     }
 
+    // ──────────────────────────────────────────────
+    // PRESERVED 100% UPDATE LOGIC & STATE HANDLING
+    // ──────────────────────────────────────────────
     val updateState by updateViewModel.state.collectAsState()
-
     when (val s = updateState) {
         is UpdateUiState.Checking -> {
             LoadingDialog("Checking for updates...")
@@ -509,7 +579,7 @@ fun SettingsScreen(
         }
         is UpdateUiState.Error -> {
             InfoDialog(
-                title = "Error",
+                title = "Update Check Failed",
                 message = s.message,
                 onDismiss = { updateViewModel.resetState() }
             )
@@ -518,6 +588,259 @@ fun SettingsScreen(
     }
 }
 
+// ──────────────────────────────────────────────
+// CUSTOM "MAKKHAN" SMOOTH SPRING TOGGLE
+// ──────────────────────────────────────────────
+@Composable
+fun MakkhanSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val trackBg by animateColorAsState(
+        targetValue = if (checked) Color(0xFFE50914) else Color(0xFF222634),
+        animationSpec = tween(durationMillis = 240),
+        label = "switchTrackColor"
+    )
+
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) 22.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = 0.65f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "switchThumbOffset"
+    )
+
+    Box(
+        modifier = modifier
+            .width(50.dp)
+            .height(28.dp)
+            .clip(RoundedCornerShape(99.dp))
+            .background(trackBg)
+            .border(
+                width = 1.dp,
+                color = if (checked) Color(0xFFFF5252).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(99.dp)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onCheckedChange(!checked) }
+            .padding(3.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = thumbOffset)
+                .size(22.dp)
+                .shadow(elevation = 4.dp, shape = CircleShape)
+                .clip(CircleShape)
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            if (checked) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE50914))
+                )
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────
+// CUSTOM SLIDING PILL SEGMENTED CONTROL
+// ──────────────────────────────────────────────
+@Composable
+fun <T> SlidingSegmentedControl(
+    items: List<Pair<String, T>>,
+    selectedItem: T,
+    onItemSelected: (T) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF0C0E14))
+            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items.forEach { (label, value) ->
+            val isSelected = selectedItem == value
+            val bgColor by animateColorAsState(
+                targetValue = if (isSelected) Color(0xFFE50914) else Color.Transparent,
+                animationSpec = tween(220),
+                label = "segmentBg"
+            )
+            val textColor by animateColorAsState(
+                targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.55f),
+                animationSpec = tween(180),
+                label = "segmentText"
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(bgColor)
+                    .clickable { onItemSelected(value) }
+                    .padding(vertical = 7.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    color = textColor,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────
+// SQUIRCLE ICON BADGE WITH GRADIENT ACCENTS
+// ──────────────────────────────────────────────
+@Composable
+fun IconBadge(
+    icon: ImageVector,
+    gradientColors: List<Color>,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .clip(RoundedCornerShape(11.dp))
+            .background(Brush.linearGradient(gradientColors))
+            .border(1.dp, contentColor.copy(alpha = 0.25f), RoundedCornerShape(11.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+// ──────────────────────────────────────────────
+// ISLAND CARD CONTAINER
+// ──────────────────────────────────────────────
+@Composable
+fun SettingsGroupCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            content = content
+        )
+    }
+}
+
+// ──────────────────────────────────────────────
+// SECTION HEADER
+// ──────────────────────────────────────────────
+@Composable
+fun SettingsSectionHeader(title: String) {
+    Text(
+        text = title.uppercase(),
+        color = Color(0xFF9CA3AF),
+        fontSize = 11.5.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.8.sp,
+        modifier = Modifier.padding(top = 10.dp, bottom = 8.dp, start = 4.dp)
+    )
+}
+
+// ──────────────────────────────────────────────
+// INTERACTIVE CLICKABLE ROW
+// ──────────────────────────────────────────────
+@Composable
+fun SettingsClickableRow(
+    icon: ImageVector,
+    iconGradient: List<Color>,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    trailingBadge: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled) { onClick() }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconBadge(
+            icon = icon,
+            gradientColors = iconGradient,
+            contentColor = if (enabled) iconTint else iconTint.copy(alpha = 0.4f)
+        )
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = if (enabled) Color.White else Color.White.copy(alpha = 0.4f),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = subtitle,
+                color = if (enabled) Color.White.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.25f),
+                fontSize = 12.sp,
+                lineHeight = 16.sp
+            )
+        }
+        if (trailingBadge != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0xFFE50914).copy(alpha = 0.15f))
+                    .border(1.dp, Color(0xFFE50914).copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = trailingBadge,
+                    color = Color(0xFFFF5252),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = if (enabled) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.15f),
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+// ──────────────────────────────────────────────
+// UPGRADED LOG VIEWER SCREEN
+// ──────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LogViewerScreen(
@@ -537,7 +860,7 @@ private fun LogViewerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A0A))
+            .background(Color(0xFF090B10))
     ) {
         TopAppBar(
             title = {
@@ -545,48 +868,84 @@ private fun LogViewerScreen(
                     text = "Debug Logs (${NetworkLogger.getLogCount()} entries)",
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
-                    fontSize = 14.sp
+                    fontSize = 15.sp
                 )
             },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
                 }
             },
             actions = {
                 IconButton(onClick = onRefresh) {
-                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Refresh", tint = Color.White.copy(alpha = 0.7f))
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = "Refresh",
+                        tint = Color(0xFFFF9800)
+                    )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF111111)),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0E1118)),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
 
         if (uploadedLink.isNotEmpty()) {
             Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20))
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(imageVector = Icons.Default.Link, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(uploadedLink, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                    Text("COPY", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { onCopyLink() })
+                    Text(
+                        uploadedLink,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "COPY",
+                        color = Color(0xFF81C784),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        modifier = Modifier.clickable { onCopyLink() }
+                    )
                 }
             }
         }
 
         if (uploadError.isNotEmpty()) {
             Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF3E0000))
             ) {
-                Text(uploadError, color = Color(0xFFFF5252), fontSize = 12.sp, modifier = Modifier.padding(12.dp))
+                Text(
+                    uploadError,
+                    color = Color(0xFFFF5252),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(12.dp)
+                )
             }
         }
 
@@ -594,23 +953,27 @@ private fun LogViewerScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+                .padding(12.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF050608))
+                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                .padding(10.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = logs.ifEmpty { "No logs captured yet. Enable debug mode and use the app." },
-                color = Color(0xFF00FF41),
-                fontSize = 10.sp,
+                color = Color(0xFF00FF66),
+                fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
-                lineHeight = 14.sp
+                lineHeight = 15.sp
             )
         }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF111111))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .background(Color(0xFF0E1118))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
@@ -619,132 +982,76 @@ private fun LogViewerScreen(
                     copied = true
                 },
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
             ) {
-                Icon(imageVector = Icons.Default.CopyAll, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.7f))
-                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.CopyAll,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                    tint = Color.White.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(if (copied) "Copied!" else "Copy", color = Color.White, fontSize = 12.sp)
             }
 
             Button(
                 onClick = onUpload,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
             ) {
                 if (isUploading) {
-                    CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
                 } else {
-                    Icon(imageVector = Icons.Default.Link, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = Color.White
+                    )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Get Link", color = Color.White, fontSize = 12.sp)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Get Link", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
 
             Button(
                 onClick = onClear,
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
             ) {
-                Text("Clear", color = Color(0xFFFF5252), fontSize = 12.sp)
+                Text("Clear", color = Color(0xFFFF5252), fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
-@Composable
-private fun SettingsSectionTitle(title: String) {
-    Text(
-        text = title,
-        color = MaterialTheme.colorScheme.primary,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp, start = 4.dp)
-    )
-}
-
-@Composable
-private fun SettingsItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true
-) {
-    val tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f)
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp)
-            .clickable(enabled = enabled) { onClick() },
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = if (enabled) 0.04f else 0.02f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(22.dp)
-            )
-            Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
-                Text(
-                    text = title,
-                    color = tint,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp
-                )
-                Text(
-                    text = subtitle,
-                    color = tint.copy(alpha = 0.5f),
-                    fontSize = 12.sp
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayerOptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.clickable { onClick() },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) Color(0xFFE50914).copy(alpha = 0.2f) else Color.White.copy(alpha = 0.04f)
-        )
-    ) {
-        Text(
-            text = label,
-            color = if (selected) Color(0xFFE50914) else Color.White.copy(alpha = 0.5f),
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        )
-    }
-}
-
+// ──────────────────────────────────────────────
+// UPGRADED CINEMATIC UPDATE & ALERT DIALOGS
+// ──────────────────────────────────────────────
 @Composable
 private fun LoadingDialog(message: String) {
     Dialog(onDismissRequest = {}) {
         Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Row(
+                modifier = Modifier.padding(22.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                CircularProgressIndicator(color = Color(0xFFE50914), modifier = Modifier.size(32.dp))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(message, color = Color.White, fontSize = 14.sp)
+                CircularProgressIndicator(
+                    color = Color(0xFFE50914),
+                    modifier = Modifier.size(28.dp),
+                    strokeWidth = 3.dp
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(message, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -755,15 +1062,15 @@ private fun InfoDialog(title: String, message: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title, color = Color.White, fontWeight = FontWeight.Bold) },
-        text = { Text(message, color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        text = { Text(message, color = Color.White.copy(alpha = 0.75f), fontSize = 14.sp) },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK", color = Color(0xFFE50914))
+                Text("OK", color = Color(0xFFE50914), fontWeight = FontWeight.Bold)
             }
         },
-        containerColor = Color(0xFF1A1A1A),
+        containerColor = Color(0xFF131622),
         titleContentColor = Color.White,
-        textContentColor = Color.White.copy(alpha = 0.7f)
+        textContentColor = Color.White.copy(alpha = 0.75f)
     )
 }
 
@@ -775,74 +1082,111 @@ private fun UpdateAvailableDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF121212))
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE50914).copy(alpha = 0.35f))
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(22.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.SystemUpdate,
-                        contentDescription = null,
-                        tint = Color(0xFFE50914),
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFFE50914), Color(0xFF8B0000)))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SystemUpdate,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
                     Column {
-                        Text("Update Available", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Text(
-                            "v${data.version} · ${data.downloadSizeMb} MB",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp
+                            text = "New Update Available!",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "v${data.version} • ${data.downloadSizeMb} MB",
+                            color = Color(0xFFFF5252),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 if (data.whatsNew.isNotBlank()) {
-                    Text(
-                        "What's New",
-                        color = Color(0xFFE50914),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    val lines = data.whatsNew.lines()
-                        .map { it.removePrefix("## ").removePrefix("# ").trim() }
-                        .filter { it.isNotBlank() && !it.startsWith("What's New") }
-                    lines.forEach { line ->
-                        val cleanLine = line.removePrefix("- ").trim()
-                        if (cleanLine.isNotBlank()) {
-                            Row(modifier = Modifier.padding(vertical = 3.dp, horizontal = 4.dp)) {
-                                Text("▸ ", color = Color(0xFFE50914), fontSize = 13.sp)
-                                Text(cleanLine, color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF0C0E14))
+                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column {
+                            Text(
+                                "What's New in this Build:",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val lines = data.whatsNew.lines()
+                                .map { it.removePrefix("## ").removePrefix("# ").trim() }
+                                .filter { it.isNotBlank() && !it.startsWith("What's New") }
+                            lines.forEach { line ->
+                                val cleanLine = line.removePrefix("- ").trim()
+                                if (cleanLine.isNotBlank()) {
+                                    Row(
+                                        modifier = Modifier.padding(vertical = 3.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Text("▸ ", color = Color(0xFFE50914), fontSize = 13.sp)
+                                        Text(cleanLine, color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Later", color = Color.White.copy(alpha = 0.5f))
+                        Text("Later", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = onUpdate,
+                        shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
                     ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.White
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Update Now", color = Color.White, fontWeight = FontWeight.Bold)
                     }
@@ -859,24 +1203,64 @@ private fun DownloadProgressDialog(
 ) {
     Dialog(onDismissRequest = {}) {
         Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)
-            )
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Downloading Update", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = Color(0xFFE50914),
+                        strokeWidth = 2.5.dp
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "Downloading Update...",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
                 LinearProgressIndicator(
                     progress = { progress / 100f },
                     color = Color(0xFFE50914),
                     trackColor = Color.White.copy(alpha = 0.1f),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("$progress%", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Downloading package",
+                        color = Color.White.copy(alpha = 0.45f),
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        "$progress%",
+                        color = Color(0xFFFF5252),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
     }
@@ -891,18 +1275,30 @@ private fun InstallDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Download Complete", color = Color.White, fontWeight = FontWeight.Bold)
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Ready to Install", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
-        text = { Text("APK downloaded successfully. Tap Install to update BlazeMovies.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        text = {
+            Text(
+                "Update package downloaded successfully. Tap Install to upgrade BlazeMovies.",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 14.sp
+            )
+        },
         confirmButton = {
             Button(
                 onClick = onInstall,
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
             ) {
-                Text("Install", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Install Now", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -910,8 +1306,8 @@ private fun InstallDialog(
                 Text("Cancel", color = Color.White.copy(alpha = 0.5f))
             }
         },
-        containerColor = Color(0xFF1A1A1A),
+        containerColor = Color(0xFF131622),
         titleContentColor = Color.White,
-        textContentColor = Color.White.copy(alpha = 0.7f)
+        textContentColor = Color.White.copy(alpha = 0.75f)
     )
 }
