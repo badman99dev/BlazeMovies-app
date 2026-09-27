@@ -204,7 +204,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF090B10))
+            .background(Color.Black)
     ) {
         TopAppBar(
             title = {
@@ -249,7 +249,7 @@ fun SettingsScreen(
                     )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF090B10)),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
 
@@ -600,7 +600,7 @@ fun MakkhanSwitch(
     val interactionSource = remember { MutableInteractionSource() }
 
     val trackBg by animateColorAsState(
-        targetValue = if (checked) Color(0xFFE50914) else Color(0xFF222634),
+        targetValue = if (checked) Color(0xFFE50914) else Color(0xFF1E1E1E),
         animationSpec = tween(durationMillis = 240),
         label = "switchTrackColor"
     )
@@ -622,7 +622,7 @@ fun MakkhanSwitch(
             .background(trackBg)
             .border(
                 width = 1.dp,
-                color = if (checked) Color(0xFFFF5252).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.08f),
+                color = if (checked) Color(0xFFFF5252).copy(alpha = 0.45f) else Color(0xFF2C2C2E),
                 shape = RoundedCornerShape(99.dp)
             )
             .clickable(
@@ -667,8 +667,8 @@ fun <T> SlidingSegmentedControl(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0C0E14))
-            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+            .background(Color.Black)
+            .border(1.dp, Color(0xFF222222), RoundedCornerShape(12.dp))
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -743,8 +743,8 @@ fun SettingsGroupCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F0F)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E1E1E))
     ) {
         Column(
             modifier = Modifier
@@ -860,7 +860,7 @@ private fun LogViewerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF090B10))
+            .background(Color.Black)
     ) {
         TopAppBar(
             title = {
@@ -889,7 +889,7 @@ private fun LogViewerScreen(
                     )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0E1118)),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
 
@@ -955,8 +955,8 @@ private fun LogViewerScreen(
                 .fillMaxWidth()
                 .padding(12.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF050608))
-                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                .background(Color(0xFF080808))
+                .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(12.dp))
                 .padding(10.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -972,7 +972,7 @@ private fun LogViewerScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF0E1118))
+                .background(Color.Black)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -1038,8 +1038,8 @@ private fun LoadingDialog(message: String) {
     Dialog(onDismissRequest = {}) {
         Card(
             shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF121212)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF222222))
         ) {
             Row(
                 modifier = Modifier.padding(22.dp),
@@ -1068,7 +1068,7 @@ private fun InfoDialog(title: String, message: String, onDismiss: () -> Unit) {
                 Text("OK", color = Color(0xFFE50914), fontWeight = FontWeight.Bold)
             }
         },
-        containerColor = Color(0xFF131622),
+        containerColor = Color(0xFF121212),
         titleContentColor = Color.White,
         textContentColor = Color.White.copy(alpha = 0.75f)
     )
@@ -1083,7 +1083,7 @@ private fun UpdateAvailableDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF121212)),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE50914).copy(alpha = 0.35f))
         ) {
             Column(
@@ -1134,8 +1134,8 @@ private fun UpdateAvailableDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF0C0E14))
-                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                            .background(Color(0xFF080808))
+                            .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(12.dp))
                             .padding(14.dp)
                     ) {
                         Column {
@@ -1204,8 +1204,8 @@ private fun DownloadProgressDialog(
     Dialog(onDismissRequest = {}) {
         Card(
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF131622)),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF121212)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF222222))
         ) {
             Column(
                 modifier = Modifier
@@ -1306,7 +1306,7 @@ private fun InstallDialog(
                 Text("Cancel", color = Color.White.copy(alpha = 0.5f))
             }
         },
-        containerColor = Color(0xFF131622),
+        containerColor = Color(0xFF121212),
         titleContentColor = Color.White,
         textContentColor = Color.White.copy(alpha = 0.75f)
     )
