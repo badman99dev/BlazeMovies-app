@@ -1,7 +1,6 @@
 package com.movie.app.best.ui.screens.search
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -12,6 +11,7 @@ import android.speech.SpeechRecognizer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -82,7 +82,6 @@ fun VoiceSearchOverlay(
 
     var isListening by remember { mutableStateOf(false) }
     var liveText by remember { mutableStateOf("") }
-    var statusText by remember { mutableStateOf("Listening...") }
     var rmsDb by remember { mutableFloatStateOf(0f) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -91,20 +90,17 @@ fun VoiceSearchOverlay(
         hasPermission = granted
     }
 
-    // Rotating or sample hint movies
-    val sampleHints = remember {
+    // Suggested examples matching YouTube's "Try saying" list
+    val suggestionList = remember {
         listOf(
-            "Spider-Man: No Way Home",
-            "Avengers: Endgame",
-            "Interstellar",
-            "Mirzapur",
-            "Breaking Bad",
-            "The Dark Knight",
-            "KGF Chapter 2",
-            "Inception"
-        )
+            "\"Spider-Man: No Way Home\"",
+            "\"Avengers: Endgame\"",
+            "\"Interstellar\"",
+            "\"Mirzapur Season 3\"",
+            "\"The Dark Knight\"",
+            "\"Inception\""
+        ).shuffled().take(3)
     }
-    val currentHint = remember { sampleHints.random() }
 
     val speechRecognizer = remember {
         if (SpeechRecognizer.isRecognitionAvailable(context)) {
@@ -114,16 +110,25 @@ fun VoiceSearchOverlay(
         }
     }
 
-    fun startListening() {
+    fun stopListeningSession() {
+        try {
+            speechRecognizer?.stopListening()
+            speechRecognizer?.cancel()
+        } catch (_: Exception) {}
+        isListening = false
+        rmsDb = 0f
+    }
+
+    fun startListeningSession() {
         if (speechRecognizer == null) {
-            statusText = "Speech recognition not available on device"
+            isListening = false
             return
         }
         try {
+            liveText = ""
             speechRecognizer.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
                     isListening = true
-                    statusText = "Listening..."
                     liveText = ""
                 }
 
@@ -138,33 +143,33 @@ fun VoiceSearchOverlay(
                 override fun onBufferReceived(buffer: ByteArray?) {}
 
                 override fun onEndOfSpeech() {
-                    isListening = false
+                    // Speech ended, Google will process final results
                 }
 
                 override fun onError(error: Int) {
+                    // Turn to inactive state (Screenshot 3) on timeout or error
                     isListening = false
                     rmsDb = 0f
-                    statusText = when (error) {
-                        SpeechRecognizer.ERROR_NO_MATCH,
-                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Didn't hear that. Tap mic to try again."
-                        SpeechRecognizer.ERROR_AUDIO,
-                        SpeechRecognizer.ERROR_SERVER -> "Can't reach Google. Tap to try again."
-                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission required"
-                        else -> "Didn't catch that. Tap mic to try again."
-                    }
                 }
 
                 override fun onResults(results: Bundle?) {
                     isListening = false
                     rmsDb = 0f
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    val text = matches?.firstOrNull()?.trim() ?: ""
-                    if (text.isNotBlank()) {
-                        liveText = text
-                        statusText = text
-                        onResult(text)
+                    val rawText = matches?.firstOrNull()?.trim() ?: ""
+
+                    // Filter common filler words (movie, series, etc.)
+                    val cleaned = rawText
+                        .replace(Regex("(?i)\\b(movie|film|series|show|season|episode|dikhao|chalao|play|lagao)\\b"), "")
+                        .trim()
+                    val finalText = if (cleaned.isNotBlank()) cleaned else rawText
+
+                    if (finalText.isNotBlank()) {
+                        liveText = finalText
+                        onResult(finalText)
                     } else {
-                        statusText = "Didn't catch that. Tap mic to try again."
+                        // Nothing valid to search -> go to inactive "Tap microphone to try again" state
+                        isListening = false
                     }
                 }
 
@@ -191,10 +196,7 @@ fun VoiceSearchOverlay(
             }
             speechRecognizer.startListening(intent)
             isListening = true
-            statusText = "Listening..."
-            liveText = ""
         } catch (_: Exception) {
-            statusText = "Tap mic to speak"
             isListening = false
         }
     }
@@ -203,7 +205,7 @@ fun VoiceSearchOverlay(
         if (!hasPermission) {
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         } else {
-            startListening()
+            startListeningSession()
         }
     }
 
@@ -217,7 +219,7 @@ fun VoiceSearchOverlay(
         }
     }
 
-    // Infinite animation for YouTube-like circular wavefronts
+    // Infinite animation for circular wavefronts
     val infiniteTransition = rememberInfiniteTransition(label = "wavefrontTransition")
     val wavePhase by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -227,6 +229,13 @@ fun VoiceSearchOverlay(
             repeatMode = RepeatMode.Restart
         ),
         label = "wavePhase"
+    )
+
+    // Animated mic button background color: Red when active, Dark Grey when inactive
+    val micButtonColor by animateColorAsState(
+        targetValue = if (isListening) Color(0xFFFF0033) else Color(0xFF272727),
+        animationSpec = tween(durationMillis = 300),
+        label = "micButtonColor"
     )
 
     // AMOLED pure black root container
@@ -246,10 +255,7 @@ fun VoiceSearchOverlay(
         ) {
             IconButton(
                 onClick = {
-                    try {
-                        speechRecognizer?.stopListening()
-                        speechRecognizer?.cancel()
-                    } catch (_: Exception) {}
+                    stopListeningSession()
                     onDismiss()
                 }
             ) {
@@ -271,50 +277,75 @@ fun VoiceSearchOverlay(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Status or Live Spoken Text (Large text on top just like YouTube)
-            val displayText = if (liveText.isNotBlank()) liveText else statusText
-            Text(
-                text = displayText,
-                color = if (liveText.isNotBlank()) Color.White else Color(0xFFE2E2E2),
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Normal,
-                lineHeight = 36.sp
-            )
+            if (isListening) {
+                // ACTIVE STATE (Screenshot 2): Shows "Listening..." or live spoken words
+                val displayText = if (liveText.isNotBlank()) liveText else "Listening..."
+                Text(
+                    text = displayText,
+                    color = if (liveText.isNotBlank()) Color.White else Color(0xFFE2E2E2),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 36.sp
+                )
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
 
-            // Hint Text Section
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+                // Single hint text when actively listening
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Try saying",
+                        color = Color(0xFF888888),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = suggestionList.firstOrNull() ?: "\"Avengers: Endgame\"",
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                // INACTIVE / STOPPED STATE (Screenshot 3): Shows "Try saying" title + 3 suggestions
                 Text(
                     text = "Try saying",
-                    color = Color(0xFF888888),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "\"$currentHint\"",
                     color = Color.White,
-                    fontSize = 17.sp,
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                suggestionList.forEach { suggestion ->
+                    Text(
+                        text = suggestion,
+                        color = Color(0xFFD0D0D0),
+                        fontSize = 16.sp,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Bottom Wavefronts + Red Mic Button
+            // Bottom Mic Button Area (with Circular Wavefronts in active state)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Circular wavefront ripples radiating outward when listening
+                // Animated Circular Wavefront Ripples (Only active when listening!)
                 if (isListening) {
                     val audioBoost = (rmsDb / 12f).coerceIn(0f, 0.45f)
 
@@ -341,31 +372,35 @@ fun VoiceSearchOverlay(
                         baseSize = 88.dp,
                         maxScale = 2.4f
                     )
+
+                    // Dark circular background halo (YouTube baseplate)
+                    Box(
+                        modifier = Modifier
+                            .size(118.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF1E1E1E))
+                    )
                 }
 
-                // Dark circular background halo (exact YouTube circular baseplate)
-                Box(
-                    modifier = Modifier
-                        .size(118.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E1E1E))
-                )
-
-                // YouTube-style Vibrant Red Circular Mic Button
+                // Circular Mic Button: RED when listening, DARK GREY when stopped
                 Box(
                     modifier = Modifier
                         .size(76.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFF0033))
+                        .background(micButtonColor)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) {
-                            if (!isListening) {
+                            if (isListening) {
+                                // Clicking red mic pauses/stops it! (switches to inactive state)
+                                stopListeningSession()
+                            } else {
+                                // Clicking dark mic restarts listening!
                                 if (!hasPermission) {
                                     permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                 } else {
-                                    startListening()
+                                    startListeningSession()
                                 }
                             }
                         },
@@ -380,7 +415,26 @@ fun VoiceSearchOverlay(
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            // Inactive state hint: "Tap microphone to try again" (Exact match for Screenshot 3)
+            if (!isListening) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Tap microphone to try again",
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
