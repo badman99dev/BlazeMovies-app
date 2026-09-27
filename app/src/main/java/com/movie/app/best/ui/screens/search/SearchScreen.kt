@@ -133,15 +133,13 @@ fun SearchScreen(
             topBar = {
                 Surface(
                     color = Color.Black,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp)
-                            .padding(start = 4.dp, end = 12.dp),
+                            .height(48.dp)
+                            .padding(start = 6.dp, end = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Back Arrow (Sized 40dp for exact vertical center balance)
@@ -150,7 +148,7 @@ fun SearchScreen(
                                 keyboardController?.hide()
                                 onBackClick()
                             },
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(38.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -166,8 +164,8 @@ fun SearchScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(40.dp)
-                                .clip(RoundedCornerShape(20.dp))
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(19.dp))
                                 .background(Color(0xFF222222))
                                 .padding(horizontal = 14.dp),
                             contentAlignment = Alignment.CenterStart
@@ -237,7 +235,7 @@ fun SearchScreen(
                         // Right circular mic button (Sized 40dp, exactly aligned)
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFF222222))
                                 .clickable {

@@ -235,14 +235,14 @@ fun VoiceSearchOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // Top Bar: Cross / Close button to go back to Search page
+        // Top Bar: Cross / Close button to go back to Search page (matches AppHeader geometry)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .height(48.dp)
+                .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
@@ -250,13 +250,13 @@ fun VoiceSearchOverlay(
                     stopListeningSession()
                     onDismiss()
                 },
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(38.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close Voice Search",
                     tint = Color.White,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
