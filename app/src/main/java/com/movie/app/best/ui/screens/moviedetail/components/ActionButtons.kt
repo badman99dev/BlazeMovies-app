@@ -1,24 +1,38 @@
 package com.movie.app.best.ui.screens.moviedetail.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.movie.app.best.data.remote.StreamRequestApiResponse
+import com.movie.app.best.util.AppSoundHelper
+import kotlinx.coroutines.launch
 
 @Composable
 fun DetailActionButtons(
@@ -106,9 +120,133 @@ fun DetailActionButtons(
             }
         }
 
-        ActionIconButton(icon = Icons.Default.Download, label = "Download", tint = if (hasDownloadLinks) Color.White else Color.Gray.copy(alpha = 0.5f), onClick = if (hasDownloadLinks) onDownloadClick else ({}))
-        ActionIconButton(icon = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, label = if (isLiked) "Liked" else "Like", tint = if (isLiked) Color(0xFFFF1744) else Color.White, onClick = onLikeClick)
-        ActionIconButton(icon = if (isInMyList) Icons.Default.BookmarkAdded else Icons.Default.BookmarkAdd, label = if (isInMyList) "Saved" else "My List", tint = if (isInMyList) Color(0xFFE50914) else Color.White, onClick = onMyListClick)
+        ActionIconButton(
+            icon = Icons.Default.Download,
+            label = "Download",
+            tint = if (hasDownloadLinks) Color.White else Color.Gray.copy(alpha = 0.5f),
+            onClick = if (hasDownloadLinks) onDownloadClick else ({})
+        )
+
+        AnimatedActionIconButton(
+            icon = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+            label = if (isLiked) "Liked" else "Like",
+            isActive = isLiked,
+            activeTint = Color(0xFFFF1744),
+            onClick = onLikeClick
+        )
+
+        AnimatedActionIconButton(
+            icon = if (isInMyList) Icons.Default.BookmarkAdded else Icons.Default.BookmarkAdd,
+            label = if (isInMyList) "Saved" else "My List",
+            isActive = isInMyList,
+            activeTint = Color(0xFFE50914),
+            onClick = onMyListClick
+        )
+    }
+}
+
+@Composable
+private fun AnimatedActionIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isActive: Boolean,
+    activeTint: Color,
+    inactiveTint: Color = Color.White.copy(alpha = 0.85f),
+    hasBurstEffect: Boolean = true,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val scale = remember { Animatable(1f) }
+    val burstScale = remember { Animatable(0.4f) }
+    val burstAlpha = remember { Animatable(0f) }
+
+    val tint by animateColorAsState(
+        targetValue = if (isActive) activeTint else inactiveTint,
+        animationSpec = tween(durationMillis = 200),
+        label = "tintColor"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(60.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(44.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            // Radial halo burst ring on active transition
+            if (burstAlpha.value > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .graphicsLayer {
+                            scaleX = burstScale.value
+                            scaleY = burstScale.value
+                            alpha = burstAlpha.value
+                        }
+                        .border(
+                            width = 2.dp,
+                            color = activeTint,
+                            shape = CircleShape
+                        )
+                )
+            }
+
+            IconButton(
+                onClick = {
+                    val willBeActive = !isActive
+                    // 1. Instantaneous low-latency Facebook pop sound
+                    AppSoundHelper.playPopSound(context, willBeActive)
+                    // 2. Tactile haptic feedback
+                    AppSoundHelper.triggerHapticFeedback(context, willBeActive)
+                    // 3. Crisp Spring Pop animation
+                    scope.launch {
+                        scale.animateTo(0.72f, tween(70, easing = FastOutSlowInEasing))
+                        launch {
+                            scale.animateTo(
+                                targetValue = 1f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                        }
+                        if (hasBurstEffect && willBeActive) {
+                            burstScale.snapTo(0.4f)
+                            burstAlpha.snapTo(0.85f)
+                            launch {
+                                burstScale.animateTo(1.75f, tween(320, easing = FastOutSlowInEasing))
+                            }
+                            launch {
+                                burstAlpha.animateTo(0f, tween(320, easing = FastOutSlowInEasing))
+                            }
+                        }
+                    }
+                    onClick()
+                },
+                modifier = Modifier
+                    .size(44.dp)
+                    .graphicsLayer {
+                        scaleX = scale.value
+                        scaleY = scale.value
+                    }
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = tint,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+        }
+
+        Text(
+            text = label,
+            color = tint.copy(alpha = 0.85f),
+            fontSize = 10.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }
 
