@@ -6,6 +6,11 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import com.movie.app.best.ui.util.LocalCollapsibleBarsState
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -83,6 +88,7 @@ fun HomeScreen(
     ) {
         LazyColumn(
             state = listState,
+            contentPadding = PaddingValues(bottom = 88.dp),
             modifier = Modifier.fillMaxSize()
         ) {
             // LIVE TV — heading hamesha, content skeleton
@@ -219,31 +225,15 @@ fun HomeScreen(
             }
         }
 
-        AnimatedVisibility(
-            visible = isBarsVisible,
-            enter = slideInVertically(
-                initialOffsetY = { -it },
-                animationSpec = spring(
-                    stiffness = Spring.StiffnessMediumLow,
-                    dampingRatio = Spring.DampingRatioNoBouncy
-                )
-            ),
-            exit = slideOutVertically(
-                targetOffsetY = { -it },
-                animationSpec = spring(
-                    stiffness = Spring.StiffnessMediumLow,
-                    dampingRatio = Spring.DampingRatioNoBouncy
-                )
-            ),
-            modifier = Modifier.align(Alignment.TopCenter)
-        ) {
-            AppHeader(
-                onMenuClick         = onMenuClick,
-                onSearchClick       = onSearchClick,
-                onDownloadClick     = onDownloadClick,
-                onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
-                hasNotification     = uiState.notification?.isActive == true
-            )
-        }
+        AppHeader(
+            onMenuClick         = onMenuClick,
+            onSearchClick       = onSearchClick,
+            onDownloadClick     = onDownloadClick,
+            onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
+            hasNotification     = uiState.notification?.isActive == true,
+            modifier            = Modifier
+                .align(Alignment.TopCenter)
+                .offset { IntOffset(0, (barsState?.headerOffset ?: 0f).roundToInt()) }
+        )
     }
 }

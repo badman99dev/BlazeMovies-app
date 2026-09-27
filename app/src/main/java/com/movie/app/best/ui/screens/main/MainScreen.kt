@@ -418,9 +418,22 @@ fun MainContent(
     CompositionLocalProvider(LocalCollapsibleBarsState provides collapsibleBarsState) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            bottomBar = {
+            containerColor = Color.Black
+        ) { _ ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(collapsibleBarsState.nestedScrollConnection)
+            ) {
+                AppNavigation(
+                    navController = navController,
+                    isOnline = isConnected,
+                    onMenuClick = { scope.launch { drawerState.open() } }
+                )
+
+                // Overlay Floating BottomNavigationBar (YouTube / Netflix style edge-to-edge overlay)
                 AnimatedVisibility(
-                    visible = shouldShowBottomBar && collapsibleBarsState.isBarsVisible.value,
+                    visible = shouldShowBottomBar && collapsibleBarsState.isBottomBarVisible.value,
                     enter = slideInVertically(
                         initialOffsetY = { it },
                         animationSpec = spring(
@@ -434,29 +447,19 @@ fun MainContent(
                             stiffness = Spring.StiffnessMediumLow,
                             dampingRatio = Spring.DampingRatioNoBouncy
                         )
-                    )
+                    ),
+                    modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
                     BottomNavigationBar(
                         navController = navController
                     )
                 }
-            }
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .nestedScroll(collapsibleBarsState.nestedScrollConnection)
-            ) {
-                AppNavigation(
-                    navController = navController,
-                    isOnline = isConnected,
-                    onMenuClick = { scope.launch { drawerState.open() } }
-                )
 
                 AnimatedVisibility(
                     visible = showConnectionLostBanner,
                     enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(tween(300)),
-                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(tween(200))
+                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(tween(200)),
+                    modifier = Modifier.align(Alignment.TopCenter)
                 ) {
                     NetworkErrorBanner()
                 }
@@ -464,7 +467,8 @@ fun MainContent(
                 AnimatedVisibility(
                     visible = showBackOnlineBanner,
                     enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(tween(300)),
-                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(tween(200))
+                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(tween(200)),
+                    modifier = Modifier.align(Alignment.TopCenter)
                 ) {
                     BackOnlineBanner()
                 }
