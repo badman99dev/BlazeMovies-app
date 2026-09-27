@@ -30,6 +30,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -91,12 +99,14 @@ fun SearchScreen(
     onContentClick: (String, Boolean, String) -> Unit,
     onZee5Click: (String) -> Unit,
     onTvChannelClick: (UnifiedChannel) -> Unit,
+    onBackClick: () -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     val gridState = rememberLazyGridState()
+    var showVoiceSearch by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -111,76 +121,171 @@ fun SearchScreen(
         viewModel.loadNextPage()
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    TextField(
-                        value = uiState.searchQuery,
-                        onValueChange = { viewModel.updateSearchQuery(it) },
-                        placeholder = { Text("Search movies & series...", color = Color.Gray) },
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = {
+                Surface(
+                    color = Color.Black,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Search
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
+                            .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Back Arrow
+                        IconButton(
+                            onClick = {
                                 keyboardController?.hide()
-                                viewModel.onSearchSubmit()
+                                onBackClick()
                             }
-                        ),
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, null, tint = Color.Gray)
-                        },
-                        trailingIcon = {
-                            if (uiState.searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                                    Icon(Icons.Default.Clear, null, tint = Color.Gray)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Slim YouTube-style Capsule Search Field
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(42.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color(0xFF212121))
+                                .padding(horizontal = 14.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (uiState.searchQuery.isEmpty()) {
+                                        Text(
+                                            text = "Search movies & series...",
+                                            color = Color(0xFFAAAAAA),
+                                            fontSize = 15.sp
+                                        )
+                                    }
+                                    BasicTextField(
+                                        value = uiState.searchQuery,
+                                        onValueChange = { viewModel.updateSearchQuery(it) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .focusRequester(focusRequester),
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            color = Color.White,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Normal
+                                        ),
+                                        cursorBrush = SolidColor(Color.White),
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Text,
+                                            imeAction = ImeAction.Search
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onSearch = {
+                                                keyboardController?.hide()
+                                                viewModel.onSearchSubmit()
+                                            }
+                                        )
+                                    )
+                                }
+
+                                if (uiState.searchQuery.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = { viewModel.updateSearchQuery("") },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = "Clear",
+                                            tint = Color.LightGray,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
                             }
-                        },
-                        colors = TextFieldDefaults.textFieldColors(
-                            containerColor = Color.DarkGray.copy(alpha = 0.6f),
-                            cursorColor = Color.Red,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        // Right circular mic button
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF212121))
+                                .clickable {
+                                    keyboardController?.hide()
+                                    showVoiceSearch = true
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Voice Search",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            containerColor = Color.Black
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(Color.Black)
+            ) {
+                if (uiState.searchQuery.isEmpty()) {
+                    EmptySearchState()
+                } else if (uiState.isShowingSuggestions) {
+                    SuggestionsView(
+                        state = uiState,
+                        onMeiliClick = { hit -> onContentClick(hit.slug, hit.isSeriesBool, hit.imdbId) },
+                        onZee5Click = { text -> viewModel.searchUniversal(text) }
                     )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
-        },
-        containerColor = Color.Black
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.Black)
-        ) {
-            if (uiState.searchQuery.isEmpty()) {
-                EmptySearchState()
-            } else if (uiState.isShowingSuggestions) {
-                SuggestionsView(
-                    state = uiState,
-                    onMeiliClick = { hit -> onContentClick(hit.slug, hit.isSeriesBool, hit.imdbId) },
-                    onZee5Click = { text -> viewModel.searchUniversal(text) }
-                )
-            } else {
-                SearchResultsView(
-                    state = uiState,
-                    onContentClick = onContentClick,
-                    onZee5Click = onZee5Click,
-                    onTvChannelClick = onTvChannelClick,
-                    gridState = gridState
-                )
+                } else {
+                    SearchResultsView(
+                        state = uiState,
+                        onContentClick = onContentClick,
+                        onZee5Click = onZee5Click,
+                        onTvChannelClick = onTvChannelClick,
+                        gridState = gridState
+                    )
+                }
             }
+        }
+
+        // Fullscreen YouTube-style AMOLED Voice Search Page
+        if (showVoiceSearch) {
+            VoiceSearchOverlay(
+                onDismiss = { showVoiceSearch = false },
+                onResult = { query ->
+                    showVoiceSearch = false
+                    viewModel.onSearchSubmit(query)
+                }
+            )
         }
     }
 }

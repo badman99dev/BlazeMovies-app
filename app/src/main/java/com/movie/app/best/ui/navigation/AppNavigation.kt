@@ -389,6 +389,7 @@ fun AppNavigation(
 
         composable(Screen.Search.route, deepLinks = refLinks("app://search")) {
             SearchScreen(
+                onBackClick = { navController.popBackStack() },
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onZee5Click = { id -> navController.navigate("zee5_detail/$id") },
                 onTvChannelClick = { channel ->
