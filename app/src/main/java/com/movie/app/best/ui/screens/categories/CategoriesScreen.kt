@@ -44,6 +44,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +80,8 @@ fun CategoriesScreen(
     viewModel: CategoriesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val barsState = LocalCollapsibleBarsState.current
+    val isBarsVisible = barsState?.isBarsVisible?.value ?: true
 
     Box(
         modifier = Modifier
@@ -81,12 +91,40 @@ fun CategoriesScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            AppHeader(
-                onMenuClick = onMenuClick,
-                onSearchClick = onSearchClick,
-                onNotificationClick = onNotificationClick,
-                hasNotification = false
-            )
+            AnimatedVisibility(
+                visible = isBarsVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + expandVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + shrinkVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                )
+            ) {
+                AppHeader(
+                    onMenuClick = onMenuClick,
+                    onSearchClick = onSearchClick,
+                    onNotificationClick = onNotificationClick,
+                    hasNotification = false
+                )
+            }
 
             Box(
                 modifier = Modifier

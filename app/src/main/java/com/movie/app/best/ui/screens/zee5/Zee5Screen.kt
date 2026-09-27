@@ -1,6 +1,13 @@
 package com.movie.app.best.ui.screens.zee5
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.animateFloatAsState
@@ -64,6 +71,15 @@ fun Zee5Screen(
     val currentTab by viewModel.currentTab.collectAsState()
     val listState = rememberLazyListState()
 
+    val barsState = LocalCollapsibleBarsState.current
+    val isBarsVisible = barsState?.isBarsVisible?.value ?: true
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        if (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0) {
+            barsState?.show()
+        }
+    }
+
     // Infinite scroll detection
     val shouldLoadMore = remember {
         derivedStateOf {
@@ -87,10 +103,38 @@ fun Zee5Screen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header with ZEE5 branding
-            Zee5Header(
-                onSearchClick = onSearchClick,
-                onBackClick = { }
-            )
+            AnimatedVisibility(
+                visible = isBarsVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + expandVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + shrinkVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                )
+            ) {
+                Zee5Header(
+                    onSearchClick = onSearchClick,
+                    onBackClick = { }
+                )
+            }
 
             // Tab bar
             Zee5TabBar(

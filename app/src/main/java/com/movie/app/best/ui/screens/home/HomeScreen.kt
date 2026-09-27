@@ -1,5 +1,11 @@
 package com.movie.app.best.ui.screens.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +54,15 @@ fun HomeScreen(
     val series      = remember(uiState.seriesMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.seriesMovies) }
     val newIndia    = remember(uiState.newIndiaReleases, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.newIndiaReleases) }
     val newUs       = remember(uiState.newUsReleases, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.newUsReleases) }
+
+    val barsState = LocalCollapsibleBarsState.current
+    val isBarsVisible = barsState?.isBarsVisible?.value ?: true
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        if (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0) {
+            barsState?.show()
+        }
+    }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -204,13 +219,31 @@ fun HomeScreen(
             }
         }
 
-        AppHeader(
-            onMenuClick         = onMenuClick,
-            onSearchClick       = onSearchClick,
-            onDownloadClick     = onDownloadClick,
-            onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
-            hasNotification     = uiState.notification?.isActive == true,
-            modifier            = Modifier.align(Alignment.TopCenter)
-        )
+        AnimatedVisibility(
+            visible = isBarsVisible,
+            enter = slideInVertically(
+                initialOffsetY = { -it },
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMediumLow,
+                    dampingRatio = Spring.DampingRatioNoBouncy
+                )
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { -it },
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMediumLow,
+                    dampingRatio = Spring.DampingRatioNoBouncy
+                )
+            ),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            AppHeader(
+                onMenuClick         = onMenuClick,
+                onSearchClick       = onSearchClick,
+                onDownloadClick     = onDownloadClick,
+                onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
+                hasNotification     = uiState.notification?.isActive == true
+            )
+        }
     }
 }

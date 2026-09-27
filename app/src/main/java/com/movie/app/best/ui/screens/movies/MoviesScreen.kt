@@ -47,6 +47,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,6 +84,15 @@ fun MoviesScreen(
     val gridState = rememberLazyGridState()
     val context = androidx.compose.ui.platform.LocalContext.current
 
+    val barsState = LocalCollapsibleBarsState.current
+    val isBarsVisible = barsState?.isBarsVisible?.value ?: true
+
+    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
+        if (gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset == 0) {
+            barsState?.show()
+        }
+    }
+
     val shouldPaginate by remember {
         derivedStateOf {
             val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -95,12 +112,40 @@ fun MoviesScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            AppHeader(
-                onMenuClick = onMenuClick,
-                onSearchClick = onSearchClick,
-                onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
-                hasNotification = false
-            )
+            AnimatedVisibility(
+                visible = isBarsVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + expandVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + shrinkVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                )
+            ) {
+                AppHeader(
+                    onMenuClick = onMenuClick,
+                    onSearchClick = onSearchClick,
+                    onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
+                    hasNotification = false
+                )
+            }
 
             if (uiState.categories.isNotEmpty()) {
                 val visibleCategories = remember(uiState.categories, context, ModerationSettings.changeVersion) {

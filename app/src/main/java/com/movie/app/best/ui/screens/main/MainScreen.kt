@@ -19,6 +19,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.movie.app.best.ui.util.CollapsibleBarsState
+import com.movie.app.best.ui.util.LocalCollapsibleBarsState
+import com.movie.app.best.ui.util.rememberCollapsibleBarsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -224,6 +231,12 @@ fun MainContent(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val collapsibleBarsState = rememberCollapsibleBarsState()
+
+    LaunchedEffect(currentRoute) {
+        collapsibleBarsState.show()
+    }
+
     var prevLoggedIn by remember { mutableStateOf(authState.isLoggedIn) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -402,19 +415,38 @@ fun MainContent(
             )
         }
     ) {
+    CompositionLocalProvider(LocalCollapsibleBarsState provides collapsibleBarsState) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             bottomBar = {
-                Column {
-                    if (shouldShowBottomBar) {
-                        BottomNavigationBar(
-                            navController = navController
+                AnimatedVisibility(
+                    visible = shouldShowBottomBar && collapsibleBarsState.isBarsVisible.value,
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessMediumLow,
+                            dampingRatio = Spring.DampingRatioNoBouncy
                         )
-                    }
+                    ),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessMediumLow,
+                            dampingRatio = Spring.DampingRatioNoBouncy
+                        )
+                    )
+                ) {
+                    BottomNavigationBar(
+                        navController = navController
+                    )
                 }
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
+            Box(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .nestedScroll(collapsibleBarsState.nestedScrollConnection)
+            ) {
                 AppNavigation(
                     navController = navController,
                     isOnline = isConnected,
@@ -438,6 +470,7 @@ fun MainContent(
                 }
             }
         }
+    }
     }
 }
 
