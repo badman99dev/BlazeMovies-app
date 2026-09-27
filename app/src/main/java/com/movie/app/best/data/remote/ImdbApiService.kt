@@ -33,7 +33,7 @@ interface ImdbApiService {
         @Path("titleId") titleId: String
     ): ImdbCertificatesResponse
 
-    @GET("titles/{titleId}/credits")
+    @GET(BuildConfig.IMDB2_BASE_URL + "titles/{titleId}/credits")
     suspend fun getCredits(
         @Path("titleId") titleId: String,
         @Query("pageSize") pageSize: Int = 20
