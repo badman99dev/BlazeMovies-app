@@ -10,7 +10,6 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -18,12 +17,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -142,12 +138,9 @@ fun VoiceSearchOverlay(
 
                 override fun onBufferReceived(buffer: ByteArray?) {}
 
-                override fun onEndOfSpeech() {
-                    // Speech ended, Google will process final results
-                }
+                override fun onEndOfSpeech() {}
 
                 override fun onError(error: Int) {
-                    // Turn to inactive state (Screenshot 3) on timeout or error
                     isListening = false
                     rmsDb = 0f
                 }
@@ -158,7 +151,7 @@ fun VoiceSearchOverlay(
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val rawText = matches?.firstOrNull()?.trim() ?: ""
 
-                    // Filter common filler words (movie, series, etc.)
+                    // Filter common filler words
                     val cleaned = rawText
                         .replace(Regex("(?i)\\b(movie|film|series|show|season|episode|dikhao|chalao|play|lagao)\\b"), "")
                         .trim()
@@ -168,7 +161,6 @@ fun VoiceSearchOverlay(
                         liveText = finalText
                         onResult(finalText)
                     } else {
-                        // Nothing valid to search -> go to inactive "Tap microphone to try again" state
                         isListening = false
                     }
                 }
@@ -238,8 +230,8 @@ fun VoiceSearchOverlay(
         label = "micButtonColor"
     )
 
-    // AMOLED pure black root container
-    Box(
+    // AMOLED pure black root container using Column so Top Bar & Content NEVER overlap
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
@@ -250,14 +242,15 @@ fun VoiceSearchOverlay(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
                 onClick = {
                     stopListeningSession()
                     onDismiss()
-                }
+                },
+                modifier = Modifier.size(44.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
@@ -268,7 +261,7 @@ fun VoiceSearchOverlay(
             }
         }
 
-        // Main content
+        // Main content column placed completely below the Top Bar
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -278,7 +271,7 @@ fun VoiceSearchOverlay(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (isListening) {
-                // ACTIVE STATE (Screenshot 2): Shows "Listening..." or live spoken words
+                // ACTIVE STATE: Shows "Listening..." or live spoken words
                 val displayText = if (liveText.isNotBlank()) liveText else "Listening..."
                 Text(
                     text = displayText,
@@ -312,7 +305,7 @@ fun VoiceSearchOverlay(
                     )
                 }
             } else {
-                // INACTIVE / STOPPED STATE (Screenshot 3): Shows "Try saying" title + 3 suggestions
+                // INACTIVE / STOPPED STATE: Shows "Try saying" title + 3 suggestions
                 Text(
                     text = "Try saying",
                     color = Color.White,
@@ -336,25 +329,25 @@ fun VoiceSearchOverlay(
                 Spacer(modifier = Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // Bottom Mic Button Area (with Circular Wavefronts in active state)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp),
+                    .height(200.dp),
                 contentAlignment = Alignment.Center
             ) {
                 // Animated Circular Wavefront Ripples (Only active when listening!)
                 if (isListening) {
-                    val audioBoost = (rmsDb / 12f).coerceIn(0f, 0.45f)
+                    val audioBoost = (rmsDb / 12f).coerceIn(0f, 0.40f)
 
                     // Wave 1
                     WaveRing(
                         phase = wavePhase,
                         audioBoost = audioBoost,
                         baseSize = 88.dp,
-                        maxScale = 2.4f
+                        maxScale = 2.2f
                     )
 
                     // Wave 2 (offset by 0.33)
@@ -362,7 +355,7 @@ fun VoiceSearchOverlay(
                         phase = (wavePhase + 0.33f) % 1f,
                         audioBoost = audioBoost,
                         baseSize = 88.dp,
-                        maxScale = 2.4f
+                        maxScale = 2.2f
                     )
 
                     // Wave 3 (offset by 0.66)
@@ -370,13 +363,13 @@ fun VoiceSearchOverlay(
                         phase = (wavePhase + 0.66f) % 1f,
                         audioBoost = audioBoost,
                         baseSize = 88.dp,
-                        maxScale = 2.4f
+                        maxScale = 2.2f
                     )
 
                     // Dark circular background halo (YouTube baseplate)
                     Box(
                         modifier = Modifier
-                            .size(118.dp)
+                            .size(114.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF1E1E1E))
                     )
@@ -393,10 +386,8 @@ fun VoiceSearchOverlay(
                             indication = null
                         ) {
                             if (isListening) {
-                                // Clicking red mic pauses/stops it! (switches to inactive state)
                                 stopListeningSession()
                             } else {
-                                // Clicking dark mic restarts listening!
                                 if (!hasPermission) {
                                     permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                 } else {
@@ -415,7 +406,7 @@ fun VoiceSearchOverlay(
                 }
             }
 
-            // Inactive state hint: "Tap microphone to try again" (Exact match for Screenshot 3)
+            // Inactive state hint: "Tap microphone to try again"
             if (!isListening) {
                 Box(
                     modifier = Modifier
@@ -434,7 +425,7 @@ fun VoiceSearchOverlay(
                 Spacer(modifier = Modifier.height(28.dp))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

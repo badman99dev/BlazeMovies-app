@@ -140,15 +140,17 @@ fun SearchScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                            .height(54.dp)
+                            .padding(start = 4.dp, end = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Back Arrow
+                        // Back Arrow (Sized 40dp for exact vertical center balance)
                         IconButton(
                             onClick = {
                                 keyboardController?.hide()
                                 onBackClick()
-                            }
+                            },
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -158,15 +160,15 @@ fun SearchScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
 
-                        // Slim YouTube-style Capsule Search Field
+                        // Slim YouTube-style Capsule Search Field (Height 40dp, perfect match)
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(42.dp)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color(0xFF212121))
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF222222))
                                 .padding(horizontal = 14.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
@@ -174,47 +176,50 @@ fun SearchScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier.weight(1f),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (uiState.searchQuery.isEmpty()) {
-                                        Text(
-                                            text = "Search movies & series...",
-                                            color = Color(0xFFAAAAAA),
-                                            fontSize = 15.sp
-                                        )
-                                    }
-                                    BasicTextField(
-                                        value = uiState.searchQuery,
-                                        onValueChange = { viewModel.updateSearchQuery(it) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .focusRequester(focusRequester),
-                                        singleLine = true,
-                                        textStyle = TextStyle(
-                                            color = Color.White,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Normal
-                                        ),
-                                        cursorBrush = SolidColor(Color.White),
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Text,
-                                            imeAction = ImeAction.Search
-                                        ),
-                                        keyboardActions = KeyboardActions(
-                                            onSearch = {
-                                                keyboardController?.hide()
-                                                viewModel.onSearchSubmit()
+                                BasicTextField(
+                                    value = uiState.searchQuery,
+                                    onValueChange = { viewModel.updateSearchQuery(it) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .focusRequester(focusRequester),
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        color = Color.White,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Normal
+                                    ),
+                                    cursorBrush = SolidColor(Color.White),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Text,
+                                        imeAction = ImeAction.Search
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onSearch = {
+                                            keyboardController?.hide()
+                                            viewModel.onSearchSubmit()
+                                        }
+                                    ),
+                                    decorationBox = { innerTextField ->
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            if (uiState.searchQuery.isEmpty()) {
+                                                Text(
+                                                    text = "Search movies & series...",
+                                                    color = Color(0xFF888888),
+                                                    fontSize = 15.sp
+                                                )
                                             }
-                                        )
-                                    )
-                                }
+                                            innerTextField()
+                                        }
+                                    }
+                                )
 
                                 if (uiState.searchQuery.isNotEmpty()) {
                                     IconButton(
                                         onClick = { viewModel.updateSearchQuery("") },
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(24.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Clear,
@@ -227,14 +232,14 @@ fun SearchScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                        // Right circular mic button
+                        // Right circular mic button (Sized 40dp, exactly aligned)
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF212121))
+                                .background(Color(0xFF222222))
                                 .clickable {
                                     keyboardController?.hide()
                                     showVoiceSearch = true
@@ -295,15 +300,34 @@ fun SearchScreen(
 @Composable
 fun EmptySearchState() {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
-        Text("Find your next favorite", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Search for movies & series by title", style = MaterialTheme.typography.bodyLarge, color = Color.Gray, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(32.dp))
-        Icon(Icons.Default.Search, null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+        Spacer(modifier = Modifier.height(48.dp))
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = null,
+            tint = Color(0xFF444444),
+            modifier = Modifier.size(52.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Find your next favorite",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Search for movies & series by title",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
