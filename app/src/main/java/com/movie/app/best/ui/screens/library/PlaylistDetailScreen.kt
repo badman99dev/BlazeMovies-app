@@ -46,6 +46,7 @@ import coil.compose.AsyncImage
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.LikeItem
 import com.movie.app.best.data.settings.ModerationSettings
+import com.movie.app.best.ui.components.AdaptiveMediaThumbnail
 import com.movie.app.best.ui.components.BlurredContent
 import com.movie.app.best.ui.theme.AppRed
 
@@ -219,26 +220,17 @@ private fun PlaylistItemRow(
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Poster thumbnail
-        Box(
+        // Left: Adaptive YouTube-style thumbnail
+        AdaptiveMediaThumbnail(
+            posterUrl = item.posterUrl,
+            title = item.title,
+            isSeries = item.isSeries,
+            shouldBlur = shouldBlur,
+            showTvBadge = true,
             modifier = Modifier
                 .width(120.dp)
                 .height(68.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF181818))
-        ) {
-            BlurredContent(
-                shouldBlur = shouldBlur,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                AsyncImage(
-                    model = item.posterUrl,
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
+        )
 
         Spacer(modifier = Modifier.width(12.dp))
 

@@ -53,6 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.settings.ModerationSettings
+import com.movie.app.best.ui.components.AdaptiveMediaThumbnail
 import com.movie.app.best.ui.components.BlurredContent
 import com.movie.app.best.ui.theme.AppRed
 
@@ -283,43 +284,18 @@ private fun HistoryItemRow(
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Poster thumbnail with red progress bar
-        Box(
+        // Left: Adaptive YouTube-style thumbnail
+        AdaptiveMediaThumbnail(
+            posterUrl = item.posterUrl,
+            title = item.title,
+            isSeries = item.isSeries,
+            shouldBlur = shouldBlur,
+            progressPercent = item.progressPercent,
+            showTvBadge = true,
             modifier = Modifier
                 .width(120.dp)
                 .height(68.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF181818))
-        ) {
-            BlurredContent(
-                shouldBlur = shouldBlur,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                AsyncImage(
-                    model = item.posterUrl,
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            if (displayProgress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(Color.White.copy(alpha = 0.2f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(displayProgress)
-                            .background(Color(0xFFE50914))
-                    )
-                }
-            }
-        }
+        )
 
         Spacer(modifier = Modifier.width(12.dp))
 

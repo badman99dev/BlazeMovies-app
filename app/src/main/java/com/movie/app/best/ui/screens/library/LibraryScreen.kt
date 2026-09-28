@@ -71,6 +71,7 @@ import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.LikeItem
 import com.movie.app.best.data.settings.ModerationSettings
+import com.movie.app.best.ui.components.AdaptiveMediaThumbnail
 import com.movie.app.best.ui.components.BlurredContent
 import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.components.PageHeaderIconButton
@@ -623,12 +624,6 @@ private fun HistoryItemCard(
     shouldBlur: Boolean,
     onClick: () -> Unit
 ) {
-    val displayProgress = when {
-        progressPercent >= 0.98f -> 1.0f
-        progressPercent <= 0f -> 0f
-        else -> maxOf(0.05f, progressPercent)
-    }
-
     Column(
         modifier = Modifier
             .width(148.dp)
@@ -638,55 +633,18 @@ private fun HistoryItemCard(
                 onClick = onClick
             )
     ) {
-        // Thumbnail with 16:9 aspect ratio and progress bar
-        Box(
+        // Adaptive YouTube-style thumbnail (color-matched blurred background + center uncropped poster + TV badge + red progress bar)
+        AdaptiveMediaThumbnail(
+            posterUrl = posterUrl,
+            title = title,
+            isSeries = isSeries,
+            shouldBlur = shouldBlur,
+            progressPercent = progressPercent,
+            showTvBadge = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(84.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color(0xFF181818))
-        ) {
-            BlurredContent(
-                shouldBlur = shouldBlur,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                AsyncImage(
-                    model = posterUrl,
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            // Scrim
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))
-                        )
-                    )
-            )
-
-            // Bottom Red Progress bar
-            if (displayProgress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(Color.White.copy(alpha = 0.2f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(displayProgress)
-                            .background(Color(0xFFE50914))
-                    )
-                }
-            }
-        }
+        )
 
         Spacer(modifier = Modifier.height(6.dp))
 
