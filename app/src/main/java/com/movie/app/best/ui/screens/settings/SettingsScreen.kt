@@ -468,6 +468,30 @@ fun SettingsScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                SettingsClickableRow(
+                    icon = Icons.Default.Security,
+                    iconGradient = listOf(Color(0xFFE50914).copy(alpha = 0.3f), Color(0xFFFF2E93).copy(alpha = 0.15f)),
+                    iconTint = Color(0xFFFF4D8D),
+                    title = "Test Firebase Diagnostics",
+                    subtitle = "Send a safe test signal to Crashlytics (no app crash)",
+                    onClick = {
+                        try {
+                            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().apply {
+                                log("Diagnostic Safe Ping triggered manually by user from Settings")
+                                setCustomKey("manual_test_time", System.currentTimeMillis().toString())
+                                recordException(Exception("BlazeMovies Crashlytics Safe Test - Everything is working!"))
+                            }
+                            android.widget.Toast.makeText(context, "Safe test report sent to Firebase! Check Crashlytics console.", android.widget.Toast.LENGTH_LONG).show()
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Firebase ping failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(18.dp))
