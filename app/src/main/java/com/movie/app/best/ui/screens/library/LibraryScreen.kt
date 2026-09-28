@@ -163,8 +163,10 @@ fun LibraryScreen(
                     PlaylistsSection(
                         likedCount = uiState.likedPlaylist.size,
                         likedLastPoster = uiState.likedPlaylist.firstOrNull()?.posterUrl,
+                        likedIsSeries = uiState.likedPlaylist.firstOrNull()?.isSeries ?: false,
                         watchLaterCount = uiState.watchLaterPlaylist.size,
                         watchLaterLastPoster = uiState.watchLaterPlaylist.firstOrNull()?.posterUrl,
+                        watchLaterIsSeries = uiState.watchLaterPlaylist.firstOrNull()?.isSeries ?: false,
                         onPlaylistClick = onPlaylistClick
                     )
 
@@ -674,8 +676,10 @@ private fun HistoryItemCard(
 private fun PlaylistsSection(
     likedCount: Int,
     likedLastPoster: String?,
+    likedIsSeries: Boolean,
     watchLaterCount: Int,
     watchLaterLastPoster: String?,
+    watchLaterIsSeries: Boolean,
     onPlaylistClick: (String) -> Unit
 ) {
     Column(modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)) {
@@ -708,6 +712,7 @@ private fun PlaylistsSection(
                     subtitle = if (likedCount > 0) "$likedCount items • Private" else "Private",
                     badgeCount = likedCount,
                     lastPosterUrl = likedLastPoster,
+                    isSeries = likedIsSeries,
                     badgeIcon = Icons.Outlined.FavoriteBorder,
                     onClick = { onPlaylistClick("liked") }
                 )
@@ -720,6 +725,7 @@ private fun PlaylistsSection(
                     subtitle = if (watchLaterCount > 0) "$watchLaterCount items • Private" else "Private",
                     badgeCount = watchLaterCount,
                     lastPosterUrl = watchLaterLastPoster,
+                    isSeries = watchLaterIsSeries,
                     badgeIcon = Icons.Outlined.Schedule,
                     onClick = { onPlaylistClick("watchlist") }
                 )
@@ -734,6 +740,7 @@ private fun PlaylistCard(
     subtitle: String,
     badgeCount: Int,
     lastPosterUrl: String?,
+    isSeries: Boolean,
     badgeIcon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
@@ -746,7 +753,7 @@ private fun PlaylistCard(
                 onClick = onClick
             )
     ) {
-        // Playlist Thumbnail Box
+        // Playlist Thumbnail Box with Adaptive uncropped poster + color matched blurred background
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -757,17 +764,18 @@ private fun PlaylistCard(
             contentAlignment = Alignment.Center
         ) {
             if (!lastPosterUrl.isNullOrEmpty()) {
-                AsyncImage(
-                    model = lastPosterUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                AdaptiveMediaThumbnail(
+                    posterUrl = lastPosterUrl,
+                    title = title,
+                    isSeries = isSeries,
+                    showTvBadge = true,
                     modifier = Modifier.fillMaxSize()
                 )
                 // Scrim over image
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.45f))
+                        .background(Color.Black.copy(alpha = 0.35f))
                 )
             }
 
@@ -786,7 +794,7 @@ private fun PlaylistCard(
                         .align(Alignment.BottomEnd)
                         .padding(6.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(Color.Black.copy(alpha = 0.75f))
+                        .background(Color.Black.copy(alpha = 0.8f))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
