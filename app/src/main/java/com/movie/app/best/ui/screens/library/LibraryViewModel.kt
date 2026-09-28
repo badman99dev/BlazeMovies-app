@@ -6,9 +6,11 @@ import android.net.NetworkCapabilities
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.movie.app.best.data.model.AppUser
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.LikeItem
+import com.movie.app.best.data.repository.AuthRepository
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.repository.LibraryRepository
@@ -26,6 +28,10 @@ data class LibraryUiState(
     val history: List<FirebaseHistoryItem> = emptyList(),
     val likedPlaylist: List<LikeItem> = emptyList(),
     val watchLaterPlaylist: List<BookmarkItem> = emptyList(),
+    val user: AppUser? = null,
+    val userTier: String = "normal_user",
+    val isLoggedIn: Boolean = false,
+    val isLoggingOut: Boolean = false,
     val isOnline: Boolean = true,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false
@@ -35,6 +41,7 @@ data class LibraryUiState(
 class LibraryViewModel @Inject constructor(
     private val repository: LibraryRepository,
     private val firebaseRepository: FirebaseRepository,
+    private val authRepository: AuthRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -42,58 +49,146 @@ class LibraryViewModel @Inject constructor(
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
     init {
+        // Immediate local cached user info (works offline)
+        syncLocalAuthState()
+
+        viewModelScope.launch {
+            authRepository.authEvent.collect { event ->
+                syncLocalAuthState()
+                loadLibrary(showLoading = false)
+            }
+        }
+
         viewModelScope.launch {
             MyListRefreshState.isMyListRefreshed.collect { refreshed ->
                 if (!refreshed) {
-                    loadLibrary(showSkeleton = true)
+                    loadLibrary(showLoading = true)
                 }
             }
         }
         val currentRefreshed = MyListRefreshState.isMyListRefreshed.value
-        loadLibrary(showSkeleton = !currentRefreshed)
+        loadLibrary(showLoading = !currentRefreshed)
     }
 
-    fun loadLibrary(showSkeleton: Boolean = false) {
+    private fun syncLocalAuthState() {
+        val cachedUser = authRepository.getUser()
+        val token = authRepository.getToken()
+        val fbUser = FirebaseAuth.getInstance().currentUser
+        val loggedIn = token != null || fbUser != null
+        _uiState.update {
+            it.copy(
+                user = cachedUser,
+                isLoggedIn = loggedIn,
+                userTier = cachedUser?.tier ?: "normal_user",
+                isOnline = isOnline(context)
+            )
+        }
+    }
+
+    fun loadLibrary(showLoading: Boolean = false) {
         viewModelScope.launch {
-            if (showSkeleton) {
-                _uiState.update { it.copy(isLoading = true) }
-            }
-            val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
-            if (isLoggedIn) {
-                val bookmarks = firebaseRepository.getBookmarks()
-                val history = firebaseRepository.getHistory()
-                val likes = firebaseRepository.getLikes()
-                _uiState.update {
-                    it.copy(
-                        history = applyModerationFilterHistory(history),
-                        watchLaterPlaylist = applyModerationFilterBookmarks(bookmarks),
-                        likedPlaylist = applyModerationFilterLikes(likes),
-                        isOnline = isOnline(context),
-                        isLoading = false,
-                        isRefreshing = false
-                    )
-                }
-                MyListRefreshState.markRefreshed()
+            val online = isOnline(context)
+            if (showLoading) {
+                _uiState.update { it.copy(isLoading = true, isOnline = online) }
             } else {
+                _uiState.update { it.copy(isOnline = online) }
+            }
+
+            syncLocalAuthState()
+
+            if (online && _uiState.value.isLoggedIn) {
+                try {
+                    val profile = firebaseRepository.getOrCreateUserProfile()
+                    if (profile != null) {
+                        _uiState.update { it.copy(userTier = profile.tier) }
+                    }
+                } catch (_: Exception) {}
+            }
+
+            if (!online) {
                 _uiState.update {
                     it.copy(
-                        history = repository.getHistory().map { h -> FirebaseHistoryItem(slug = h.slug, title = h.title, posterUrl = h.posterUrl, isSeries = h.isSeries, watchedAt = h.timestamp) },
-                        likedPlaylist = repository.getPlaylist("liked").map { p -> LikeItem(slug = p.slug, title = p.title, posterUrl = p.posterUrl, isSeries = p.isSeries) },
-                        watchLaterPlaylist = repository.getPlaylist("watch_later").map { p -> BookmarkItem(slug = p.slug, title = p.title, posterUrl = p.posterUrl, isSeries = p.isSeries) },
-                        isOnline = isOnline(context),
                         isLoading = false,
-                        isRefreshing = false
+                        isRefreshing = false,
+                        isOnline = false
                     )
                 }
-                MyListRefreshState.markRefreshed()
+                return@launch
             }
+
+            val isLoggedIn = FirebaseAuth.getInstance().currentUser != null || authRepository.getToken() != null
+            if (isLoggedIn) {
+                try {
+                    val bookmarks = firebaseRepository.getBookmarks()
+                    val history = firebaseRepository.getHistory()
+                    val likes = firebaseRepository.getLikes()
+                    _uiState.update {
+                        it.copy(
+                            history = applyModerationFilterHistory(history),
+                            watchLaterPlaylist = applyModerationFilterBookmarks(bookmarks),
+                            likedPlaylist = applyModerationFilterLikes(likes),
+                            isOnline = true,
+                            isLoading = false,
+                            isRefreshing = false
+                        )
+                    }
+                    MyListRefreshState.markRefreshed()
+                } catch (_: Exception) {
+                    _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
+                }
+            } else {
+                try {
+                    val history = repository.getHistory().map { h ->
+                        FirebaseHistoryItem(slug = h.slug, title = h.title, posterUrl = h.posterUrl, isSeries = h.isSeries, watchedAt = h.timestamp)
+                    }
+                    val likes = repository.getPlaylist("liked").map { p ->
+                        LikeItem(slug = p.slug, title = p.title, posterUrl = p.posterUrl, isSeries = p.isSeries)
+                    }
+                    val bookmarks = repository.getPlaylist("watch_later").map { p ->
+                        BookmarkItem(slug = p.slug, title = p.title, posterUrl = p.posterUrl, isSeries = p.isSeries)
+                    }
+                    _uiState.update {
+                        it.copy(
+                            history = history,
+                            likedPlaylist = likes,
+                            watchLaterPlaylist = bookmarks,
+                            isOnline = true,
+                            isLoading = false,
+                            isRefreshing = false
+                        )
+                    }
+                    MyListRefreshState.markRefreshed()
+                } catch (_: Exception) {
+                    _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
+                }
+            }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoggingOut = true) }
+            try {
+                authRepository.logout()
+            } catch (_: Exception) {}
+            _uiState.update {
+                it.copy(
+                    isLoggingOut = false,
+                    user = null,
+                    isLoggedIn = false,
+                    history = emptyList(),
+                    likedPlaylist = emptyList(),
+                    watchLaterPlaylist = emptyList()
+                )
+            }
+            loadLibrary(showLoading = false)
         }
     }
 
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            loadLibrary()
+            loadLibrary(showLoading = false)
         }
     }
 

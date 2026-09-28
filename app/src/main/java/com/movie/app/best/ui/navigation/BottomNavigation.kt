@@ -37,9 +37,8 @@ sealed class BottomNavItem(
 ) {
     object Home      : BottomNavItem(Screen.Home.route,      "Home",      Icons.Filled.Home,                Icons.Outlined.Home)
     object Zee5      : BottomNavItem(Screen.Zee5.route,      "ZEE5",      Icons.Filled.PlayCircle,          Icons.Outlined.PlayCircle)
-    object MyList    : BottomNavItem(Screen.Library.route,   "My List",   Icons.Filled.BookmarkAdded,       Icons.Outlined.BookmarkAdd)
     object Downloads : BottomNavItem(Screen.Downloads.route, "Downloads", Icons.Filled.Download,            Icons.Outlined.Download)
-    object Profile   : BottomNavItem(Screen.Profile.route,   "Profile",   Icons.Filled.Person,              Icons.Outlined.Person)
+    object Library   : BottomNavItem(Screen.Library.route,   "Library",   Icons.Filled.Person,              Icons.Outlined.Person)
 }
 
 @Composable
@@ -50,9 +49,8 @@ fun BottomNavigationBar(
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.Zee5,
-        BottomNavItem.MyList,
         BottomNavItem.Downloads,
-        BottomNavItem.Profile
+        BottomNavItem.Library
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

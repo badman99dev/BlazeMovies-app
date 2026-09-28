@@ -91,9 +91,23 @@ import androidx.activity.result.contract.ActivityResultContracts
 fun LoginScreen(
     onBackClick: () -> Unit,
     onLoginSuccess: () -> Unit,
+    onAlreadyLoggedIn: () -> Unit = onLoginSuccess,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    if (uiState.isLoggedIn && !uiState.needsVerification) {
+        LaunchedEffect(Unit) {
+            onAlreadyLoggedIn()
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        )
+        return
+    }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }

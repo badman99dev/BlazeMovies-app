@@ -149,9 +149,8 @@ fun AppNavigation(
     val tabRoutes = setOf(
         Screen.Home.route,
         Screen.Zee5.route,
-        Screen.Library.route,
         Screen.Downloads.route,
-        Screen.Profile.route,
+        Screen.Library.route,
         Screen.Movies.route,
         Screen.TVShows.route,
         Screen.Categories.route
@@ -268,7 +267,7 @@ fun AppNavigation(
                     navController.navigate(Screen.Interests.createRoute(interestId, name))
                 },
                 onLoginRequired = {
-                    navController.navigate(Screen.Profile.route) {
+                    navController.navigate(Screen.Login.route) {
                         launchSingleTop = true
                     }
                 }
@@ -321,7 +320,7 @@ fun AppNavigation(
                     navController.navigate(Screen.Interests.createRoute(interestId, name))
                 },
                 onLoginRequired = {
-                    navController.navigate(Screen.Profile.route) {
+                    navController.navigate(Screen.Login.route) {
                         launchSingleTop = true
                     }
                 }
@@ -386,7 +385,7 @@ fun AppNavigation(
                     navController.navigate(Screen.Interests.createRoute(interestId, name))
                 },
                 onLoginRequired = {
-                    navController.navigate(Screen.Profile.route) {
+                    navController.navigate(Screen.Login.route) {
                         launchSingleTop = true
                     }
                 }
@@ -714,21 +713,22 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Library.route, deepLinks = refLinks("app://library", "app://my-list")) {
+        composable(Screen.Library.route, deepLinks = refLinks("app://library")) {
             LibraryScreen(
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 onDownloadsClick = { navController.navigate(Screen.Downloads.route) },
-                onSettingsClick = { navController.navigate(Screen.Settings.route) }
+                onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                onSearchClick = { navController.navigate(Screen.Search.route) },
+                onLoginClick = { navController.navigate(Screen.Login.route) }
             )
         }
 
-        composable(Screen.Profile.route, deepLinks = refLinks("app://profile")) {
-            ProfileScreen(
-                onLoginClick = { navController.navigate(Screen.Login.route) },
-                onSettingsClick = { navController.navigate(Screen.Settings.route) },
-                onNotificationClick = { navController.navigate(Screen.Notifications.route) },
-                onBookmarksClick = { navController.navigate(Screen.Library.route) }
-            )
+        composable(Screen.Profile.route) {
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                navController.navigate(Screen.Library.route) {
+                    popUpTo(Screen.Profile.route) { inclusive = true }
+                }
+            }
         }
 
         composable(Screen.Settings.route, deepLinks = refLinks("app://settings")) {
@@ -737,13 +737,28 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Login.route) {
+        composable(
+            route = Screen.Login.route,
+            deepLinks = refLinks("app://login")
+        ) {
             LoginScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Library.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                        }
+                    }
+                },
                 onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                        launchSingleTop = true
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Library.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                        }
+                    }
+                },
+                onAlreadyLoggedIn = {
+                    navController.navigate(Screen.Library.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
