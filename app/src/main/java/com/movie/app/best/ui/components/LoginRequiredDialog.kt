@@ -1,10 +1,15 @@
 package com.movie.app.best.ui.components
 
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -64,8 +71,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -76,11 +83,16 @@ fun LoginRequiredDialog(
     anchorCenter: Offset? = null
 ) {
     val scope = rememberCoroutineScope()
-    val dialogScale = remember { Animatable(0.88f) }
+    val dialogScale = remember { Animatable(0.92f) }
+    val dialogOffsetY = remember { Animatable(0f) }
     val dialogAlpha = remember { Animatable(0f) }
+    val backdropAlpha = remember { Animatable(0f) }
+
+    var isDismissing by remember { mutableStateOf(false) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -90,51 +102,108 @@ fun LoginRequiredDialog(
         onDispose { }
     }
 
+    // Opening animation: pop in smoothly
     LaunchedEffect(Unit) {
         while (boxSize == IntSize.Zero) {
             withFrameNanos { }
         }
         coroutineScope {
-            launch { dialogScale.animateTo(1f, tween(320)) }
-            launch { dialogAlpha.animateTo(1f, tween(220)) }
+            launch { dialogScale.animateTo(1f, tween(300, easing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f))) }
+            launch { dialogAlpha.animateTo(1f, tween(200)) }
+            launch { backdropAlpha.animateTo(1f, tween(220)) }
         }
     }
 
-    fun dismiss(callback: () -> Unit) {
+    // Smooth dismiss sequence: Wallet Card Pocket-Drop (Scale down slightly + accelerate straight into bottom)
+    fun dismissIntoPocket(onComplete: () -> Unit) {
+        if (isDismissing) return
+        isDismissing = true
         scope.launch {
             coroutineScope {
-                launch { dialogScale.animateTo(0.88f, tween(180)) }
-                launch { dialogAlpha.animateTo(0f, tween(180)) }
+                // Plunges straight down into pocket offscreen (NO TILT / ZERO ROTATION)
+                launch {
+                    dialogOffsetY.animateTo(
+                        targetValue = screenHeightPx * 0.75f,
+                        animationSpec = tween(durationMillis = 240, easing = CubicBezierEasing(0.32f, 0f, 0.67f, 0f))
+                    )
+                }
+                // Proportional scale down from 1.0f -> 0.88f
+                launch {
+                    dialogScale.animateTo(
+                        targetValue = 0.88f,
+                        animationSpec = tween(durationMillis = 220)
+                    )
+                }
+                launch {
+                    dialogAlpha.animateTo(0f, tween(200))
+                }
+                launch {
+                    backdropAlpha.animateTo(0f, tween(220))
+                }
             }
-            delay(40)
-            callback()
+            onComplete()
         }
     }
 
-    val computedOrigin = remember(anchorCenter, boxSize) {
-        if (anchorCenter == null || boxSize == IntSize.Zero) {
-            TransformOrigin.Center
-        } else {
-            val screenW = with(density) { configuration.screenWidthDp.dp.toPx() }
-            val screenH = with(density) { configuration.screenHeightDp.dp.toPx() }
-            val dialogLeft = (screenW - boxSize.width) / 2f
-            val dialogTop = (screenH - boxSize.height) / 2f
-            val originX = ((anchorCenter.x - dialogLeft) / boxSize.width).coerceIn(0f, 1f)
-            val originY = ((anchorCenter.y - dialogTop) / boxSize.height).coerceIn(0f, 1f)
-            TransformOrigin(originX, originY)
+    // Twitter / X & Android 14/15 Predictive Back Gesture integration
+    // When back gesture starts: scales down proportionally (0.88f) without ANY tilt.
+    // When finger is lifted (Back confirmed): Card slides straight down into pocket!
+    // When swipe is cancelled: snaps back with snappy spring physics.
+    PredictiveBackHandler(enabled = !isDismissing) { progress ->
+        try {
+            progress.collect { backEvent ->
+                val p = backEvent.progress // 0.0f -> 1.0f
+                // Exactly like Twitter: card scales down (1f -> 0.88f) as edge gesture pulls in
+                dialogScale.snapTo(1f - (p * 0.12f))
+                // Slight downward resistance movement (straight down, zero tilt)
+                dialogOffsetY.snapTo(p * with(density) { 45.dp.toPx() })
+                backdropAlpha.snapTo(1f - (p * 0.35f))
+            }
+            // Finger released from screen! Trigger confirmed:
+            dismissIntoPocket(onDismiss)
+        } catch (e: CancellationException) {
+            // User cancelled back gesture -> Snap back to 1.0 scale and 0 translation
+            scope.launch {
+                coroutineScope {
+                    launch {
+                        dialogScale.animateTo(
+                            1f,
+                            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+                        )
+                    }
+                    launch {
+                        dialogOffsetY.animateTo(
+                            0f,
+                            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+                        )
+                    }
+                    launch {
+                        backdropAlpha.animateTo(1f, tween(150))
+                    }
+                }
+            }
         }
     }
+
+    var verticalDragAccumulator by remember { mutableFloatStateOf(0f) }
 
     Dialog(
-        onDismissRequest = { dismiss(onDismiss) },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        onDismissRequest = { dismissIntoPocket(onDismiss) },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = false // Handled cleanly by PredictiveBackHandler
+        )
     ) {
         // Deep pure black backdrop with high contrast blur feeling
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.82f))
-                .graphicsLayer { alpha = dialogAlpha.value },
+                .background(Color.Black.copy(alpha = 0.82f * backdropAlpha.value))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { dismissIntoPocket(onDismiss) }
+                ),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -145,8 +214,10 @@ fun LoginRequiredDialog(
                     .graphicsLayer {
                         scaleX = dialogScale.value
                         scaleY = dialogScale.value
+                        translationY = dialogOffsetY.value
                         alpha = dialogAlpha.value
-                        transformOrigin = computedOrigin
+                        rotationZ = 0f // STRICT ZERO TILT: Flat card physics like wallet insertion
+                        transformOrigin = TransformOrigin(0.5f, 0.75f) // Centers the scale pull toward bottom
                     }
                     .clip(RoundedCornerShape(32.dp))
                     .background(Color(0xFF050507))
@@ -160,6 +231,57 @@ fun LoginRequiredDialog(
                             )
                         ),
                         shape = RoundedCornerShape(32.dp)
+                    )
+                    // Card swipe-down gesture: drag card down to dismiss into pocket
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragStart = { verticalDragAccumulator = 0f },
+                            onDragEnd = {
+                                if (verticalDragAccumulator > with(density) { 70.dp.toPx() }) {
+                                    dismissIntoPocket(onDismiss)
+                                } else {
+                                    scope.launch {
+                                        coroutineScope {
+                                            launch {
+                                                dialogOffsetY.animateTo(
+                                                    0f,
+                                                    spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium)
+                                                )
+                                            }
+                                            launch {
+                                                dialogScale.animateTo(
+                                                    1f,
+                                                    spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                scope.launch {
+                                    coroutineScope {
+                                        launch { dialogOffsetY.animateTo(0f, spring(Spring.DampingRatioMediumBouncy)) }
+                                        launch { dialogScale.animateTo(1f, spring(Spring.DampingRatioMediumBouncy)) }
+                                    }
+                                }
+                            },
+                            onVerticalDrag = { _, dragAmount ->
+                                if (dragAmount > 0 || verticalDragAccumulator > 0) {
+                                    verticalDragAccumulator = (verticalDragAccumulator + dragAmount).coerceAtLeast(0f)
+                                    val progress = (verticalDragAccumulator / with(density) { 260.dp.toPx() }).coerceIn(0f, 1f)
+                                    scope.launch {
+                                        dialogOffsetY.snapTo(verticalDragAccumulator * 0.7f)
+                                        dialogScale.snapTo(1f - (progress * 0.12f))
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { /* prevent backdrop clicks from passing through */ }
                     )
                     .padding(20.dp)
             ) {
@@ -360,7 +482,7 @@ fun LoginRequiredDialog(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                                onClick = { dismiss(onLoginClick) }
+                                onClick = { dismissIntoPocket(onLoginClick) }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -375,7 +497,7 @@ fun LoginRequiredDialog(
 
                     Spacer(Modifier.height(6.dp))
 
-                    TextButton(onClick = { dismiss(onDismiss) }) {
+                    TextButton(onClick = { dismissIntoPocket(onDismiss) }) {
                         Text(
                             text = "Continue as Guest",
                             color = Color.White.copy(alpha = 0.45f),
