@@ -30,15 +30,29 @@ class LibraryRepository @Inject constructor(
     private val prefs: SharedPreferences = context.getSharedPreferences("app_library", Context.MODE_PRIVATE)
     private val gson = Gson()
 
-    fun getHistory(): List<HistoryItem> {
+    fun getHistory(limit: Int = 20): List<HistoryItem> {
+        val all = getAllHistory()
+        return if (limit > 0) all.take(limit) else all
+    }
+
+    fun getAllHistory(): List<HistoryItem> {
         cleanOldHistory()
         val json = prefs.getString("history", "[]") ?: "[]"
         val type = object : TypeToken<List<HistoryItem>>() {}.type
-        return gson.fromJson(json, type)
+        return gson.fromJson(json, type) ?: emptyList()
+    }
+
+    fun getHistoryPage(limit: Int = 20, lastTimestamp: Long? = null): List<HistoryItem> {
+        val all = getAllHistory()
+        return if (lastTimestamp == null) {
+            all.take(limit)
+        } else {
+            all.filter { it.timestamp < lastTimestamp }.take(limit)
+        }
     }
 
     fun addToHistory(item: HistoryItem) {
-        val current = getHistory().toMutableList()
+        val current = getAllHistory().toMutableList()
         current.removeAll { it.slug == item.slug }
         current.add(0, item)
         if (current.size > 50) current.subList(50, current.size).clear()
@@ -46,7 +60,7 @@ class LibraryRepository @Inject constructor(
     }
 
     fun removeFromHistory(slug: String) {
-        val current = getHistory().toMutableList()
+        val current = getAllHistory().toMutableList()
         current.removeAll { it.slug == slug }
         prefs.edit().putString("history", gson.toJson(current)).apply()
     }

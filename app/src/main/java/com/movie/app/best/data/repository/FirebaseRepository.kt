@@ -188,11 +188,11 @@ class FirebaseRepository @Inject constructor(
         saveLocalHistory(item)
     }
 
-    suspend fun getHistory(): List<FirebaseHistoryItem> = withContext(Dispatchers.IO) {
+    suspend fun getHistory(limit: Long = 20): List<FirebaseHistoryItem> = withContext(Dispatchers.IO) {
         val doc = userDoc()
         if (doc != null) {
             try {
-                val snap = doc.collection("history").orderBy("watchedAt", com.google.firebase.firestore.Query.Direction.DESCENDING).limit(50).get().await()
+                val snap = doc.collection("history").orderBy("watchedAt", com.google.firebase.firestore.Query.Direction.DESCENDING).limit(limit).get().await()
                 return@withContext snap.documents.mapNotNull { d ->
                     val m = d.data ?: return@mapNotNull null
                     FirebaseHistoryItem(
@@ -210,7 +210,42 @@ class FirebaseRepository @Inject constructor(
                 }
             } catch (_: Exception) {}
         }
-        getLocalHistory()
+        getLocalHistory().take(limit.toInt())
+    }
+
+    suspend fun getHistoryPage(limit: Long = 20, lastWatchedAt: Long? = null): List<FirebaseHistoryItem> = withContext(Dispatchers.IO) {
+        val doc = userDoc()
+        if (doc != null) {
+            try {
+                var query = doc.collection("history")
+                    .orderBy("watchedAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                if (lastWatchedAt != null) {
+                    query = query.startAfter(lastWatchedAt)
+                }
+                val snap = query.limit(limit).get().await()
+                return@withContext snap.documents.mapNotNull { d ->
+                    val m = d.data ?: return@mapNotNull null
+                    FirebaseHistoryItem(
+                        slug = m["slug"] as? String ?: d.id,
+                        title = m["title"] as? String ?: "",
+                        posterUrl = m["posterUrl"] as? String ?: "",
+                        isSeries = m["isSeries"] as? Boolean ?: false,
+                        imdbId = m["imdbId"] as? String ?: "",
+                        watchedAt = (m["watchedAt"] as? Number)?.toLong() ?: 0,
+                        progressMs = (m["progressMs"] as? Number)?.toLong() ?: 0,
+                        durationMs = (m["durationMs"] as? Number)?.toLong() ?: 0,
+                        progressPercent = (m["progressPercent"] as? Number)?.toFloat() ?: 0f,
+                        contentModeration = m["contentModeration"] as? Map<String, String>
+                    )
+                }
+            } catch (_: Exception) {}
+        }
+        val local = getLocalHistory()
+        if (lastWatchedAt == null) {
+            local.take(limit.toInt())
+        } else {
+            local.filter { it.watchedAt < lastWatchedAt }.take(limit.toInt())
+        }
     }
 
     suspend fun removeFromHistory(slug: String) = withContext(Dispatchers.IO) {

@@ -28,6 +28,9 @@ data class LibraryUiState(
     val history: List<FirebaseHistoryItem> = emptyList(),
     val likedPlaylist: List<LikeItem> = emptyList(),
     val watchLaterPlaylist: List<BookmarkItem> = emptyList(),
+    val fullHistory: List<FirebaseHistoryItem> = emptyList(),
+    val isFullHistoryLoading: Boolean = false,
+    val canLoadMoreHistory: Boolean = true,
     val user: AppUser? = null,
     val userTier: String = "normal_user",
     val isLoggedIn: Boolean = false,
@@ -120,11 +123,14 @@ class LibraryViewModel @Inject constructor(
             if (isLoggedIn) {
                 try {
                     val bookmarks = firebaseRepository.getBookmarks()
-                    val history = firebaseRepository.getHistory()
+                    val history = firebaseRepository.getHistory(limit = 20)
                     val likes = firebaseRepository.getLikes()
+                    val filteredHistory = applyModerationFilterHistory(history)
                     _uiState.update {
                         it.copy(
-                            history = applyModerationFilterHistory(history),
+                            history = filteredHistory,
+                            fullHistory = filteredHistory,
+                            canLoadMoreHistory = filteredHistory.size >= 20,
                             watchLaterPlaylist = applyModerationFilterBookmarks(bookmarks),
                             likedPlaylist = applyModerationFilterLikes(likes),
                             isOnline = true,
@@ -138,7 +144,7 @@ class LibraryViewModel @Inject constructor(
                 }
             } else {
                 try {
-                    val history = repository.getHistory().map { h ->
+                    val history = repository.getHistory(limit = 20).map { h ->
                         FirebaseHistoryItem(slug = h.slug, title = h.title, posterUrl = h.posterUrl, isSeries = h.isSeries, watchedAt = h.timestamp)
                     }
                     val likes = repository.getPlaylist("liked").map { p ->
@@ -150,6 +156,8 @@ class LibraryViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             history = history,
+                            fullHistory = history,
+                            canLoadMoreHistory = history.size >= 20,
                             likedPlaylist = likes,
                             watchLaterPlaylist = bookmarks,
                             isOnline = true,
@@ -177,6 +185,7 @@ class LibraryViewModel @Inject constructor(
                     user = null,
                     isLoggedIn = false,
                     history = emptyList(),
+                    fullHistory = emptyList(),
                     likedPlaylist = emptyList(),
                     watchLaterPlaylist = emptyList()
                 )
@@ -192,51 +201,95 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    fun loadMoreHistory() {
+        val state = _uiState.value
+        if (state.isFullHistoryLoading || !state.canLoadMoreHistory) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isFullHistoryLoading = true) }
+            val lastTimestamp = state.fullHistory.lastOrNull()?.watchedAt
+            val newItems = if (state.isLoggedIn) {
+                try {
+                    val raw = firebaseRepository.getHistoryPage(limit = 20, lastWatchedAt = lastTimestamp)
+                    applyModerationFilterHistory(raw)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            } else {
+                try {
+                    val raw = repository.getHistoryPage(limit = 20, lastTimestamp = lastTimestamp).map { h ->
+                        FirebaseHistoryItem(slug = h.slug, title = h.title, posterUrl = h.posterUrl, isSeries = h.isSeries, watchedAt = h.timestamp)
+                    }
+                    raw
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+
+            _uiState.update { current ->
+                val combined = (current.fullHistory + newItems).distinctBy { it.slug }
+                current.copy(
+                    fullHistory = combined,
+                    isFullHistoryLoading = false,
+                    canLoadMoreHistory = newItems.size >= 20
+                )
+            }
+        }
+    }
+
     fun removeFromHistory(slug: String) {
         viewModelScope.launch {
+            _uiState.update { current ->
+                current.copy(
+                    history = current.history.filter { it.slug != slug },
+                    fullHistory = current.fullHistory.filter { it.slug != slug }
+                )
+            }
             val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
             if (isLoggedIn) {
                 firebaseRepository.removeFromHistory(slug)
             } else {
                 repository.removeFromHistory(slug)
             }
-            loadLibrary()
         }
     }
 
     fun clearHistory() {
         viewModelScope.launch {
+            _uiState.update { it.copy(history = emptyList(), fullHistory = emptyList()) }
             val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
             if (isLoggedIn) {
                 firebaseRepository.clearHistory()
             } else {
                 repository.clearHistory()
             }
-            loadLibrary()
         }
     }
 
     fun removeFromLiked(slug: String) {
         viewModelScope.launch {
+            _uiState.update { current ->
+                current.copy(likedPlaylist = current.likedPlaylist.filter { it.slug != slug })
+            }
             val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
             if (isLoggedIn) {
                 firebaseRepository.removeLike(slug)
             } else {
                 repository.removeFromPlaylist("liked", slug)
             }
-            loadLibrary()
         }
     }
 
     fun removeFromWatchLater(slug: String) {
         viewModelScope.launch {
+            _uiState.update { current ->
+                current.copy(watchLaterPlaylist = current.watchLaterPlaylist.filter { it.slug != slug })
+            }
             val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
             if (isLoggedIn) {
                 firebaseRepository.removeBookmark(slug)
             } else {
                 repository.removeFromPlaylist("watch_later", slug)
             }
-            loadLibrary()
         }
     }
 

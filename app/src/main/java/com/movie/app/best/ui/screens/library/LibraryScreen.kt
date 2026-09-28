@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -81,6 +83,8 @@ fun LibraryScreen(
     onSettingsClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onLoginClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {},
+    onPlaylistClick: (String) -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -133,12 +137,7 @@ fun LibraryScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Section 2: Persistent Downloads Action Row
-            DownloadsRow(onClick = onDownloadsClick)
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Section 3: Content Loading / Offline Buffering / Loaded lists
+            // Section 2: Content Loading / Offline Buffering / Loaded lists
             when {
                 uiState.isLoading -> {
                     BufferingContentState(message = "Loading your library...")
@@ -147,12 +146,11 @@ fun LibraryScreen(
                     OfflineBufferingState()
                 }
                 else -> {
-                    // Online and ready
+                    // History Section (History > + horizontal row of last 20)
                     HistorySection(
                         history = uiState.history,
-                        onContentClick = onContentClick,
-                        onRemove = viewModel::removeFromHistory,
-                        onClearAll = viewModel::clearHistory
+                        onHistoryClick = onHistoryClick,
+                        onContentClick = onContentClick
                     )
 
                     HorizontalDivider(
@@ -160,26 +158,22 @@ fun LibraryScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
 
-                    PlaylistSection(
-                        title = "Liked Videos",
-                        icon = Icons.Default.Favorite,
-                        items = uiState.likedPlaylist,
-                        onContentClick = onContentClick,
-                        onRemove = viewModel::removeFromLiked
+                    // Playlists Section (Single horizontal row with Liked and Watch later)
+                    PlaylistsSection(
+                        likedCount = uiState.likedPlaylist.size,
+                        likedLastPoster = uiState.likedPlaylist.firstOrNull()?.posterUrl,
+                        watchLaterCount = uiState.watchLaterPlaylist.size,
+                        watchLaterLastPoster = uiState.watchLaterPlaylist.firstOrNull()?.posterUrl,
+                        onPlaylistClick = onPlaylistClick
                     )
 
                     HorizontalDivider(
                         color = Color.White.copy(alpha = 0.06f),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
 
-                    PlaylistSection(
-                        title = "Watch Later",
-                        icon = Icons.Default.Schedule,
-                        items = uiState.watchLaterPlaylist,
-                        onContentClick = onContentClick,
-                        onRemove = viewModel::removeFromWatchLater
-                    )
+                    // Utility: Persistent Downloads Action Row
+                    DownloadsRow(onClick = onDownloadsClick)
                 }
             }
 
@@ -556,58 +550,63 @@ private fun OfflineBufferingState() {
 @Composable
 private fun HistorySection(
     history: List<FirebaseHistoryItem>,
-    onContentClick: (String, Boolean, String) -> Unit,
-    onRemove: (String) -> Unit,
-    onClearAll: () -> Unit
+    onHistoryClick: () -> Unit,
+    onContentClick: (String, Boolean, String) -> Unit
 ) {
     val context = LocalContext.current
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+    val displayList = remember(history) { history.take(20) }
+
+    Column(modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)) {
+        // YouTube-style Header with clickable '>'
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onHistoryClick
+                )
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "History",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.weight(1f)
+                fontSize = 17.5.sp,
+                color = Color.White
             )
-            if (history.isNotEmpty()) {
-                IconButton(onClick = onClearAll, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteSweep,
-                        contentDescription = "Clear",
-                        tint = Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = "View all history",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(13.dp)
+            )
         }
 
-        if (history.isEmpty()) {
+        if (displayList.isEmpty()) {
             Text(
                 text = "No history yet",
                 color = Color.White.copy(alpha = 0.35f),
-                fontSize = 13.sp,
+                fontSize = 12.5.sp,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         } else {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(top = 4.dp)
             ) {
-                items(history, key = { it.slug + it.watchedAt }) { item ->
+                items(displayList, key = { it.slug + it.watchedAt }) { item ->
                     val shouldBlur = ModerationSettings.shouldBlur(context, item.contentModeration)
-                    SmallMovieCard(
+                    HistoryItemCard(
                         title = item.title,
                         posterUrl = item.posterUrl,
+                        isSeries = item.isSeries,
                         progressPercent = item.progressPercent,
                         shouldBlur = shouldBlur,
-                        onClick = { onContentClick(item.slug, item.isSeries, item.imdbId) },
-                        onRemove = { onRemove(item.slug) }
+                        onClick = { onContentClick(item.slug, item.isSeries, item.imdbId) }
                     )
                 }
             }
@@ -616,163 +615,262 @@ private fun HistorySection(
 }
 
 @Composable
-private fun PlaylistSection(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    items: List<Any>,
-    onContentClick: (String, Boolean, String) -> Unit,
-    onRemove: (String) -> Unit
-) {
-    val context = LocalContext.current
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (title.contains("Liked", ignoreCase = true)) Color(0xFFE50914) else Color(0xFF4FC3F7),
-                modifier = Modifier.size(19.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "${items.size}",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 13.sp
-            )
-        }
-
-        if (items.isEmpty()) {
-            Text(
-                text = "No movies in $title",
-                color = Color.White.copy(alpha = 0.35f),
-                fontSize = 13.sp,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        } else {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(count = items.size, key = { it }) { idx ->
-                    val item = items[idx]
-                    val slug = when (item) { is BookmarkItem -> item.slug; is LikeItem -> item.slug; else -> "" }
-                    val itemTitle = when (item) { is BookmarkItem -> item.title; is LikeItem -> item.title; else -> "" }
-                    val posterUrl = when (item) { is BookmarkItem -> item.posterUrl; is LikeItem -> item.posterUrl; else -> "" }
-                    val isSeries = when (item) { is BookmarkItem -> item.isSeries; is LikeItem -> item.isSeries; else -> false }
-                    val cm = when (item) { is BookmarkItem -> item.contentModeration; is LikeItem -> item.contentModeration; else -> null }
-                    val shouldBlur = ModerationSettings.shouldBlur(context, cm)
-                    SmallMovieCard(
-                        title = itemTitle,
-                        posterUrl = posterUrl,
-                        progressPercent = 0f,
-                        shouldBlur = shouldBlur,
-                        onClick = { onContentClick(slug, isSeries, "") },
-                        onRemove = { onRemove(slug) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SmallMovieCard(
+private fun HistoryItemCard(
     title: String,
     posterUrl: String,
-    progressPercent: Float = 0f,
-    shouldBlur: Boolean = false,
-    onClick: () -> Unit,
-    onRemove: () -> Unit
+    isSeries: Boolean,
+    progressPercent: Float,
+    shouldBlur: Boolean,
+    onClick: () -> Unit
 ) {
     val displayProgress = when {
         progressPercent >= 0.98f -> 1.0f
         progressPercent <= 0f -> 0f
         else -> maxOf(0.05f, progressPercent)
     }
-    Card(
-        modifier = Modifier.width(110.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF141414))
+
+    Column(
+        modifier = Modifier
+            .width(148.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        Box(modifier = Modifier.clickable { onClick() }) {
+        // Thumbnail with 16:9 aspect ratio and progress bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(84.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFF181818))
+        ) {
             BlurredContent(
                 shouldBlur = shouldBlur,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(155.dp)
+                modifier = Modifier.fillMaxSize()
             ) {
                 AsyncImage(
                     model = posterUrl,
                     contentDescription = title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(155.dp)
+                    modifier = Modifier.fillMaxSize()
                 )
             }
+
+            // Scrim
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(155.dp)
+                    .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
-                            startY = 75f
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))
                         )
                     )
             )
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(horizontal = 8.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            IconButton(
-                onClick = onRemove,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Remove",
-                    tint = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        }
-        if (displayProgress > 0f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(Color.White.copy(alpha = 0.15f))
-            ) {
+
+            // Bottom Red Progress bar
+            if (displayProgress > 0f) {
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(displayProgress)
-                        .background(Color(0xFFE50914))
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Color.White.copy(alpha = 0.2f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(displayProgress)
+                            .background(Color(0xFFE50914))
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Title
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            lineHeight = 16.sp
+        )
+
+        // Subtitle
+        Text(
+            text = if (isSeries) "TV Series" else "Movie",
+            color = Color.White.copy(alpha = 0.45f),
+            fontSize = 10.5.sp,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 2.dp)
+        )
+    }
+}
+
+@Composable
+private fun PlaylistsSection(
+    likedCount: Int,
+    likedLastPoster: String?,
+    watchLaterCount: Int,
+    watchLaterLastPoster: String?,
+    onPlaylistClick: (String) -> Unit
+) {
+    Column(modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)) {
+        // Section Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Playlists",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.5.sp,
+                color = Color.White
+            )
+        }
+
+        // Single Horizontal Row with Playlists
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(top = 6.dp)
+        ) {
+            // 1. Liked items Card
+            item {
+                PlaylistCard(
+                    title = "Liked items",
+                    subtitle = if (likedCount > 0) "$likedCount items • Private" else "Private",
+                    badgeCount = likedCount,
+                    lastPosterUrl = likedLastPoster,
+                    badgeIcon = Icons.Outlined.FavoriteBorder,
+                    onClick = { onPlaylistClick("liked") }
+                )
+            }
+
+            // 2. Watch later Card
+            item {
+                PlaylistCard(
+                    title = "Watch later",
+                    subtitle = if (watchLaterCount > 0) "$watchLaterCount items • Private" else "Private",
+                    badgeCount = watchLaterCount,
+                    lastPosterUrl = watchLaterLastPoster,
+                    badgeIcon = Icons.Outlined.Schedule,
+                    onClick = { onPlaylistClick("watchlist") }
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PlaylistCard(
+    title: String,
+    subtitle: String,
+    badgeCount: Int,
+    lastPosterUrl: String?,
+    badgeIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(148.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+    ) {
+        // Playlist Thumbnail Box
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF1E1E1E))
+                .border(1.dp, Color(0xFF2C2C2C), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!lastPosterUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = lastPosterUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Scrim over image
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f))
+                )
+            }
+
+            // Prominent icon outline in center
+            Icon(
+                imageVector = badgeIcon,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.95f),
+                modifier = Modifier.size(32.dp)
+            )
+
+            // Bottom-right YouTube-style badge with item count and icon
+            if (badgeCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Black.copy(alpha = 0.75f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = badgeIcon,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "$badgeCount",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(7.dp))
+
+        // Playlist Title (below image)
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 13.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        // Subtitle (below title)
+        Text(
+            text = subtitle,
+            color = Color.White.copy(alpha = 0.45f),
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 1.dp)
+        )
     }
 }
 

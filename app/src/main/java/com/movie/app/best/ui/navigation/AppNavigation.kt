@@ -30,6 +30,8 @@ import com.movie.app.best.ui.screens.downloads.ExtractedSeriesScreen
 import com.movie.app.best.ui.screens.downloads.LocalVideoScreen
 import com.movie.app.best.ui.screens.home.HomeScreen
 import com.movie.app.best.ui.screens.library.LibraryScreen
+import com.movie.app.best.ui.screens.library.HistoryScreen
+import com.movie.app.best.ui.screens.library.PlaylistDetailScreen
 import com.movie.app.best.ui.screens.moviedetail.MovieDetailScreen
 import com.movie.app.best.ui.screens.search.SearchScreen
 import com.movie.app.best.ui.screens.tvshowdetail.TVShowDetailScreen
@@ -87,6 +89,10 @@ sealed class Screen(val route: String) {
     object LiveTv : Screen("live-tv")
     object Downloads : Screen("downloads")
     object Library : Screen("library")
+    object History : Screen("history")
+    object PlaylistDetail : Screen("playlist/{type}") {
+        fun createRoute(type: String) = "playlist/${Uri.encode(type)}"
+    }
     object Settings : Screen("settings")
     object Profile : Screen("profile")
     object Login : Screen("login")
@@ -707,7 +713,29 @@ fun AppNavigation(
                 onDownloadsClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 onSearchClick = { navController.navigate(Screen.Search.route) },
-                onLoginClick = { navController.navigate(Screen.Login.route) }
+                onLoginClick = { navController.navigate(Screen.Login.route) },
+                onHistoryClick = { navController.navigate(Screen.History.route) },
+                onPlaylistClick = { type -> navController.navigate(Screen.PlaylistDetail.createRoute(type)) }
+            )
+        }
+
+        composable(Screen.History.route, deepLinks = refLinks("app://history")) {
+            HistoryScreen(
+                onBackClick = { navController.popBackStack() },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) }
+            )
+        }
+
+        composable(
+            route = Screen.PlaylistDetail.route,
+            deepLinks = refLinks("app://playlist/{type}"),
+            arguments = listOf(navArgument("type") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val playlistType = backStackEntry.arguments?.getString("type") ?: "liked"
+            PlaylistDetailScreen(
+                playlistType = playlistType,
+                onBackClick = { navController.popBackStack() },
+                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) }
             )
         }
 
