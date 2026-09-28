@@ -6,8 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,11 +24,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.SmartDisplay
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +45,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -51,6 +56,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -62,6 +68,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LoginRequiredDialog(
     onLoginClick: () -> Unit,
@@ -69,7 +76,7 @@ fun LoginRequiredDialog(
     anchorCenter: Offset? = null
 ) {
     val scope = rememberCoroutineScope()
-    val dialogScale = remember { Animatable(0.9f) }
+    val dialogScale = remember { Animatable(0.88f) }
     val dialogAlpha = remember { Animatable(0f) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -88,18 +95,18 @@ fun LoginRequiredDialog(
             withFrameNanos { }
         }
         coroutineScope {
-            launch { dialogScale.animateTo(1f, tween(300)) }
-            launch { dialogAlpha.animateTo(1f, tween(200)) }
+            launch { dialogScale.animateTo(1f, tween(320)) }
+            launch { dialogAlpha.animateTo(1f, tween(220)) }
         }
     }
 
     fun dismiss(callback: () -> Unit) {
         scope.launch {
             coroutineScope {
-                launch { dialogScale.animateTo(0.9f, tween(200)) }
-                launch { dialogAlpha.animateTo(0f, tween(200)) }
+                launch { dialogScale.animateTo(0.88f, tween(180)) }
+                launch { dialogAlpha.animateTo(0f, tween(180)) }
             }
-            delay(50)
+            delay(40)
             callback()
         }
     }
@@ -122,17 +129,18 @@ fun LoginRequiredDialog(
         onDismissRequest = { dismiss(onDismiss) },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        // Deep pure black backdrop with high contrast blur feeling
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.Black.copy(alpha = 0.82f))
                 .graphicsLayer { alpha = dialogAlpha.value },
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 28.dp)
+                    .padding(horizontal = 22.dp)
                     .onSizeChanged { boxSize = it }
                     .graphicsLayer {
                         scaleX = dialogScale.value
@@ -140,71 +148,214 @@ fun LoginRequiredDialog(
                         alpha = dialogAlpha.value
                         transformOrigin = computedOrigin
                     }
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Brush.verticalGradient(listOf(Color(0xFF1A1A1A), Color(0xFF0D0D0D))))
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(Color(0xFF050507))
                     .border(
                         width = 1.dp,
-                        brush = Brush.linearGradient(listOf(Color(0xFFFF5252), Color(0xFFFFD700), Color(0xFFFF5252))),
-                        shape = RoundedCornerShape(24.dp)
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color(0xFFFF2E93).copy(alpha = 0.5f),
+                                Color(0xFFE50914).copy(alpha = 0.3f),
+                                Color(0xFF1E1E24)
+                            )
+                        ),
+                        shape = RoundedCornerShape(32.dp)
                     )
-                    .padding(24.dp)
+                    .padding(20.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(Color(0xFFE50914), Color(0xFFB71C1C))))
-                            .border(
-                                width = 2.dp,
-                                brush = Brush.linearGradient(listOf(Color(0xFFFFD700), Color(0xFFFF5252))),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
+                    
+                    // Top Concept Header Badge
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFF2E93))
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "MEMBER PRIVILEGE",
+                                color = Color(0xFFFF4D8D),
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.2.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF121217))
+                                .border(1.dp, Color(0xFF262630), RoundedCornerShape(20.dp))
+                                .padding(horizontal = 9.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "100% FREE",
+                                color = Color(0xFF00E676),
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 0.6.sp
+                            )
+                        }
                     }
 
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = "Login Required",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = "Unlock these features:",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 13.sp
-                    )
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(14.dp))
 
-                    LoginFeatureRow(Icons.Default.SmartDisplay, "Request Stream")
-                    LoginFeatureRow(Icons.Default.Flag, "Report Content")
-                    LoginFeatureRow(Icons.Default.ChatBubble, "Comments")
-                    LoginFeatureRow(Icons.Default.Favorite, "Like")
-                    LoginFeatureRow(Icons.Default.BookmarkAdd, "My List")
-
-                    Spacer(Modifier.height(20.dp))
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-                    Spacer(Modifier.height(16.dp))
-
+                    // 3D HOLOGRAPHIC VIP ACCESS CARD
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
-                            .clip(RoundedCornerShape(25.dp))
-                            .background(Brush.linearGradient(listOf(Color(0xFFE50914), Color(0xFFB71C1C))))
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF26050C),
+                                        Color(0xFF10070B),
+                                        Color(0xFF0B0612),
+                                        Color(0xFF170007)
+                                    )
+                                )
+                            )
                             .border(
-                                width = 1.dp,
-                                brush = Brush.linearGradient(listOf(Color(0xFFFF5252), Color(0xFFFFD700), Color(0xFFFF5252))),
-                                shape = RoundedCornerShape(25.dp)
+                                width = 1.2.dp,
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFFFF2E93),
+                                        Color(0xFFE50914).copy(alpha = 0.5f),
+                                        Color(0xFF3B1528)
+                                    )
+                                ),
+                                shape = RoundedCornerShape(22.dp)
+                            )
+                            .padding(18.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.LocalFireDepartment,
+                                        contentDescription = null,
+                                        tint = Color(0xFFE50914),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = "BLAZE ACCESS",
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.8.sp
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFE50914).copy(alpha = 0.2f))
+                                        .border(1.dp, Color(0xFFE50914).copy(alpha = 0.6f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD700),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(18.dp))
+
+                            Text(
+                                text = "All-Access Pass",
+                                color = Color.White,
+                                fontSize = 21.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.4.sp
+                            )
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = "Sign in once to unlock cloud sync, direct stream requests & community features.",
+                                color = Color.White.copy(alpha = 0.72f),
+                                fontSize = 11.5.sp,
+                                lineHeight = 16.sp
+                            )
+
+                            Spacer(Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "TIER: VIP MEMBER",
+                                    color = Color(0xFFFF4D8D),
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "NO ADS • NO SUB",
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // MODERN FEATURE PILLS (Cluster tags)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        VipFeatureChip(icon = Icons.Default.SmartDisplay, label = "Request Streams")
+                        VipFeatureChip(icon = Icons.Default.Favorite, label = "Sync Likes")
+                        VipFeatureChip(icon = Icons.Default.BookmarkAdd, label = "Watchlist")
+                        VipFeatureChip(icon = Icons.Default.ChatBubble, label = "Comments")
+                        VipFeatureChip(icon = Icons.Default.CloudSync, label = "Multi-Device")
+                        VipFeatureChip(icon = Icons.Default.Flag, label = "Report Issues")
+                    }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    // ACTION BUTTON: High-End Gradient VIP CTA
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .shadow(
+                                elevation = 16.dp,
+                                shape = RoundedCornerShape(16.dp),
+                                ambientColor = Color(0xFFE50914),
+                                spotColor = Color(0xFFFF2E93)
+                            )
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        Color(0xFFE50914),
+                                        Color(0xFFFF2E93)
+                                    )
+                                )
                             )
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -214,16 +365,23 @@ fun LoginRequiredDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Login & Sign Up",
+                            text = "Claim Free Pass →",
                             color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 15.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
                         )
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
+
                     TextButton(onClick = { dismiss(onDismiss) }) {
-                        Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                        Text(
+                            text = "Continue as Guest",
+                            color = Color.White.copy(alpha = 0.45f),
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
@@ -232,23 +390,31 @@ fun LoginRequiredDialog(
 }
 
 @Composable
-private fun LoginFeatureRow(icon: ImageVector, label: String) {
-    Row(
+private fun VipFeatureChip(icon: ImageVector, label: String) {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF0F0F14))
+            .border(1.dp, Color(0xFF1F1F2A), RoundedCornerShape(20.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFE50914).copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            Icon(icon, null, tint = Color(0xFFFF5252), modifier = Modifier.size(18.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFFFF4D8D),
+                modifier = Modifier.size(13.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                color = Color(0xFFEDEDED),
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
-        Spacer(Modifier.width(12.dp))
-        Text(label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
