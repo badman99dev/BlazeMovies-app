@@ -148,6 +148,19 @@ class FirebaseRepository @Inject constructor(
         removeLocalBookmark(slug)
     }
 
+    suspend fun clearBookmarks() = withContext(Dispatchers.IO) {
+        val doc = userDoc()
+        if (doc != null) {
+            try {
+                val snap = doc.collection("bookmarks").get().await()
+                for (d in snap.documents) {
+                    d.reference.delete()
+                }
+            } catch (_: Exception) {}
+        }
+        prefs.edit().remove("bookmarks").apply()
+    }
+
     suspend fun getBookmarks(): List<BookmarkItem> = withContext(Dispatchers.IO) {
         val doc = userDoc()
         if (doc != null) {
@@ -346,6 +359,19 @@ class FirebaseRepository @Inject constructor(
         val doc = userDoc() ?: return@withContext
         try { doc.collection("likes").document(slug).delete().await() } catch (_: Exception) {}
         removeLocalLike(slug)
+    }
+
+    suspend fun clearLikes() = withContext(Dispatchers.IO) {
+        val doc = userDoc()
+        if (doc != null) {
+            try {
+                val snap = doc.collection("likes").get().await()
+                for (d in snap.documents) {
+                    d.reference.delete()
+                }
+            } catch (_: Exception) {}
+        }
+        prefs.edit().remove("likes").apply()
     }
 
     suspend fun getLikes(): List<LikeItem> = withContext(Dispatchers.IO) {

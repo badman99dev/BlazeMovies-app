@@ -99,6 +99,10 @@ class LibraryRepository @Inject constructor(
         prefs.edit().putString("playlist_$name", gson.toJson(current)).apply()
     }
 
+    fun clearPlaylist(name: String) {
+        prefs.edit().remove("playlist_$name").apply()
+    }
+
     fun isInPlaylist(name: String, slug: String): Boolean {
         return getPlaylist(name).any { it.slug == slug }
     }

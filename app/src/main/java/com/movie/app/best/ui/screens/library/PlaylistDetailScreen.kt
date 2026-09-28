@@ -20,17 +20,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +75,7 @@ fun PlaylistDetailScreen(
 
     val isLiked = playlistType.equals("liked", ignoreCase = true)
     val pageTitle = if (isLiked) "Liked items" else "Watch later"
+    var showClearConfirm by remember { mutableStateOf(false) }
 
     val itemsList: List<PlaylistItemUi> = remember(uiState.likedPlaylist, uiState.watchLaterPlaylist, isLiked) {
         if (isLiked) {
@@ -93,6 +99,48 @@ fun PlaylistDetailScreen(
                 )
             }
         }
+    }
+
+    // Confirmation dialog for clearing entire playlist
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            containerColor = Color(0xFF1E1E1E),
+            title = {
+                Text(
+                    text = "Clear $pageTitle?",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "All items in $pageTitle will be removed from all your devices.",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 13.5.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showClearConfirm = false
+                        if (isLiked) {
+                            viewModel.clearLiked()
+                        } else {
+                            viewModel.clearWatchLater()
+                        }
+                    }
+                ) {
+                    Text("Clear", color = Color(0xFFFF5252), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.7f))
+                }
+            }
+        )
     }
 
     Column(
@@ -137,6 +185,20 @@ fun PlaylistDetailScreen(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+
+            if (itemsList.isNotEmpty()) {
+                IconButton(
+                    onClick = { showClearConfirm = true },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = "Clear all",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
 

@@ -279,6 +279,18 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    fun clearLiked() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(likedPlaylist = emptyList()) }
+            val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
+            if (isLoggedIn) {
+                firebaseRepository.clearLikes()
+            } else {
+                repository.clearPlaylist("liked")
+            }
+        }
+    }
+
     fun removeFromWatchLater(slug: String) {
         viewModelScope.launch {
             _uiState.update { current ->
@@ -289,6 +301,18 @@ class LibraryViewModel @Inject constructor(
                 firebaseRepository.removeBookmark(slug)
             } else {
                 repository.removeFromPlaylist("watch_later", slug)
+            }
+        }
+    }
+
+    fun clearWatchLater() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(watchLaterPlaylist = emptyList()) }
+            val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
+            if (isLoggedIn) {
+                firebaseRepository.clearBookmarks()
+            } else {
+                repository.clearPlaylist("watch_later")
             }
         }
     }
