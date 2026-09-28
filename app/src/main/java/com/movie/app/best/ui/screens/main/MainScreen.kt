@@ -86,6 +86,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.movie.app.best.FcmService
@@ -96,6 +97,7 @@ import com.movie.app.best.ui.components.AppDrawerContent
 import com.movie.app.best.ui.navigation.AppNavigation
 import com.movie.app.best.ui.navigation.BottomNavigationBar
 import com.movie.app.best.ui.navigation.Screen
+import com.movie.app.best.ui.navigation.navigateToBottomTab
 import com.movie.app.best.ui.screens.auth.AuthViewModel
 import com.movie.app.best.ui.screens.notification.NotificationRefreshBus
 import com.movie.app.best.ui.screens.splash.SplashScreen
@@ -314,11 +316,23 @@ fun MainContent(
                         }
                     }
                     else -> {
-                        val ok = runCatching { navController.navigate(Uri.parse(uri)) }.isSuccess
-                        if (!ok) {
-                            navController.navigate(Screen.Notifications.route) {
-                                popUpTo(navController.graph.startDestinationId)
-                                launchSingleTop = true
+                        val cleanUri = uri.trim().trimEnd('/')
+                        val bottomTabRoute = when (cleanUri) {
+                            "app://home" -> Screen.Home.route
+                            "app://zee5", "app://ott" -> Screen.Zee5.route
+                            "app://downloads" -> Screen.Downloads.route
+                            "app://library", "app://profile", "app://my-list" -> Screen.Library.route
+                            else -> null
+                        }
+                        if (bottomTabRoute != null) {
+                            navController.navigateToBottomTab(bottomTabRoute)
+                        } else {
+                            val ok = runCatching { navController.navigate(Uri.parse(uri)) }.isSuccess
+                            if (!ok) {
+                                navController.navigate(Screen.Notifications.route) {
+                                    popUpTo(navController.graph.findStartDestination().id)
+                                    launchSingleTop = true
+                                }
                             }
                         }
                     }

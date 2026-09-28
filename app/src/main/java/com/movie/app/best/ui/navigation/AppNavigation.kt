@@ -216,7 +216,7 @@ fun AppNavigation(
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
-                onDownloadClick = { navController.navigate(Screen.Downloads.route) },
+                onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
                 onMenuClick = onMenuClick
             )
         }
@@ -249,13 +249,7 @@ fun AppNavigation(
                 },
                 onDownloadClick = { },
                 onGoToDownloads = {
-                    navController.navigate(Screen.Downloads.route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigateToBottomTab(Screen.Downloads.route)
                 },
                 onOpenExtractedSeries = { extractPath, slug, posterPath ->
                     navController.navigate(Screen.ExtractedSeries.createRoute(extractPath, slug, posterPath))
@@ -302,13 +296,7 @@ fun AppNavigation(
                     navController.navigate(Screen.SeriesDetail.createRoute(seriesSlug, seriesImdbId))
                 },
                 onGoToDownloads = {
-                    navController.navigate(Screen.Downloads.route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigateToBottomTab(Screen.Downloads.route)
                 },
                 onOpenExtractedSeries = { extractPath, slug, posterPath ->
                     navController.navigate(Screen.ExtractedSeries.createRoute(extractPath, slug, posterPath))
@@ -716,7 +704,7 @@ fun AppNavigation(
         composable(Screen.Library.route, deepLinks = refLinks("app://library")) {
             LibraryScreen(
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
-                onDownloadsClick = { navController.navigate(Screen.Downloads.route) },
+                onDownloadsClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onLoginClick = { navController.navigate(Screen.Login.route) }
@@ -725,9 +713,7 @@ fun AppNavigation(
 
         composable(Screen.Profile.route) {
             androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(Screen.Library.route) {
-                    popUpTo(Screen.Profile.route) { inclusive = true }
-                }
+                navController.navigateToBottomTab(Screen.Library.route)
             }
         }
 
@@ -744,22 +730,16 @@ fun AppNavigation(
             LoginScreen(
                 onBackClick = {
                     if (!navController.popBackStack()) {
-                        navController.navigate(Screen.Library.route) {
-                            popUpTo(Screen.Home.route) { inclusive = false }
-                        }
+                        navController.navigateToBottomTab(Screen.Library.route)
                     }
                 },
                 onLoginSuccess = {
                     if (!navController.popBackStack()) {
-                        navController.navigate(Screen.Library.route) {
-                            popUpTo(Screen.Home.route) { inclusive = false }
-                        }
+                        navController.navigateToBottomTab(Screen.Library.route)
                     }
                 },
                 onAlreadyLoggedIn = {
-                    navController.navigate(Screen.Library.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
+                    navController.navigateToBottomTab(Screen.Library.route)
                 }
             )
         }
