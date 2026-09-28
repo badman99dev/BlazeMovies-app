@@ -19,6 +19,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.CompositionLocalProvider
@@ -436,17 +438,11 @@ fun MainContent(
                     visible = shouldShowBottomBar && collapsibleBarsState.isBottomBarVisible.value,
                     enter = slideInVertically(
                         initialOffsetY = { it },
-                        animationSpec = spring(
-                            stiffness = Spring.StiffnessMediumLow,
-                            dampingRatio = Spring.DampingRatioNoBouncy
-                        )
+                        animationSpec = tween(200, easing = FastOutSlowInEasing)
                     ),
                     exit = slideOutVertically(
                         targetOffsetY = { it },
-                        animationSpec = spring(
-                            stiffness = Spring.StiffnessMediumLow,
-                            dampingRatio = Spring.DampingRatioNoBouncy
-                        )
+                        animationSpec = tween(160, easing = FastOutLinearInEasing)
                     ),
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {

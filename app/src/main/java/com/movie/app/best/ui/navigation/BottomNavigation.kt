@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -21,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -56,40 +54,28 @@ fun BottomNavigationBar(
         BottomNavItem.Downloads,
         BottomNavItem.Profile
     )
-
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    val isHiddenScreen = currentRoute?.startsWith("movie/") == true
-            || currentRoute?.startsWith("series/") == true
-            || currentRoute?.startsWith("videoPlayer") == true
-            || currentRoute?.startsWith("category/") == true
-            || currentRoute?.startsWith("zee5_detail/") == true
-            || currentRoute?.startsWith("zee5_collection/") == true
-            || currentRoute?.startsWith("zee5_watch/") == true
-            || currentRoute == "login"
-
-    if (isHiddenScreen) return
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF0A0A0A))
+            .background(Color(0xFF0C0C0C))
             .navigationBarsPadding()
     ) {
-        // Top hairline
+        // Subtle top separator hairline
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(0.5.dp)
-                .background(Color.White.copy(alpha = 0.07f))
+                .background(Color.White.copy(alpha = 0.08f))
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = 0.dp),
+                .height(58.dp)
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -120,68 +106,45 @@ private fun NavItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    // Smooth animated values — tween only, no spring/bounce
+    // Snappy, subtle micro-interactions
     val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.18f else 1f,
-        animationSpec = tween(200),
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = tween(150),
         label = "iconScale"
     )
     val iconTint by animateColorAsState(
-        targetValue = if (selected) AppRed else Color(0xFF777777),
-        animationSpec = tween(220),
+        targetValue = if (selected) AppRed else Color(0xFF888888),
+        animationSpec = tween(160),
         label = "iconTint"
     )
     val labelTint by animateColorAsState(
-        targetValue = if (selected) AppRed else Color(0xFF666666),
-        animationSpec = tween(220),
+        targetValue = if (selected) AppRed else Color(0xFF888888),
+        animationSpec = tween(160),
         label = "labelTint"
     )
-    val glowAlpha by animateFloatAsState(
+    val indicatorAlpha by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
-        animationSpec = tween(250),
-        label = "glowAlpha"
-    )
-    val pillAlpha by animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = tween(200),
-        label = "pillAlpha"
+        animationSpec = tween(160),
+        label = "indicatorAlpha"
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-            .widthIn(min = 56.dp)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .widthIn(min = 52.dp)
     ) {
-        // Icon area with glow behind
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(28.dp)
         ) {
-            // Radial glow — animates in smoothly
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                AppRed.copy(alpha = 0.28f * glowAlpha),
-                                AppRed.copy(alpha = 0.10f * glowAlpha),
-                                Color.Transparent
-                            )
-                        ),
-                        CircleShape
-                    )
-            )
-
-            // Icon — only icon scales, nothing else moves
             Icon(
                 imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                 contentDescription = item.title,
@@ -192,25 +155,24 @@ private fun NavItem(
             )
         }
 
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Label — stays in place, only color animates
         Text(
             text = item.title,
             color = labelTint,
-            fontSize = 9.sp,
+            fontSize = 9.5.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1
         )
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
-        // Selected indicator dot at bottom
+        // Sleek indicator pill at bottom (fades in cleanly without jumping)
         Box(
             modifier = Modifier
-                .size(width = 16.dp, height = 2.5.dp)
+                .size(width = 14.dp, height = 2.5.dp)
                 .background(
-                    AppRed.copy(alpha = pillAlpha),
+                    AppRed.copy(alpha = indicatorAlpha),
                     RoundedCornerShape(50)
                 )
         )

@@ -10,6 +10,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -143,46 +146,19 @@ fun AppNavigation(
         }
     }
 
-    val tabRoutes = listOf(
+    val tabRoutes = setOf(
         Screen.Home.route,
         Screen.Zee5.route,
         Screen.Library.route,
         Screen.Downloads.route,
-        Screen.Profile.route
+        Screen.Profile.route,
+        Screen.Movies.route,
+        Screen.TVShows.route,
+        Screen.Categories.route
     )
 
-    fun slideDirection(from: String?, to: String?): Int {
-        val fromIdx = tabRoutes.indexOf(from)
-        val toIdx = tabRoutes.indexOf(to)
-        if (fromIdx < 0 || toIdx < 0) return 0
-        return if (toIdx > fromIdx) 1 else -1
-    }
-
-    val tabEnter: (from: String?, to: String?, Int) -> EnterTransition = { from, to, dir ->
-        if (dir != 0) {
-            slideInHorizontally(
-                initialOffsetX = { w -> dir * w / 3 },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
-            ) + fadeIn(animationSpec = tween(200))
-        } else {
-            slideInHorizontally(
-                initialOffsetX = { w -> w },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
-            ) + fadeIn(animationSpec = tween(200))
-        }
-    }
-    val tabExit: (from: String?, to: String?, Int) -> ExitTransition = { from, to, dir ->
-        if (dir != 0) {
-            slideOutHorizontally(
-                targetOffsetX = { w -> -dir * w / 4 },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
-            ) + fadeOut(animationSpec = tween(150))
-        } else {
-            slideOutHorizontally(
-                targetOffsetX = { w -> -w / 4 },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
-            ) + fadeOut(animationSpec = tween(150))
-        }
+    fun isTabTransition(from: String?, to: String?): Boolean {
+        return from in tabRoutes && to in tabRoutes
     }
 
     NavHost(
@@ -191,19 +167,49 @@ fun AppNavigation(
         modifier = modifier,
         enterTransition = {
             if (!isOnline) EnterTransition.None
-            else tabEnter(initialState.destination.route, targetState.destination.route, slideDirection(initialState.destination.route, targetState.destination.route))
+            else if (isTabTransition(initialState.destination.route, targetState.destination.route)) {
+                // Crisp fast crossfade for bottom navigation tabs (zero sideways jerking)
+                fadeIn(animationSpec = tween(150, easing = FastOutSlowInEasing))
+            } else {
+                // Smooth forward push for secondary & detail screens
+                slideInHorizontally(
+                    initialOffsetX = { w -> (w * 0.22f).toInt() },
+                    animationSpec = tween(240, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(200, easing = LinearOutSlowInEasing))
+            }
         },
         exitTransition = {
             if (!isOnline) ExitTransition.None
-            else tabExit(initialState.destination.route, targetState.destination.route, slideDirection(initialState.destination.route, targetState.destination.route))
+            else if (isTabTransition(initialState.destination.route, targetState.destination.route)) {
+                fadeOut(animationSpec = tween(120, easing = FastOutLinearInEasing))
+            } else {
+                slideOutHorizontally(
+                    targetOffsetX = { w -> (-w * 0.10f).toInt() },
+                    animationSpec = tween(220, easing = FastOutLinearInEasing)
+                ) + fadeOut(animationSpec = tween(180))
+            }
         },
         popEnterTransition = {
             if (!isOnline) EnterTransition.None
-            else tabEnter(targetState.destination.route, initialState.destination.route, slideDirection(targetState.destination.route, initialState.destination.route))
+            else if (isTabTransition(targetState.destination.route, initialState.destination.route)) {
+                fadeIn(animationSpec = tween(150, easing = FastOutSlowInEasing))
+            } else {
+                slideInHorizontally(
+                    initialOffsetX = { w -> (-w * 0.10f).toInt() },
+                    animationSpec = tween(220, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(180))
+            }
         },
         popExitTransition = {
             if (!isOnline) ExitTransition.None
-            else tabExit(targetState.destination.route, initialState.destination.route, slideDirection(targetState.destination.route, initialState.destination.route))
+            else if (isTabTransition(targetState.destination.route, initialState.destination.route)) {
+                fadeOut(animationSpec = tween(120, easing = FastOutLinearInEasing))
+            } else {
+                slideOutHorizontally(
+                    targetOffsetX = { w -> (w * 0.22f).toInt() },
+                    animationSpec = tween(220, easing = FastOutLinearInEasing)
+                ) + fadeOut(animationSpec = tween(180))
+            }
         }
     ) {
         composable(Screen.Home.route, deepLinks = refLinks("app://home")) {
