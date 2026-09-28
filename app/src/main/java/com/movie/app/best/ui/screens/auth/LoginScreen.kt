@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -157,7 +156,6 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .systemBarsPadding()
             .imePadding()
     ) {
         Box(
