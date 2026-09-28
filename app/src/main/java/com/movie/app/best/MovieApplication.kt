@@ -62,6 +62,15 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
 
             Thread { CrashPasteManager.ensurePasteExists(this) }.start()
 
+            // Firebase Crashlytics collection
+            try {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().apply {
+                    setCrashlyticsCollectionEnabled(true)
+                    setCustomKey("app_version", BuildConfig.VERSION_NAME)
+                    setCustomKey("build_type", BuildConfig.BUILD_TYPE)
+                }
+            } catch (_: Exception) {}
+
             // FCM topic subscribe (safety — onNewToken ke liye wait nahi karna)
             Thread {
                 try {
