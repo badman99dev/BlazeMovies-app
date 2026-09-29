@@ -31,8 +31,29 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.movie.app.best.ui.theme.AppRed
 
 fun NavController.navigateToBottomTab(route: String) {
+    val startDestId = graph.findStartDestination().id
+    
+    // If we're on a secondary screen (like Categories) and navigating to Home (startDestination),
+    // pop the backstack back to the startDestination so the root tab shows immediately.
+    if (route == Screen.Home.route) {
+        val popped = popBackStack(startDestId, false)
+        if (!popped && currentDestination?.route != route) {
+            navigate(route) {
+                popUpTo(startDestId) {
+                    inclusive = false
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+        return
+    }
+
+    // For other tabs (Zee5, Downloads, Library), ensure we pop back to startDestination
+    // then switch to the tab with state preservation.
     navigate(route) {
-        popUpTo(graph.findStartDestination().id) {
+        popUpTo(startDestId) {
             saveState = true
         }
         launchSingleTop = true
@@ -95,6 +116,9 @@ fun BottomNavigationBar(
                     onClick = {
                         if (currentRoute != item.route) {
                             navController.navigateToBottomTab(item.route)
+                        } else if (item.route == Screen.Home.route) {
+                            // If user is already on Home or near home, ensure stack is clean
+                            navController.popBackStack(Screen.Home.route, false)
                         }
                     }
                 )
