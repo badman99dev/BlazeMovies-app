@@ -14,6 +14,11 @@ interface SportsApiService {
     @GET("api/events")
     suspend fun getEvents(): SportEventsResponse
 
+    @GET("api/slug-details")
+    suspend fun getSlugDetails(
+        @Query("slug") slug: String
+    ): retrofit2.Response<SportEvent>
+
     @GET("api/event")
     suspend fun getEventStreams(
         @Query("slug") slug: String

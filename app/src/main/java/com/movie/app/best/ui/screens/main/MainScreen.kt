@@ -319,7 +319,7 @@ fun MainContent(
                         val cleanUri = uri.trim().trimEnd('/')
                         val bottomTabRoute = when (cleanUri) {
                             "app://home" -> Screen.Home.route
-                            "app://sports" -> Screen.Sports.route
+                            "app://sports", "app://sport" -> Screen.Sports.route
                             "app://zee5", "app://ott" -> Screen.Zee5.route
                             "app://downloads" -> Screen.Downloads.route
                             "app://library", "app://profile", "app://my-list" -> Screen.Library.route

@@ -5,34 +5,47 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
+import com.movie.app.best.data.model.SportEvent
 import com.movie.app.best.data.model.SportStream
+import com.movie.app.best.data.repository.SlugDetailsResult
 import com.movie.app.best.data.repository.SportsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SportsWatchUiState(
     val isLoading: Boolean = true,
+    val isNotFound: Boolean = false,
     val error: String? = null,
     val slug: String = "",
-    val title: String = "",
-    val eventCat: String = "",
-    val eventName: String = "",
-    val teamA: String = "",
-    val teamB: String = "",
-    val teamAFlag: String = "",
-    val teamBFlag: String = "",
-    val startTime: String = "",
-    val isLive: Boolean = false,
+    val event: SportEvent? = null,
     val streams: List<SportStream> = emptyList(),
     val playbackOptions: List<PlaybackOption> = emptyList(),
     val selectedOptionId: String? = null,
-    val currentStream: SportStream? = null
-)
+    val currentStream: SportStream? = null,
+    val timeTick: Long = 0L
+) {
+    val displayTitle: String
+        get() {
+            val teamA = event?.eventInfo?.teamA ?: ""
+            val teamB = event?.eventInfo?.teamB ?: ""
+            return if (teamA.isNotBlank() && teamB.isNotBlank()) {
+                "$teamA vs $teamB"
+            } else {
+                event?.title?.ifBlank { "Live Sports" } ?: "Live Sports"
+            }
+        }
+
+    val isUpcoming: Boolean get() = event?.isUpcoming == true
+    val isLive: Boolean get() = event?.isLive == true
+}
 
 @HiltViewModel
 class SportsWatchViewModel @Inject constructor(
@@ -40,47 +53,74 @@ class SportsWatchViewModel @Inject constructor(
     private val repository: SportsRepository
 ) : ViewModel() {
 
-    private val slug: String = savedStateHandle.get<String>("slug") ?: ""
-    private val title: String = savedStateHandle.get<String>("title") ?: ""
-    private val eventCat: String = savedStateHandle.get<String>("eventCat") ?: ""
-    private val eventName: String = savedStateHandle.get<String>("eventName") ?: ""
-    private val teamA: String = savedStateHandle.get<String>("teamA") ?: ""
-    private val teamB: String = savedStateHandle.get<String>("teamB") ?: ""
-    private val teamAFlag: String = savedStateHandle.get<String>("teamAFlag") ?: ""
-    private val teamBFlag: String = savedStateHandle.get<String>("teamBFlag") ?: ""
-    private val startTime: String = savedStateHandle.get<String>("startTime") ?: ""
-    private val isLive: Boolean = savedStateHandle.get<Boolean>("isLive") ?: false
+    val slug: String = savedStateHandle.get<String>("slug") ?: ""
 
-    private val _uiState = MutableStateFlow(
-        SportsWatchUiState(
-            slug = slug,
-            title = title,
-            eventCat = eventCat,
-            eventName = eventName,
-            teamA = teamA,
-            teamB = teamB,
-            teamAFlag = teamAFlag,
-            teamBFlag = teamBFlag,
-            startTime = startTime,
-            isLive = isLive
-        )
-    )
+    private val _uiState = MutableStateFlow(SportsWatchUiState(slug = slug))
     val uiState: StateFlow<SportsWatchUiState> = _uiState.asStateFlow()
 
+    private var countdownJob: Job? = null
+
     init {
-        loadStreams()
+        loadMatchAndStreams()
+        startTicker()
     }
 
-    fun loadStreams() {
+    private fun startTicker() {
+        countdownJob?.cancel()
+        countdownJob = viewModelScope.launch {
+            while (isActive) {
+                delay(1000)
+                _uiState.update { it.copy(timeTick = System.currentTimeMillis()) }
+            }
+        }
+    }
+
+    fun loadMatchAndStreams() {
         if (slug.isBlank()) {
-            _uiState.update { it.copy(isLoading = false, error = "Invalid event slug") }
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isNotFound = true,
+                    error = "Invalid sports event link"
+                )
+            }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = repository.getEventStreams(slug)
-            result.fold(
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    isNotFound = false,
+                    error = null
+                )
+            }
+
+            // 1. Fetch match details from /api/slug-details?slug=...
+            val detailsResult = repository.getSlugDetails(slug)
+
+            when (detailsResult) {
+                is SlugDetailsResult.NotFound -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isNotFound = true,
+                            error = "This event is not available or has already ended."
+                        )
+                    }
+                    return@launch
+                }
+                is SlugDetailsResult.Error -> {
+                    // Try fallback: streams can still be attempted
+                }
+                is SlugDetailsResult.Success -> {
+                    _uiState.update { it.copy(event = detailsResult.event) }
+                }
+            }
+
+            // 2. Fetch streams from /api/event?slug=...
+            val streamsResult = repository.getEventStreams(slug)
+            streamsResult.fold(
                 onSuccess = { streamList ->
                     if (streamList.isEmpty()) {
                         _uiState.update {
@@ -88,7 +128,7 @@ class SportsWatchViewModel @Inject constructor(
                                 isLoading = false,
                                 streams = emptyList(),
                                 playbackOptions = emptyList(),
-                                error = "No streaming servers available for this match right now."
+                                error = if (_uiState.value.isUpcoming) null else "No stream servers available at the moment."
                             )
                         }
                     } else {
@@ -121,7 +161,7 @@ class SportsWatchViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = err.message ?: "Failed to fetch stream servers. Tap retry."
+                            error = err.message ?: "Failed to load match streams. Tap retry."
                         )
                     }
                 }
@@ -141,5 +181,10 @@ class SportsWatchViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        countdownJob?.cancel()
     }
 }

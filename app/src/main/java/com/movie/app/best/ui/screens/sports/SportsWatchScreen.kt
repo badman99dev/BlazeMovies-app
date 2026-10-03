@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,10 +23,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -159,11 +164,99 @@ fun SportsWatchScreen(
         exoPlayer = newPlayer
     }
 
-    val displayTitle = if (state.teamA.isNotBlank() && state.teamB.isNotBlank()) {
-        "${state.teamA} vs ${state.teamB}"
-    } else {
-        state.title.ifBlank { "Live Sports" }
+    // ── 404 / NOT FOUND STATE ───────────────────────────
+    if (state.isNotFound) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0B0D14))
+                .statusBarsPadding()
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(Color(0xFF26191E), CircleShape)
+                        .border(1.5.dp, Color(0xFFE50914).copy(alpha = 0.4f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EventBusy,
+                        contentDescription = null,
+                        tint = Color(0xFFFA5035),
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Event Unavailable",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = state.error ?: "This event is not available or has already ended.",
+                    color = Color.White.copy(alpha = 0.65f),
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onBackClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = AppRed),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(46.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SportsSoccer,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Browse Live Sports",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Top Back Button
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.08f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+        }
+        return
     }
+
+    val displayTitle = state.displayTitle
+    val event = state.event
+    val info = event?.eventInfo
+    val isUpcoming = event?.isUpcoming == true
 
     Box(
         modifier = Modifier
@@ -201,7 +294,13 @@ fun SportsWatchScreen(
                         .aspectRatio(16f / 9f)
                         .background(Color.Black)
                 ) {
-                    if (exoPlayer != null && state.currentStream != null) {
+                    if (isUpcoming && exoPlayer == null) {
+                        // Countdown Screen inside Player area if upcoming
+                        UpcomingCountdownPlayerBanner(
+                            event = event,
+                            timeTick = state.timeTick
+                        )
+                    } else if (exoPlayer != null && state.currentStream != null) {
                         MediaPlayerScreen(
                             player = exoPlayer,
                             title = displayTitle,
@@ -215,7 +314,7 @@ fun SportsWatchScreen(
                         )
                     }
 
-                    // Back button overlay when controls hidden
+                    // Back button overlay
                     IconButton(
                         onClick = onBackClick,
                         modifier = Modifier
@@ -246,7 +345,7 @@ fun SportsWatchScreen(
                                 Text("Connecting to sports server...", color = Color.White, fontSize = 13.sp)
                             }
                         }
-                    } else if (playerErrorMsg != null || state.error != null) {
+                    } else if (playerErrorMsg != null && !isUpcoming) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -256,14 +355,14 @@ fun SportsWatchScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    playerErrorMsg ?: state.error ?: "Stream error",
+                                    playerErrorMsg ?: "Stream error",
                                     color = Color.White.copy(alpha = 0.8f),
                                     fontSize = 13.sp,
                                     textAlign = TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Button(
-                                    onClick = { viewModel.loadStreams() },
+                                    onClick = { viewModel.loadMatchAndStreams() },
                                     colors = ButtonDefaults.buttonColors(containerColor = AppRed),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
@@ -287,8 +386,8 @@ fun SportsWatchScreen(
                 ) {
                     // Match Category & League
                     val catText = listOfNotNull(
-                        state.eventCat.takeIf { it.isNotBlank() },
-                        state.eventName.takeIf { it.isNotBlank() }
+                        info?.eventCat?.takeIf { it.isNotBlank() },
+                        info?.eventName?.takeIf { it.isNotBlank() }
                     ).joinToString(" | ").uppercase()
 
                     if (catText.isNotBlank()) {
@@ -330,10 +429,10 @@ fun SportsWatchScreen(
                                 modifier = Modifier.weight(1f),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                WatchTeamFlag(flagUrl = state.teamAFlag)
+                                WatchTeamFlag(flagUrl = info?.teamAFlag)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = state.teamA.ifBlank { "Team A" },
+                                    text = info?.teamA ?: "Team A",
                                     color = Color.White,
                                     fontSize = 13.5.sp,
                                     fontWeight = FontWeight.Bold,
@@ -342,41 +441,65 @@ fun SportsWatchScreen(
                                 )
                             }
 
-                            // VS / Live Badge Center
+                            // Center Status / Countdown
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             ) {
-                                val pulse = rememberInfiniteTransition(label = "pulse")
-                                val alpha by pulse.animateFloat(
-                                    initialValue = 0.5f,
-                                    targetValue = 1f,
-                                    animationSpec = infiniteRepeatable(
-                                        animation = tween(600, easing = FastOutSlowInEasing),
-                                        repeatMode = RepeatMode.Reverse
-                                    ),
-                                    label = "pulseAlpha"
-                                )
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .background(Color(0xFFE50914).copy(alpha = 0.15f), RoundedCornerShape(50))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Box(
+                                if (isUpcoming) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
-                                            .size(7.dp)
-                                            .background(Color(0xFFE50914).copy(alpha = alpha), CircleShape)
+                                            .background(Color(0xFF0284C7).copy(alpha = 0.2f), RoundedCornerShape(50))
+                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.HourglassTop,
+                                            contentDescription = null,
+                                            tint = Color(0xFF38BDF8),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "UPCOMING",
+                                            color = Color(0xFF38BDF8),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+                                } else {
+                                    val pulse = rememberInfiniteTransition(label = "pulse")
+                                    val alpha by pulse.animateFloat(
+                                        initialValue = 0.5f,
+                                        targetValue = 1f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(600, easing = FastOutSlowInEasing),
+                                            repeatMode = RepeatMode.Reverse
+                                        ),
+                                        label = "pulseAlpha"
                                     )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text(
-                                        text = "LIVE",
-                                        color = Color(0xFFE50914),
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .background(Color(0xFFE50914).copy(alpha = 0.15f), RoundedCornerShape(50))
+                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(Color(0xFFE50914).copy(alpha = alpha), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "LIVE",
+                                            color = Color(0xFFE50914),
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
                                 }
+
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "VS",
@@ -391,10 +514,10 @@ fun SportsWatchScreen(
                                 modifier = Modifier.weight(1f),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                WatchTeamFlag(flagUrl = state.teamBFlag)
+                                WatchTeamFlag(flagUrl = info?.teamBFlag)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = state.teamB.ifBlank { "Team B" },
+                                    text = info?.teamB ?: "Team B",
                                     color = Color.White,
                                     fontSize = 13.5.sp,
                                     fontWeight = FontWeight.Bold,
@@ -405,102 +528,150 @@ fun SportsWatchScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // Streaming Servers Section
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Dns,
-                            contentDescription = null,
-                            tint = Color(0xFFFF5238),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Streaming Servers (${state.streams.size})",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Server Selection Horizontal Chips
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(state.playbackOptions) { option ->
-                            val isSelected = option.id == state.selectedOptionId
-                            val idx = state.playbackOptions.indexOf(option)
-                            val correspondingStream = state.streams.getOrNull(idx)
-
-                            ServerChip(
-                                option = option,
-                                stream = correspondingStream,
-                                isSelected = isSelected,
-                                onClick = { viewModel.selectServer(option.id) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Active Stream Security & Technical Details Card
-                    state.currentStream?.let { cur ->
+                    // Live Countdown Card if Upcoming
+                    if (isUpcoming && event != null) {
+                        Spacer(modifier = Modifier.height(14.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF141724)),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF131F33)),
+                            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.3f))
                         ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                Text(
-                                    text = "Current Stream Information",
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Format", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        tint = Color(0xFF38BDF8),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = (cur.format ?: if (cur.isDash) "DASH" else "HLS").uppercase(),
+                                        text = event.formattedStartTime,
                                         color = Color(0xFF38BDF8),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
-                                if (cur.hasClearKey) {
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = event.countdownText,
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Live streaming will commence automatically when the match starts.",
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 11.5.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Streaming Servers Section
+                    if (state.streams.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Dns,
+                                contentDescription = null,
+                                tint = Color(0xFFFF5238),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Streaming Servers (${state.streams.size})",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Server Selection Horizontal Chips
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(state.playbackOptions) { option ->
+                                val isSelected = option.id == state.selectedOptionId
+                                val idx = state.playbackOptions.indexOf(option)
+                                val correspondingStream = state.streams.getOrNull(idx)
+
+                                ServerChip(
+                                    option = option,
+                                    stream = correspondingStream,
+                                    isSelected = isSelected,
+                                    onClick = { viewModel.selectServer(option.id) }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Active Stream Security & Technical Details Card
+                        state.currentStream?.let { cur ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF141724)),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Text(
+                                        text = "Current Stream Information",
+                                        color = Color.White.copy(alpha = 0.9f),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.Default.Shield,
-                                                contentDescription = null,
-                                                tint = Color(0xFF10B981),
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Protection", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
-                                        }
+                                        Text("Format", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
                                         Text(
-                                            "ClearKey DRM (On-Device Decryption)",
-                                            color = Color(0xFF10B981),
+                                            text = (cur.format ?: if (cur.isDash) "DASH" else "HLS").uppercase(),
+                                            color = Color(0xFF38BDF8),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold
                                         )
+                                    }
+                                    if (cur.hasClearKey) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    Icons.Default.Shield,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF10B981),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Protection", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+                                            }
+                                            Text(
+                                                "ClearKey DRM (On-Device Decryption)",
+                                                color = Color(0xFF10B981),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -508,6 +679,67 @@ fun SportsWatchScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun UpcomingCountdownPlayerBanner(
+    event: com.movie.app.best.data.model.SportEvent?,
+    timeTick: Long
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1E1012), Color(0xFF0D101A))
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .background(Color(0xFF0284C7).copy(alpha = 0.25f), RoundedCornerShape(50))
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.HourglassTop,
+                    contentDescription = null,
+                    tint = Color(0xFF38BDF8),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "MATCH NOT STARTED YET",
+                    color = Color(0xFF38BDF8),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = event?.countdownText ?: "Match Starting Soon",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = event?.formattedStartTime ?: "",
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 12.sp
+            )
         }
     }
 }

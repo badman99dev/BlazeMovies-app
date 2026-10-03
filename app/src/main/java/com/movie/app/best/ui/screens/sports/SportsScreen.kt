@@ -178,19 +178,7 @@ fun SportsScreen(
                                 event = event,
                                 timeTick = uiState.timeTick,
                                 onClick = {
-                                    val route = Screen.SportsWatch.createRoute(
-                                        slug = event.slug,
-                                        title = event.title,
-                                        eventCat = event.eventInfo?.eventCat ?: "",
-                                        eventName = event.eventInfo?.eventName ?: "",
-                                        teamA = event.eventInfo?.teamA ?: "",
-                                        teamB = event.eventInfo?.teamB ?: "",
-                                        teamAFlag = event.eventInfo?.teamAFlag ?: "",
-                                        teamBFlag = event.eventInfo?.teamBFlag ?: "",
-                                        startTime = event.eventInfo?.startTime ?: "",
-                                        isLive = event.isLive
-                                    )
-                                    navController.navigate(route)
+                                    navController.navigate(Screen.SportsWatch.createRoute(event.slug))
                                 }
                             )
                         }

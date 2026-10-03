@@ -64,6 +64,25 @@ class SportsRepository @Inject constructor(
         }
     }
 
+    suspend fun getSlugDetails(slug: String): SlugDetailsResult = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getSlugDetails(slug)
+            when {
+                response.isSuccessful && response.body() != null -> {
+                    SlugDetailsResult.Success(response.body()!!)
+                }
+                response.code() == 404 -> {
+                    SlugDetailsResult.NotFound
+                }
+                else -> {
+                    SlugDetailsResult.Error("Failed to load match details (HTTP ${response.code()})")
+                }
+            }
+        } catch (e: Exception) {
+            SlugDetailsResult.Error(e.message ?: "Network error occurred")
+        }
+    }
+
     suspend fun getEventStreams(slug: String): Result<List<SportStream>> = withContext(Dispatchers.IO) {
         try {
             val responseBody = apiService.getEventStreams(slug)
