@@ -53,6 +53,7 @@ android {
             buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://jemsa431ilk.com\"")
             buildConfigField("String", "SPARKLE_BASE_URL", "\"https://sparkling-breeze-1ad6.badman993944.workers.dev/\"")
             buildConfigField("String", "SOURCE_HUB_BASE_URL", "\"https://source-hub-41xg.vercel.app/\"")
+            buildConfigField("String", "SPORTS_BASE_URL", "\"https://cr-blush.vercel.app/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
@@ -67,6 +68,7 @@ android {
             buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://jemsa431ilk.com\"")
             buildConfigField("String", "SPARKLE_BASE_URL", "\"https://sparkling-breeze-1ad6.badman993944.workers.dev/\"")
             buildConfigField("String", "SOURCE_HUB_BASE_URL", "\"https://source-hub-41xg.vercel.app/\"")
+            buildConfigField("String", "SPORTS_BASE_URL", "\"https://cr-blush.vercel.app/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -131,6 +133,7 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
     implementation(libs.media3.exoplayer.hls)
+    implementation(libs.media3.exoplayer.dash)
     implementation(libs.media3.session)
     implementation(libs.media3.datasource.okhttp)
     

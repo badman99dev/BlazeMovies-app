@@ -230,6 +230,23 @@ object NetworkModule {
     ): Zee5TokenRepository {
         return Zee5TokenRepository(zee5Api)
     }
+
+    @Provides
+    @Singleton
+    @Named("sports")
+    fun provideSportsRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BuildConfig.SPORTS_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSportsApiService(@Named("sports") retrofit: Retrofit): com.movie.app.best.data.remote.SportsApiService {
+        return retrofit.create(com.movie.app.best.data.remote.SportsApiService::class.java)
+    }
 }
 
 class FirebaseTokenAuthenticator(

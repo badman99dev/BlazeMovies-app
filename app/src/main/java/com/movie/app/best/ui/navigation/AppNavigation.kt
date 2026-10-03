@@ -57,6 +57,23 @@ import com.movie.app.best.ui.screens.notification.NotificationScreen
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
+    object Sports : Screen("sports")
+    object SportsWatch : Screen("sportsWatch/{slug}?title={title}&eventCat={eventCat}&eventName={eventName}&teamA={teamA}&teamB={teamB}&teamAFlag={teamAFlag}&teamBFlag={teamBFlag}&startTime={startTime}&isLive={isLive}") {
+        fun createRoute(
+            slug: String,
+            title: String = "",
+            eventCat: String = "",
+            eventName: String = "",
+            teamA: String = "",
+            teamB: String = "",
+            teamAFlag: String = "",
+            teamBFlag: String = "",
+            startTime: String = "",
+            isLive: Boolean = false
+        ): String {
+            return "sportsWatch/${Uri.encode(slug)}?title=${Uri.encode(title)}&eventCat=${Uri.encode(eventCat)}&eventName=${Uri.encode(eventName)}&teamA=${Uri.encode(teamA)}&teamB=${Uri.encode(teamB)}&teamAFlag=${Uri.encode(teamAFlag)}&teamBFlag=${Uri.encode(teamBFlag)}&startTime=${Uri.encode(startTime)}&isLive=$isLive"
+        }
+    }
     object Movies : Screen("movies")
     object Trending : Screen("trending")
     object Zee5 : Screen("zee5")
@@ -154,6 +171,7 @@ fun AppNavigation(
 
     val tabRoutes = setOf(
         Screen.Home.route,
+        Screen.Sports.route,
         Screen.Zee5.route,
         Screen.Downloads.route,
         Screen.Library.route,
@@ -536,6 +554,35 @@ fun AppNavigation(
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) }
+            )
+        }
+
+        composable(Screen.Sports.route, deepLinks = refLinks("app://sports")) {
+            com.movie.app.best.ui.screens.sports.SportsScreen(
+                navController = navController,
+                onMenuClick = onMenuClick,
+                onNotificationClick = { navController.navigate(Screen.Notifications.route) }
+            )
+        }
+
+        composable(
+            route = Screen.SportsWatch.route,
+            deepLinks = refLinks("app://sports/{slug}"),
+            arguments = listOf(
+                navArgument("slug") { type = NavType.StringType },
+                navArgument("title") { type = NavType.StringType; defaultValue = "" },
+                navArgument("eventCat") { type = NavType.StringType; defaultValue = "" },
+                navArgument("eventName") { type = NavType.StringType; defaultValue = "" },
+                navArgument("teamA") { type = NavType.StringType; defaultValue = "" },
+                navArgument("teamB") { type = NavType.StringType; defaultValue = "" },
+                navArgument("teamAFlag") { type = NavType.StringType; defaultValue = "" },
+                navArgument("teamBFlag") { type = NavType.StringType; defaultValue = "" },
+                navArgument("startTime") { type = NavType.StringType; defaultValue = "" },
+                navArgument("isLive") { type = NavType.BoolType; defaultValue = false }
+            )
+        ) {
+            com.movie.app.best.ui.screens.sports.SportsWatchScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
 

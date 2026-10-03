@@ -68,6 +68,7 @@ sealed class BottomNavItem(
     val unselectedIcon: ImageVector
 ) {
     object Home      : BottomNavItem(Screen.Home.route,      "Home",      Icons.Filled.Home,                Icons.Outlined.Home)
+    object Sports    : BottomNavItem(Screen.Sports.route,    "Sports",    Icons.Filled.SportsSoccer,        Icons.Outlined.SportsSoccer)
     object Zee5      : BottomNavItem(Screen.Zee5.route,      "ZEE5",      Icons.Filled.PlayCircle,          Icons.Outlined.PlayCircle)
     object Downloads : BottomNavItem(Screen.Downloads.route, "Downloads", Icons.Filled.Download,            Icons.Outlined.Download)
     object Library   : BottomNavItem(Screen.Library.route,   "Library",   Icons.Filled.Person,              Icons.Outlined.Person)
@@ -80,6 +81,7 @@ fun BottomNavigationBar(
 ) {
     val items = listOf(
         BottomNavItem.Home,
+        BottomNavItem.Sports,
         BottomNavItem.Zee5,
         BottomNavItem.Downloads,
         BottomNavItem.Library
