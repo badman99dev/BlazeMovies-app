@@ -14,6 +14,12 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+sealed interface SlugDetailsResult {
+    data class Success(val event: SportEvent) : SlugDetailsResult
+    object NotFound : SlugDetailsResult
+    data class Error(val message: String) : SlugDetailsResult
+}
+
 @Singleton
 class SportsRepository @Inject constructor(
     private val apiService: SportsApiService,

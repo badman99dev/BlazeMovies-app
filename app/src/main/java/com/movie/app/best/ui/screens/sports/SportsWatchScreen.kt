@@ -276,6 +276,7 @@ fun SportsWatchScreen(
                         selectedServerOptionId = state.selectedOptionId,
                         onServerOptionSelected = { viewModel.selectServer(it) },
                         onFullscreenClick = { isFullscreen = false },
+                        onPlayInBackgroundClick = {},
                         onBackClick = { isFullscreen = false }
                     )
                 }
@@ -310,6 +311,7 @@ fun SportsWatchScreen(
                             selectedServerOptionId = state.selectedOptionId,
                             onServerOptionSelected = { viewModel.selectServer(it) },
                             onFullscreenClick = { isFullscreen = true },
+                            onPlayInBackgroundClick = {},
                             onBackClick = onBackClick
                         )
                     }
