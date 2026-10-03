@@ -1,6 +1,7 @@
 package com.movie.app.best.data.remote
 
 import com.movie.app.best.data.model.SportCategoriesResponse
+import com.movie.app.best.data.model.SportEvent
 import com.movie.app.best.data.model.SportEventsResponse
 import okhttp3.ResponseBody
 import retrofit2.http.GET
