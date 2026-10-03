@@ -137,9 +137,9 @@ class SportsWatchViewModel @Inject constructor(
                             PlaybackOption(
                                 id = "sport_server_$idx",
                                 label = label,
-                                kind = PlaybackKind.STREAM,
+                                kind = PlaybackKind.NATIVE,
                                 url = s.url,
-                                isHls = s.isHls,
+                                playbackType = if (s.isDash) "dash" else "hls",
                                 languages = listOf(if (s.isDash) "DASH" else "HLS")
                             )
                         }
