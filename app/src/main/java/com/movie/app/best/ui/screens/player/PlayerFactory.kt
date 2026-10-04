@@ -12,8 +12,8 @@ object PlayerFactory {
 
     const val BUFFER_MIN_MS = 5000
     const val BUFFER_MAX_MS = 30000
-    const val BACK_BUFFER_MS = 300_000L
-    const val SPORTS_BACK_BUFFER_MS = 30_000L
+    const val BACK_BUFFER_MS = 300_000
+    const val SPORTS_BACK_BUFFER_MS = 30_000
 
     fun trackSelector(
         context: Context,
@@ -24,7 +24,7 @@ object PlayerFactory {
         setParameters(VideoQualitySettings.applyTo(params).build())
     }
 
-    fun defaultLoadControl(backBufferMs: Long = BACK_BUFFER_MS): DefaultLoadControl =
+    fun defaultLoadControl(backBufferMs: Int = BACK_BUFFER_MS): DefaultLoadControl =
         DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 BUFFER_MIN_MS,
@@ -39,7 +39,7 @@ object PlayerFactory {
         context: Context,
         trackSelector: DefaultTrackSelector,
         mediaSourceFactory: MediaSource.Factory? = null,
-        backBufferMs: Long = BACK_BUFFER_MS,
+        backBufferMs: Int = BACK_BUFFER_MS,
         playWhenReady: Boolean = true,
     ): ExoPlayer {
         val builder = ExoPlayer.Builder(context)
