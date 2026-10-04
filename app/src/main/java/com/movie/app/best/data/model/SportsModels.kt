@@ -119,10 +119,11 @@ data class SportEvent(
         }
 
     fun getNotchText(now: Long = System.currentTimeMillis()): String {
+        val actualNow = if (now <= 0L) System.currentTimeMillis() else now
         return when {
             isLive -> {
                 val start = startDate?.time ?: 0L
-                val elapsed = now - start
+                val elapsed = actualNow - start
                 if (elapsed <= 0) "00:00"
                 else {
                     val hours = elapsed / (1000 * 60 * 60)
@@ -137,7 +138,7 @@ data class SportEvent(
             }
             isUpcoming -> {
                 val start = startDate?.time ?: return ""
-                val diff = start - now
+                val diff = start - actualNow
                 if (diff <= 0) return "Match Starting"
 
                 val totalDays = diff / (1000L * 60 * 60 * 24)

@@ -30,7 +30,7 @@ data class SportsWatchUiState(
     val playbackOptions: List<PlaybackOption> = emptyList(),
     val selectedOptionId: String? = null,
     val currentStream: SportStream? = null,
-    val timeTick: Long = 0L
+    val timeTick: Long = System.currentTimeMillis()
 ) {
     val displayTitle: String
         get() {
@@ -74,6 +74,7 @@ class SportsWatchViewModel @Inject constructor(
     private fun startTicker() {
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
+            _uiState.update { it.copy(timeTick = System.currentTimeMillis()) }
             while (isActive) {
                 delay(1000)
                 val now = System.currentTimeMillis()
