@@ -396,7 +396,7 @@ fun SportsWatchScreen(
                     }
                 }
 
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
