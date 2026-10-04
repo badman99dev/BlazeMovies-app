@@ -89,6 +89,14 @@ data class SportEvent(
     val isUpcoming: Boolean get() = matchStatus == MatchStatus.UPCOMING
     val isRecent: Boolean get() = matchStatus == MatchStatus.RECENT
     val isHot: Boolean get() = (eventInfo?.isHot ?: 0) == 1
+    val isCricket: Boolean
+        get() {
+            val cat = (eventInfo?.eventCat ?: this.cat ?: "").lowercase()
+            val name = (eventInfo?.eventName ?: this.title).lowercase()
+            val teamA = (eventInfo?.teamA ?: "").lowercase()
+            val teamB = (eventInfo?.teamB ?: "").lowercase()
+            return cat.contains("cricket") || name.contains("cricket") || teamA.contains("cricket") || teamB.contains("cricket")
+        }
 
     val formattedStartTime: String
         get() {

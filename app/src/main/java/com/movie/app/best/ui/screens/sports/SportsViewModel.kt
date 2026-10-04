@@ -81,16 +81,28 @@ class SportsViewModel @Inject constructor(
             val catResult = repository.getCategories(forceRefresh)
             val eventsResult = repository.getEvents(forceRefresh)
 
-            val categories = catResult.getOrDefault(emptyList()).toMutableList()
-            if (categories.none { it.title.equals("All", ignoreCase = true) }) {
-                categories.add(0, SportCategory(id = 0, title = "All", image = ""))
+            val allCategories = catResult.getOrDefault(emptyList()).toMutableList()
+            if (allCategories.none { it.title.equals("All", ignoreCase = true) }) {
+                allCategories.add(0, SportCategory(id = 0, title = "All", image = ""))
             }
 
             val events = eventsResult.getOrDefault(emptyList())
 
             val counts = mutableMapOf<String, Int>()
-            categories.forEach { cat ->
+            allCategories.forEach { cat ->
                 counts[cat.title] = repository.getCategoryCount(cat.title, events)
+            }
+
+            // Automatically hide categories with 0 matches (keep 'All')
+            val visibleCategories = allCategories.filter { cat ->
+                cat.title.equals("All", ignoreCase = true) || (counts[cat.title] ?: 0) > 0
+            }
+
+            val currentSelected = _uiState.value.selectedCategory
+            val validSelected = if (visibleCategories.any { it.title.equals(currentSelected, ignoreCase = true) }) {
+                currentSelected
+            } else {
+                "All"
             }
 
             val allCount = events.size
@@ -102,7 +114,8 @@ class SportsViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     isRefreshing = false,
-                    categories = categories,
+                    categories = visibleCategories,
+                    selectedCategory = validSelected,
                     events = events,
                     categoryCounts = counts,
                     allCount = allCount,
@@ -177,6 +190,12 @@ class SportsViewModel @Inject constructor(
             }
         }
 
+        // 4. Sort according to priority rules:
+        // - LIVE at the top (with Cricket events prioritized first among live)
+        // - UPCOMING in the middle (sorted by nearest start time first)
+        // - RECENT / ENDED at the very bottom (sorted by most recently ended first)
+        val sortedList = sortEvents(list)
+
         // Re-update status counts
         val allCount = s.events.size
         val liveCount = s.events.count { it.isLive }
@@ -185,13 +204,30 @@ class SportsViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                filteredEvents = list,
+                filteredEvents = sortedList,
                 allCount = allCount,
                 liveCount = liveCount,
                 recentCount = recentCount,
                 upcomingCount = upcomingCount
             )
         }
+    }
+
+    private fun sortEvents(events: List<SportEvent>): List<SportEvent> {
+        val live = events.filter { it.isLive }.sortedWith(
+            compareByDescending<SportEvent> { it.isCricket }
+                .thenBy { it.startDate?.time ?: 0L }
+        )
+
+        val upcoming = events.filter { it.isUpcoming }.sortedBy {
+            it.startDate?.time ?: Long.MAX_VALUE
+        }
+
+        val recent = events.filter { !it.isLive && !it.isUpcoming }.sortedByDescending {
+            it.endDate?.time ?: it.startDate?.time ?: 0L
+        }
+
+        return live + upcoming + recent
     }
 
     suspend fun getStreamsForEvent(slug: String): List<SportStream> {

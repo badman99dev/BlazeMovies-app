@@ -278,12 +278,18 @@ private fun SportsCategoryRow(
     counts: Map<String, Int>,
     onSelect: (String) -> Unit
 ) {
+    val visibleCategories = remember(categories, counts) {
+        categories.filter { cat ->
+            cat.title.equals("All", ignoreCase = true) || (counts[cat.title] ?: 0) > 0
+        }
+    }
+
     LazyRow(
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        items(categories, key = { it.id.toString() + it.title }) { cat ->
+        items(visibleCategories, key = { it.id.toString() + it.title }) { cat ->
             val isSelected = selectedCategory.equals(cat.title, ignoreCase = true)
             val count = counts[cat.title] ?: 0
 
@@ -639,19 +645,19 @@ private fun SportMatchCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // ── Bottom Notch Pill ──────────────────────────────────
+            // ── Bottom Notch Pill (Flush against bottom border) ────
             val notchText = event.getNotchText(timeTick)
             if (notchText.isNotBlank()) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 10.dp, bottomEnd = 10.dp))
+                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 0.dp, bottomEnd = 0.dp))
                         .background(Color(0xFF080D1A))
                         .border(
                             width = 0.8.dp,
                             color = Color.White.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 10.dp, bottomEnd = 10.dp)
+                            shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
                         )
-                        .padding(horizontal = 18.dp, vertical = 4.dp),
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -662,9 +668,8 @@ private fun SportMatchCard(
                         letterSpacing = 0.2.sp
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
             } else {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
 
