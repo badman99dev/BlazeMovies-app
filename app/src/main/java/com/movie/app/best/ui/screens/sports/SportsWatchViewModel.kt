@@ -34,12 +34,18 @@ data class SportsWatchUiState(
 ) {
     val displayTitle: String
         get() {
-            val teamA = event?.eventInfo?.teamA ?: ""
-            val teamB = event?.eventInfo?.teamB ?: ""
-            return if (teamA.isNotBlank() && teamB.isNotBlank()) {
-                "$teamA vs $teamB"
-            } else {
-                event?.title?.ifBlank { "Live Sports" } ?: "Live Sports"
+            val teamA = event?.eventInfo?.teamA?.trim().orEmpty()
+            val teamB = event?.eventInfo?.teamB?.trim().orEmpty()
+            val eventTitle = event?.title?.trim().orEmpty()
+            val eventName = event?.eventInfo?.eventName?.trim().orEmpty()
+
+            return when {
+                teamA.isNotBlank() && teamB.isNotBlank() -> "$teamA vs $teamB"
+                teamA.isNotBlank() -> teamA
+                teamB.isNotBlank() -> teamB
+                eventTitle.isNotBlank() -> eventTitle
+                eventName.isNotBlank() -> eventName
+                else -> ""
             }
         }
 

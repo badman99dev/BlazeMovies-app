@@ -446,14 +446,15 @@ fun SportsWatchScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                         }
 
-                        Text(
-                            text = displayTitle,
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
+                        if (displayTitle.isNotBlank()) {
+                            Text(
+                                text = displayTitle,
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
