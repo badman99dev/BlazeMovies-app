@@ -20,6 +20,12 @@ sealed interface SlugDetailsResult {
     data class Error(val message: String) : SlugDetailsResult
 }
 
+sealed interface EventWatchResult {
+    data class Success(val event: SportEvent, val streams: List<SportStream>) : EventWatchResult
+    object NotFound : EventWatchResult
+    data class Error(val message: String) : EventWatchResult
+}
+
 @Singleton
 class SportsRepository @Inject constructor(
     private val apiService: SportsApiService,
@@ -86,6 +92,48 @@ class SportsRepository @Inject constructor(
             }
         } catch (e: Exception) {
             SlugDetailsResult.Error(e.message ?: "Network error occurred")
+        }
+    }
+
+    suspend fun getWatchEvent(slug: String): EventWatchResult = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getEvent(slug)
+            if (response.code() == 404) {
+                return@withContext EventWatchResult.NotFound
+            }
+            if (!response.isSuccessful || response.body() == null) {
+                return@withContext EventWatchResult.Error("Failed to load match streams (HTTP ${response.code()})")
+            }
+
+            val jsonString = response.body()!!.string()
+            val jsonElement = JsonParser.parseString(jsonString)
+
+            if (jsonElement.isJsonObject) {
+                val obj = jsonElement.asJsonObject
+                val event = gson.fromJson(obj, SportEvent::class.java)
+
+                val streamList = when {
+                    obj.has("streams") && obj.get("streams").isJsonArray -> {
+                        val type = object : TypeToken<List<SportStream>>() {}.type
+                        gson.fromJson<List<SportStream>>(obj.get("streams"), type) ?: emptyList()
+                    }
+                    obj.has("data") && obj.get("data").isJsonArray -> {
+                        val type = object : TypeToken<List<SportStream>>() {}.type
+                        gson.fromJson<List<SportStream>>(obj.get("data"), type) ?: emptyList()
+                    }
+                    else -> event.streams
+                }
+                EventWatchResult.Success(event, streamList)
+            } else if (jsonElement.isJsonArray) {
+                val type = object : TypeToken<List<SportStream>>() {}.type
+                val streamList: List<SportStream> = gson.fromJson(jsonElement, type) ?: emptyList()
+                val fallbackEvent = SportEvent(slug = slug, title = slug.replace("-", " ").replaceFirstChar { it.uppercase() })
+                EventWatchResult.Success(fallbackEvent, streamList)
+            } else {
+                EventWatchResult.Error("Invalid response format")
+            }
+        } catch (e: Exception) {
+            EventWatchResult.Error(e.message ?: "Network error occurred")
         }
     }
 

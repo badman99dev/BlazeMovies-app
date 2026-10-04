@@ -21,6 +21,11 @@ interface SportsApiService {
     ): retrofit2.Response<SportEvent>
 
     @GET("api/event")
+    suspend fun getEvent(
+        @Query("slug") slug: String
+    ): retrofit2.Response<ResponseBody>
+
+    @GET("api/event")
     suspend fun getEventStreams(
         @Query("slug") slug: String
     ): ResponseBody

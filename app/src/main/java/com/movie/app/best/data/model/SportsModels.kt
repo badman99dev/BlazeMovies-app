@@ -45,7 +45,8 @@ data class SportEvent(
     @SerializedName("cat") val cat: String? = null,
     @SerializedName("eventInfo") val eventInfo: SportEventInfo? = null,
     @SerializedName("publish") val publish: String? = null,
-    @SerializedName("formats") val formats: List<SportFormat> = emptyList()
+    @SerializedName("formats") val formats: List<SportFormat> = emptyList(),
+    @SerializedName("streams") val streams: List<SportStream> = emptyList()
 ) {
     enum class MatchStatus {
         LIVE,

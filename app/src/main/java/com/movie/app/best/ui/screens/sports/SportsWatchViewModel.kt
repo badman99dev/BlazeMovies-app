@@ -7,7 +7,7 @@ import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.data.model.SportEvent
 import com.movie.app.best.data.model.SportStream
-import com.movie.app.best.data.repository.SlugDetailsResult
+import com.movie.app.best.data.repository.EventWatchResult
 import com.movie.app.best.data.repository.SportsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -96,11 +96,9 @@ class SportsWatchViewModel @Inject constructor(
                 )
             }
 
-            // 1. Fetch match details from /api/slug-details?slug=...
-            val detailsResult = repository.getSlugDetails(slug)
-
-            when (detailsResult) {
-                is SlugDetailsResult.NotFound -> {
+            // Single unified call to /api/event?slug=... (contains both event details and streams)
+            when (val result = repository.getWatchEvent(slug)) {
+                is EventWatchResult.NotFound -> {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -108,27 +106,26 @@ class SportsWatchViewModel @Inject constructor(
                             error = "This event is not available or has already ended."
                         )
                     }
-                    return@launch
                 }
-                is SlugDetailsResult.Error -> {
-                    // Try fallback: streams can still be attempted
+                is EventWatchResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = result.message
+                        )
+                    }
                 }
-                is SlugDetailsResult.Success -> {
-                    _uiState.update { it.copy(event = detailsResult.event) }
-                }
-            }
-
-            // 2. Fetch streams from /api/event?slug=...
-            val streamsResult = repository.getEventStreams(slug)
-            streamsResult.fold(
-                onSuccess = { streamList ->
+                is EventWatchResult.Success -> {
+                    val event = result.event
+                    val streamList = result.streams
                     if (streamList.isEmpty()) {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
+                                event = event,
                                 streams = emptyList(),
                                 playbackOptions = emptyList(),
-                                error = if (_uiState.value.isUpcoming) null else "No stream servers available at the moment."
+                                error = if (event.isUpcoming) null else "No stream servers available at the moment."
                             )
                         }
                     } else {
@@ -149,23 +146,17 @@ class SportsWatchViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
+                                event = event,
                                 streams = streamList,
                                 playbackOptions = options,
                                 selectedOptionId = firstOpt?.id,
-                                currentStream = firstStream
+                                currentStream = firstStream,
+                                error = null
                             )
                         }
                     }
-                },
-                onFailure = { err ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = err.message ?: "Failed to load match streams. Tap retry."
-                        )
-                    }
                 }
-            )
+            }
         }
     }
 
