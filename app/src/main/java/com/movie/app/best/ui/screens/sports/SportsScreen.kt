@@ -56,6 +56,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.movie.app.best.data.model.SportCategory
@@ -555,12 +559,28 @@ private fun SportMatchCard(
                 ) {
                     when {
                         isLive -> {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .background(AppRed.copy(alpha = liveAlpha), CircleShape)
+                            val liveComposition by rememberLottieComposition(
+                                LottieCompositionSpec.RawRes(com.movie.app.best.R.raw.live_animation)
                             )
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Box(
+                                modifier = Modifier.size(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (liveComposition != null) {
+                                    LottieAnimation(
+                                        composition = liveComposition,
+                                        iterations = LottieConstants.IterateForever,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .background(AppRed.copy(alpha = liveAlpha), CircleShape)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Live",
                                 color = AppRed,
