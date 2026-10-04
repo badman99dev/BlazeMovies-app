@@ -540,11 +540,7 @@ private fun SportMatchCard(
                     letterSpacing = 0.3.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
-                    modifier = Modifier.basicMarquee(
-                        iterations = Int.MAX_VALUE,
-                        delayMillis = 2000,
-                        velocity = 25.dp
-                    )
+                    modifier = Modifier.basicMarquee()
                 )
             }
 
@@ -573,11 +569,7 @@ private fun SportMatchCard(
                         maxLines = 1,
                         modifier = Modifier
                             .weight(1f)
-                            .basicMarquee(
-                                iterations = Int.MAX_VALUE,
-                                delayMillis = 1500,
-                                velocity = 30.dp
-                            )
+                            .basicMarquee()
                     )
                 }
 
@@ -654,11 +646,7 @@ private fun SportMatchCard(
                         maxLines = 1,
                         modifier = Modifier
                             .weight(1f)
-                            .basicMarquee(
-                                iterations = Int.MAX_VALUE,
-                                delayMillis = 1500,
-                                velocity = 30.dp
-                            )
+                            .basicMarquee()
                     )
                     Spacer(modifier = Modifier.width(7.dp))
                     TeamFlagBadge(flagUrl = info?.teamBFlag, size = 35.dp)
