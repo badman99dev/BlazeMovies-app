@@ -17,6 +17,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -539,7 +540,11 @@ private fun SportMatchCard(
                     letterSpacing = 0.3.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.basicMarquee(
+                        iterations = Int.MAX_VALUE,
+                        delayMillis = 2000,
+                        velocity = 25.dp
+                    )
                 )
             }
 
@@ -565,9 +570,14 @@ private fun SportMatchCard(
                         color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        maxLines = 1,
+                        modifier = Modifier
+                            .weight(1f)
+                            .basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                delayMillis = 1500,
+                                velocity = 30.dp
+                            )
                     )
                 }
 
@@ -649,9 +659,14 @@ private fun SportMatchCard(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.End,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        maxLines = 1,
+                        modifier = Modifier
+                            .weight(1f)
+                            .basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                delayMillis = 1500,
+                                velocity = 30.dp
+                            )
                     )
                     Spacer(modifier = Modifier.width(7.dp))
                     TeamFlagBadge(flagUrl = info?.teamBFlag, size = 35.dp)
