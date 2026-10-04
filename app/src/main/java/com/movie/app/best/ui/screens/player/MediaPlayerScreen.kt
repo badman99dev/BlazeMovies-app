@@ -29,8 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Forward30
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Brightness6
@@ -488,10 +486,10 @@ fun ControlsMiddleView(modifier: Modifier = Modifier, player: Player, isPlaying:
             modifier = Modifier.size(64.dp),
             onClick = { if (isPlaying) player.pause() else player.play() },
         ) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
+            PlayPauseMorphIcon(
+                isPlaying = isPlaying,
+                size = 44.dp,
+                tint = Color.White,
             )
         }
         PlayerButton(onClick = { player.seekForward() }) {
