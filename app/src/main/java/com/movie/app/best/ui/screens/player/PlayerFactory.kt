@@ -14,6 +14,7 @@ object PlayerFactory {
     const val BUFFER_MAX_MS = 30000
     const val BACK_BUFFER_MS = 300_000
     const val SPORTS_BACK_BUFFER_MS = 30_000
+    const val SEEK_INCREMENT_MS = 30_000
 
     fun trackSelector(
         context: Context,
@@ -45,6 +46,8 @@ object PlayerFactory {
         val builder = ExoPlayer.Builder(context)
             .setTrackSelector(trackSelector)
             .setLoadControl(defaultLoadControl(backBufferMs))
+            .setSeekBackIncrementMs(SEEK_INCREMENT_MS.toLong())
+            .setSeekForwardIncrementMs(SEEK_INCREMENT_MS.toLong())
         if (mediaSourceFactory != null) builder.setMediaSourceFactory(mediaSourceFactory)
         return builder.build().apply { this.playWhenReady = playWhenReady }
     }

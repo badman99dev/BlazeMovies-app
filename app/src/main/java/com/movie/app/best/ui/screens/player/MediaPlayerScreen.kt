@@ -28,10 +28,10 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material3.CircularProgressIndicator
@@ -481,8 +481,8 @@ fun ControlsMiddleView(modifier: Modifier = Modifier, player: Player, isPlaying:
         horizontalArrangement = Arrangement.spacedBy(40.dp, alignment = Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerButton(onClick = { player.seekToPrevious() }) {
-            Icon(imageVector = Icons.Default.SkipPrevious, contentDescription = null, modifier = Modifier.size(28.dp))
+        PlayerButton(onClick = { player.seekBack() }) {
+            Icon(imageVector = Icons.Default.Replay30, contentDescription = "Rewind 30 seconds", modifier = Modifier.size(28.dp))
         }
         PlayerButton(
             modifier = Modifier.size(64.dp),
@@ -494,8 +494,8 @@ fun ControlsMiddleView(modifier: Modifier = Modifier, player: Player, isPlaying:
                 modifier = Modifier.size(48.dp),
             )
         }
-        PlayerButton(onClick = { player.seekToNext() }) {
-            Icon(imageVector = Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(28.dp))
+        PlayerButton(onClick = { player.seekForward() }) {
+            Icon(imageVector = Icons.Default.Forward30, contentDescription = "Forward 30 seconds", modifier = Modifier.size(28.dp))
         }
     }
 }
