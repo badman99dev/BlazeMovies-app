@@ -61,6 +61,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.movie.app.best.data.model.SportCategory
 import com.movie.app.best.data.model.SportEvent
@@ -137,132 +138,152 @@ fun SportsScreen(
                 )
             }
 
-            // Inline search (event/team/league filter)
-            AnimatedVisibility(
-                visible = uiState.isSearchActive,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                        .background(AppSurface, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.5f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        BasicTextField(
-                            value = uiState.searchQuery,
-                            onValueChange = { viewModel.onSearchQueryChange(it) },
-                            singleLine = true,
-                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
-                            cursorBrush = SolidColor(AppRed),
-                            modifier = Modifier.weight(1f),
-                            decorationBox = { innerTextField ->
-                                if (uiState.searchQuery.isEmpty()) {
-                                    Text(
-                                        "Search matches, teams, leagues...",
-                                        color = Color.White.copy(alpha = 0.4f),
-                                        fontSize = 14.sp
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        )
-                        if (uiState.searchQuery.isNotEmpty()) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = Color.White.copy(alpha = 0.6f),
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable { viewModel.onSearchQueryChange("") }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── Category Icons Row ───────────────────────────────
-            if (uiState.categories.isNotEmpty()) {
-                SportsCategoryRow(
-                    categories = uiState.categories,
-                    selectedCategory = uiState.selectedCategory,
-                    counts = uiState.categoryCounts,
-                    onSelect = { viewModel.selectCategory(it) }
-                )
-            }
-
-            // ── Status Filter Tabs (All, Live, Recent, Upcoming) ──
-            StatusFilterTabs(
-                selected = uiState.selectedStatus,
-                allCount = uiState.allCount,
-                liveCount = uiState.liveCount,
-                recentCount = uiState.recentCount,
-                upcomingCount = uiState.upcomingCount,
-                onSelect = { viewModel.selectStatus(it) }
-            )
-
-            // ── Events List ──────────────────────────────────────
+            // ── Pull-To-Refresh wrapping the whole screen content ──
             SwipeRefresh(
                 state = rememberSwipeRefreshState(isRefreshing),
                 onRefresh = { viewModel.loadData(forceRefresh = true) },
-                modifier = Modifier.weight(1f)
+                indicator = { state, trigger ->
+                    SwipeRefreshIndicator(
+                        state = state,
+                        refreshTriggerDistance = trigger,
+                        scale = true,
+                        backgroundColor = Color.White,
+                        contentColor = Color.Black
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
-                if (uiState.isLoading && uiState.events.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Inline search (event/team/league filter)
+                    AnimatedVisibility(
+                        visible = uiState.isSearchActive,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
                     ) {
-                        CircularProgressIndicator(
-                            color = AppRed,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                } else if (uiState.filteredEvents.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                "No matches found",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                "Try selecting a different sport or filter tab",
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 13.sp
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                                .background(AppSurface, RoundedCornerShape(10.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                BasicTextField(
+                                    value = uiState.searchQuery,
+                                    onValueChange = { viewModel.onSearchQueryChange(it) },
+                                    singleLine = true,
+                                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                                    cursorBrush = SolidColor(AppRed),
+                                    modifier = Modifier.weight(1f),
+                                    decorationBox = { innerTextField ->
+                                        if (uiState.searchQuery.isEmpty()) {
+                                            Text(
+                                                "Search matches, teams, leagues...",
+                                                color = Color.White.copy(alpha = 0.4f),
+                                                fontSize = 14.sp
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                )
+                                if (uiState.searchQuery.isNotEmpty()) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = Color.White.copy(alpha = 0.6f),
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clickable { viewModel.onSearchQueryChange("") }
+                                    )
+                                }
+                            }
                         }
                     }
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 96.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiState.filteredEvents, key = { it.id + it.slug }) { event ->
-                            SportMatchCard(
-                                event = event,
-                                timeTick = uiState.timeTick,
-                                onClick = {
-                                    navController.navigate(Screen.SportsWatch.createRoute(event.slug))
-                                }
+
+                    // ── Category Icons Row ───────────────────────────────
+                    if (uiState.categories.isNotEmpty()) {
+                        SportsCategoryRow(
+                            categories = uiState.categories,
+                            selectedCategory = uiState.selectedCategory,
+                            counts = uiState.categoryCounts,
+                            onSelect = { viewModel.selectCategory(it) }
+                        )
+                    }
+
+                    // ── Status Filter Tabs (All, Live, Recent, Upcoming) ──
+                    StatusFilterTabs(
+                        selected = uiState.selectedStatus,
+                        allCount = uiState.allCount,
+                        liveCount = uiState.liveCount,
+                        recentCount = uiState.recentCount,
+                        upcomingCount = uiState.upcomingCount,
+                        onSelect = { viewModel.selectStatus(it) }
+                    )
+
+                    // ── Events List ──────────────────────────────────────
+                    if (uiState.isLoading && uiState.events.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = AppRed,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(36.dp)
                             )
+                        }
+                    } else if (uiState.filteredEvents.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "No matches found",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    "Try selecting a different sport or filter tab",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.filteredEvents, key = { it.id + it.slug }) { event ->
+                                SportMatchCard(
+                                    event = event,
+                                    timeTick = uiState.timeTick,
+                                    onClick = {
+                                        navController.navigate(Screen.SportsWatch.createRoute(event.slug))
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -476,12 +497,12 @@ private fun SportMatchCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF0F1523))
             .border(
                 width = 1.dp,
                 color = if (isLive) AppRed.copy(alpha = 0.55f) else Color(0xFF1E283C),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(14.dp)
             )
             .clickable(onClick = onClick)
     ) {
@@ -490,7 +511,7 @@ private fun SportMatchCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ── Top Bar: Category Icon & League Name ────────────────
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(7.dp))
             val category = (info?.eventCat ?: event.cat ?: "").uppercase()
             val league = (info?.eventName ?: event.title).uppercase()
             val headerText = if (category.isNotBlank() && league.isNotBlank()) "$category | $league" else league
@@ -498,7 +519,7 @@ private fun SportMatchCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
@@ -507,28 +528,28 @@ private fun SportMatchCard(
                     imageVector = sportIcon,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.size(15.dp)
+                    modifier = Modifier.size(13.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = headerText,
                     color = Color.White,
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.4.sp,
+                    letterSpacing = 0.3.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // ── Center Row: Team A | Center Status | Team B ─────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Team A (Left)
@@ -537,12 +558,12 @@ private fun SportMatchCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start
                 ) {
-                    TeamFlagBadge(flagUrl = info?.teamAFlag, size = 42.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
+                    TeamFlagBadge(flagUrl = info?.teamAFlag, size = 35.dp)
+                    Spacer(modifier = Modifier.width(7.dp))
                     Text(
                         text = info?.teamA ?: event.title,
                         color = Color.White,
-                        fontSize = 13.5.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -553,8 +574,8 @@ private fun SportMatchCard(
                 // Center Column: Live Dot / Time & Date / Ended
                 Column(
                     modifier = Modifier
-                        .padding(horizontal = 6.dp)
-                        .widthIn(min = 86.dp),
+                        .padding(horizontal = 4.dp)
+                        .widthIn(min = 80.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     when {
@@ -563,7 +584,7 @@ private fun SportMatchCard(
                                 LottieCompositionSpec.RawRes(com.movie.app.best.R.raw.live_animation)
                             )
                             Box(
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(22.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (liveComposition != null) {
@@ -584,7 +605,7 @@ private fun SportMatchCard(
                             Text(
                                 text = "Live",
                                 color = AppRed,
-                                fontSize = 11.5.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -592,7 +613,7 @@ private fun SportMatchCard(
                             Text(
                                 text = event.formattedTimeOnly,
                                 color = Color(0xFF00B4D8),
-                                fontSize = 14.sp,
+                                fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
                             )
@@ -600,7 +621,7 @@ private fun SportMatchCard(
                             Text(
                                 text = event.formattedDateOnly,
                                 color = Color.White.copy(alpha = 0.65f),
-                                fontSize = 11.sp,
+                                fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center
                             )
@@ -609,7 +630,7 @@ private fun SportMatchCard(
                             Text(
                                 text = "Ended",
                                 color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 11.5.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -625,45 +646,45 @@ private fun SportMatchCard(
                     Text(
                         text = info?.teamB ?: "",
                         color = Color.White,
-                        fontSize = 13.5.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.End,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TeamFlagBadge(flagUrl = info?.teamBFlag, size = 42.dp)
+                    Spacer(modifier = Modifier.width(7.dp))
+                    TeamFlagBadge(flagUrl = info?.teamBFlag, size = 35.dp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // ── Bottom Notch Pill (Flush against bottom border) ────
             val notchText = event.getNotchText(timeTick)
             if (notchText.isNotBlank()) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 0.dp, bottomEnd = 0.dp))
+                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 0.dp, bottomEnd = 0.dp))
                         .background(Color(0xFF080D1A))
                         .border(
                             width = 0.8.dp,
                             color = Color.White.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+                            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
                         )
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                        .padding(horizontal = 18.dp, vertical = 3.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = notchText,
                         color = Color.White.copy(alpha = 0.92f),
-                        fontSize = 11.5.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.2.sp
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(7.dp))
             }
         }
 
