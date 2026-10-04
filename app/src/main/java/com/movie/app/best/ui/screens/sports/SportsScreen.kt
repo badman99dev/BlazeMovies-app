@@ -210,14 +210,22 @@ fun SportsScreen(
                         }
                     }
 
-                    // ── Category Icons Row ───────────────────────────────
-                    if (uiState.categories.isNotEmpty()) {
-                        SportsCategoryRow(
-                            categories = uiState.categories,
-                            selectedCategory = uiState.selectedCategory,
-                            counts = uiState.categoryCounts,
-                            onSelect = { viewModel.selectCategory(it) }
-                        )
+                    // ── Category Icons Row (Fixed height container: Zero layout shift) ──
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(72.dp)
+                    ) {
+                        if (uiState.categories.isNotEmpty()) {
+                            SportsCategoryRow(
+                                categories = uiState.categories,
+                                selectedCategory = uiState.selectedCategory,
+                                counts = uiState.categoryCounts,
+                                onSelect = { viewModel.selectCategory(it) }
+                            )
+                        } else {
+                            SportsCategoryRowSkeleton()
+                        }
                     }
 
                     // ── Status Filter Tabs (All, Live, Recent, Upcoming) ──
@@ -295,6 +303,45 @@ fun SportsScreen(
 }
 
 @Composable
+private fun SportsCategoryRowSkeleton() {
+    val infiniteTransition = rememberInfiniteTransition(label = "catSkeleton")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.55f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "catSkeletonAlpha"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        repeat(7) {
+            Box(modifier = Modifier.size(56.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .align(Alignment.Center)
+                        .clip(CircleShape)
+                        .background(Color(0xFF161616).copy(alpha = alpha))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.08f),
+                            shape = CircleShape
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SportsCategoryRow(
     categories: List<SportCategory>,
     selectedCategory: String,
@@ -302,15 +349,21 @@ private fun SportsCategoryRow(
     onSelect: (String) -> Unit
 ) {
     val visibleCategories = remember(categories, counts) {
-        categories.filter { cat ->
-            cat.title.equals("All", ignoreCase = true) || (counts[cat.title] ?: 0) > 0
+        if (counts.isEmpty()) {
+            categories
+        } else {
+            categories.filter { cat ->
+                cat.title.equals("All", ignoreCase = true) || (counts[cat.title] ?: 0) > 0
+            }
         }
     }
 
     LazyRow(
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
     ) {
         items(visibleCategories, key = { it.id.toString() + it.title }) { cat ->
             val isSelected = selectedCategory.equals(cat.title, ignoreCase = true)

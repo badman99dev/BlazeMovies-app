@@ -48,7 +48,9 @@ class SportsViewModel @Inject constructor(
     private val repository: SportsRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SportsUiState())
+    private val _uiState = MutableStateFlow(
+        SportsUiState(categories = repository.getInitialCategories())
+    )
     val uiState: StateFlow<SportsUiState> = _uiState.asStateFlow()
 
     private var tickerJob: Job? = null

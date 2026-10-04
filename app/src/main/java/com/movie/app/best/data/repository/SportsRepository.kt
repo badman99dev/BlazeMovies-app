@@ -35,13 +35,34 @@ class SportsRepository @Inject constructor(
     private val apiService: SportsApiService,
     private val gson: Gson
 ) {
-    private var cachedCategories: List<SportCategory> = emptyList()
+    companion object {
+        val DEFAULT_CATEGORIES: List<SportCategory> = listOf(
+            SportCategory(id = 1, title = "All", image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj-hKIdsTEB8MkBtUuda-NxuqPRc-4fdmRYrH9uJu6Q6fIz9E_5VMJgZGmNF-GrgT7vDm4vFhzvm5KF9ui2GOzn58RAA_MFpg4G02pl0-hOKHze7aKLS_HvdzIeuSqMx6-JjV-PlRMkaeKmz-W091kTM7ZiixDID_UvcYM6rjYdk-KA2l03xczFUaJkhEM/s1600/1000010646.png"),
+            SportCategory(id = 2, title = "Cricket", image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgDjbnf-Ujlmu63p2vrgTYcP5aGmNjuiAgRUBTjCjq0_LsB-7SG940YVDzxY3eVphGHaBWyl5cetBcF_Lp_bE5_-19TPaxcdJw-Qz7QdDfipXoYuA-CTQ_hqz5jyR4o4ThBGjxOBB_LpAAwLsiq_ZEnGMEIyxEy5TJc8lM7GdLtlYHTMOZHdwPIFr1FiDw/s1600/1000010573.png"),
+            SportCategory(id = 3, title = "Football", image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEieROLn9bEsxaaE0SX9jDmu3RKZUAFsM5cGLX4C1BPvU4rl4Wg_BUePMzgz0S2kENrTSnJIx-LU94iGND2-toy2SyMTaYmCTatjqXvLvEDQGWpLPvn40MrPzRXz0ojJKuiNAbJXNu9cjEnY7NTNp1spjkQYoorFoXRTCOzM9GJriZsnCN-7slOnabjEvSE/s1600/1000010583.png"),
+            SportCategory(id = 9, title = "Motorsport", image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgg6H0T3D97fV0A7WtqE0Lfvvel7FjdsOF-IbFPqOSHXsKhoaYD11FTO1u-3XDzCSpoP-i3eel3YAdFQ44Iua5BsOzCJ9avzNT7U7sYHoWrjqPuEc_cB_fdxETtFVKlCg6TCS_wM3bg7ivdhi6Ga4Bt_tcTkGa9niFeP1-lmTYChaS8j7xI57-NbbDNkFI/s1600/1000010868.png"),
+            SportCategory(id = 4, title = "Boxing", image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi0uFuLJNLyJenyGqhzreiekiC_rnp8H1uKe5J1WMevvdZcy33xKE4KQRgRbVGsednFQJhToiqUm-Xc9qosXMsEApNTgrxgXVVyVRsN3rJbPGrFOVPaj-ORmYRJDyqn8h_pPANj5CH2KSJEoeCmW1rOLx7tSrW1LlTR1se4GAlKDcga4_d3rGbypb4dDEQ/s1600/1000010611.png"),
+            SportCategory(id = 13, title = "Tennis", image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCrY-dmvNk5fkUEZiILfkZcx5xzSll5ht5xbIrVbqhg-Jx1Cvr1TC6siu3d-fXrYrIRcDsW6druwt3BVmzncqcN3NaTP4tlgS-kVQWLQje9CLkhjL1pOl8K-X-VkD5da5XNDPVyJik-aPzQy3IwJSsUM5HGikS705TgYCHCJeAXHmN_RKCboqdjnxP2EQ/s1600/1000022992.png"),
+            SportCategory(id = 5, title = "Basketball", image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiqbsNkqcG25WaIpaz0CM7i8zhcaGKsuhk3cj8cB2X4nwNGuMjdvmntXbhXUFvLFS1rg8IDU8BJ5OTwEjah16j1D3zHrouluOrmbG82qVC6NT-Amn6KjGkG48ey4bGv7di7rm7WGz8baYO3Mw53TKv8wElmjf5eJNsI4G-AuaTC_6naXZBoBsoN9FRJsTA/s1600/1000010603.png")
+        )
+    }
+
+    private var cachedCategories: List<SportCategory> = DEFAULT_CATEGORIES
     private var cachedEvents: List<SportEvent> = emptyList()
 
     // Transient one-time prefetch (consumed once and cleared immediately, never retained as persistent cache)
     @Volatile
     private var pendingPrefetch: Pair<String, Deferred<EventWatchResult>>? = null
     private val prefetchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        // Pre-warm fresh categories from backend in background so they are ready before user opens Sports tab
+        prefetchScope.launch {
+            getCategories(forceRefresh = false)
+        }
+    }
+
+    fun getInitialCategories(): List<SportCategory> = cachedCategories
 
     fun prefetchWatchEvent(slug: String) {
         if (slug.isBlank()) return
