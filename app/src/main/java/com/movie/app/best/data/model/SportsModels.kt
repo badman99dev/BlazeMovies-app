@@ -155,7 +155,7 @@ data class SportEvent(
                     else -> "Match Starting"
                 }
             }
-            else -> "Ended"
+            else -> "Match Ended"
         }
     }
 

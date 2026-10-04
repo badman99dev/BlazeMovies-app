@@ -619,9 +619,9 @@ private fun SportMatchCard(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        event.isUpcoming -> {
+                        else -> {
                             Text(
-                                text = event.formattedTimeOnly,
+                                text = event.formattedTimeOnly.ifBlank { "00:00" },
                                 color = Color(0xFF00B4D8),
                                 fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -629,19 +629,11 @@ private fun SportMatchCard(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = event.formattedDateOnly,
+                                text = event.formattedDateOnly.ifBlank { "" },
                                 color = Color.White.copy(alpha = 0.65f),
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center
-                            )
-                        }
-                        else -> {
-                            Text(
-                                text = "Ended",
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
