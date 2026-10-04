@@ -156,11 +156,12 @@ class SportsViewModel @Inject constructor(
 
     private fun applyFilters() {
         val s = _uiState.value
-        var list = s.events
 
         // 1. Filter by category
-        if (!s.selectedCategory.equals("All", ignoreCase = true)) {
-            list = list.filter { event ->
+        val categoryEvents = if (s.selectedCategory.equals("All", ignoreCase = true)) {
+            s.events
+        } else {
+            s.events.filter { event ->
                 val cat = event.eventInfo?.eventCat ?: ""
                 val eventName = event.eventInfo?.eventName ?: ""
                 val mainCat = event.cat ?: ""
@@ -169,6 +170,8 @@ class SportsViewModel @Inject constructor(
                     mainCat.contains(s.selectedCategory, ignoreCase = true)
             }
         }
+
+        var list = categoryEvents
 
         // 2. Filter by status
         list = when (s.selectedStatus) {
@@ -196,11 +199,11 @@ class SportsViewModel @Inject constructor(
         // - RECENT / ENDED at the very bottom (sorted by most recently ended first)
         val sortedList = sortEvents(list)
 
-        // Re-update status counts
-        val allCount = s.events.size
-        val liveCount = s.events.count { it.isLive }
-        val recentCount = s.events.count { it.isRecent }
-        val upcomingCount = s.events.count { it.isUpcoming }
+        // Dynamic status counts for the selected category (e.g. All (15), Live (0), etc.)
+        val allCount = categoryEvents.size
+        val liveCount = categoryEvents.count { it.isLive }
+        val recentCount = categoryEvents.count { it.isRecent }
+        val upcomingCount = categoryEvents.count { it.isUpcoming }
 
         _uiState.update {
             it.copy(

@@ -293,10 +293,9 @@ private fun SportsCategoryRow(
             val isSelected = selectedCategory.equals(cat.title, ignoreCase = true)
             val count = counts[cat.title] ?: 0
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(CircleShape)
                     .clickable { onSelect(cat.title) }
             ) {
                 Box(modifier = Modifier.size(54.dp)) {
@@ -333,32 +332,27 @@ private fun SportsCategoryRow(
                     }
 
                     if (count > 0) {
+                        val countText = if (count > 99) "99+" else count.toString()
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .offset(x = 2.dp, y = (-2).dp)
-                                .background(AppRed, RoundedCornerShape(50))
-                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                .offset(x = 1.dp, y = (-1).dp)
+                                .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
+                                .clip(CircleShape)
+                                .background(AppRed)
+                                .padding(horizontal = if (countText.length > 1) 4.dp else 0.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (count > 99) "99+" else count.toString(),
+                                text = countText,
                                 color = Color.White,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = cat.title,
-                    color = if (isSelected) AppRed else Color.White.copy(alpha = 0.7f),
-                    fontSize = 11.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    maxLines = 1
-                )
             }
         }
     }
