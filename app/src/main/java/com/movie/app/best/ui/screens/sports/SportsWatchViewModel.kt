@@ -70,7 +70,36 @@ class SportsWatchViewModel @Inject constructor(
         countdownJob = viewModelScope.launch {
             while (isActive) {
                 delay(1000)
-                _uiState.update { it.copy(timeTick = System.currentTimeMillis()) }
+                val now = System.currentTimeMillis()
+                val s = _uiState.value
+                val event = s.event
+
+                if (event != null && s.currentStream == null && event.isLive && s.streams.isNotEmpty()) {
+                    // Match transitioned from UPCOMING to LIVE in real time!
+                    val options = s.streams.mapIndexed { idx, st ->
+                        val label = st.title?.ifBlank { "Server ${idx + 1}" } ?: "Server ${idx + 1}"
+                        PlaybackOption(
+                            id = "sport_server_$idx",
+                            label = label,
+                            kind = PlaybackKind.NATIVE,
+                            url = st.url,
+                            playbackType = if (st.isDash) "dash" else "hls",
+                            languages = listOf(if (st.isDash) "DASH" else "HLS")
+                        )
+                    }
+                    val firstOpt = options.firstOrNull()
+                    val firstStream = s.streams.firstOrNull()
+                    _uiState.update {
+                        it.copy(
+                            timeTick = now,
+                            playbackOptions = options,
+                            selectedOptionId = firstOpt?.id,
+                            currentStream = firstStream
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(timeTick = now) }
+                }
             }
         }
     }
@@ -118,18 +147,10 @@ class SportsWatchViewModel @Inject constructor(
                 is EventWatchResult.Success -> {
                     val event = result.event
                     val streamList = result.streams
-                    if (streamList.isEmpty()) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                event = event,
-                                streams = emptyList(),
-                                playbackOptions = emptyList(),
-                                error = if (event.isUpcoming) null else "No stream servers available at the moment."
-                            )
-                        }
-                    } else {
-                        val options = streamList.mapIndexed { idx, s ->
+                    val isLive = event.isLive
+
+                    val options = if (isLive && streamList.isNotEmpty()) {
+                        streamList.mapIndexed { idx, s ->
                             val label = s.title?.ifBlank { "Server ${idx + 1}" } ?: "Server ${idx + 1}"
                             PlaybackOption(
                                 id = "sport_server_$idx",
@@ -140,20 +161,23 @@ class SportsWatchViewModel @Inject constructor(
                                 languages = listOf(if (s.isDash) "DASH" else "HLS")
                             )
                         }
-                        val firstOpt = options.firstOrNull()
-                        val firstStream = streamList.firstOrNull()
+                    } else {
+                        emptyList()
+                    }
 
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                event = event,
-                                streams = streamList,
-                                playbackOptions = options,
-                                selectedOptionId = firstOpt?.id,
-                                currentStream = firstStream,
-                                error = null
-                            )
-                        }
+                    val firstOpt = options.firstOrNull()
+                    val firstStream = if (isLive) streamList.firstOrNull() else null
+
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            event = event,
+                            streams = streamList,
+                            playbackOptions = options,
+                            selectedOptionId = firstOpt?.id,
+                            currentStream = firstStream,
+                            error = if (isLive && streamList.isEmpty()) "No stream servers available at the moment." else null
+                        )
                     }
                 }
             }
