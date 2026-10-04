@@ -42,12 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.movie.app.best.data.model.PlaybackOption
-import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
+import com.movie.app.best.ui.screens.player.PlayerFactory
 import com.movie.app.best.ui.components.TeamFlagBadge
 import com.movie.app.best.ui.theme.AppRed
 import com.movie.app.best.ui.theme.CardDark
@@ -72,9 +70,7 @@ fun SportsWatchScreen(
     var playerErrorMsg by remember { mutableStateOf<String?>(null) }
 
     val trackSelector = remember {
-        DefaultTrackSelector(context).apply {
-            setParameters(VideoQualitySettings.applyTo(buildUponParameters()).build())
-        }
+        PlayerFactory.trackSelector(context, disableSubtitles = false)
     }
 
     val exitFullscreen = {
@@ -134,20 +130,11 @@ fun SportsWatchScreen(
         isPlayerBuffering = true
         playerErrorMsg = null
 
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                5000,
-                30000,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
-            )
-            .setBackBuffer(30000, true)
-            .build()
-
-        val newPlayer = ExoPlayer.Builder(context)
-            .setTrackSelector(trackSelector)
-            .setLoadControl(loadControl)
-            .build()
+        val newPlayer = PlayerFactory.build(
+            context = context,
+            trackSelector = trackSelector,
+            backBufferMs = PlayerFactory.SPORTS_BACK_BUFFER_MS
+        )
 
         newPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {

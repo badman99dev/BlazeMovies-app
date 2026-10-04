@@ -52,14 +52,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
-import androidx.media3.common.C
 import coil.compose.AsyncImage
-import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
+import com.movie.app.best.ui.screens.player.PlayerFactory
 import com.movie.app.best.ui.theme.AppBlack
 import com.movie.app.best.ui.theme.CardDark
 import com.movie.app.best.ui.theme.AppRed
@@ -108,11 +105,7 @@ fun ExtractedSeriesScreen(
     var isFullscreen by remember { mutableStateOf(false) }
 
     val trackSelector = remember {
-        DefaultTrackSelector(context).apply {
-            val params = buildUponParameters()
-                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-            setParameters(VideoQualitySettings.applyTo(params).build())
-        }
+        PlayerFactory.trackSelector(context)
     }
 
     LaunchedEffect(isFullscreen) {
@@ -132,14 +125,11 @@ fun ExtractedSeriesScreen(
         val dataSourceFactory = DefaultDataSource.Factory(context)
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
-        val player = ExoPlayer.Builder(context)
-            .setTrackSelector(trackSelector)
-            .setMediaSourceFactory(mediaSourceFactory)
-            .setLoadControl(
-                DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(5000, 30000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-                    .setBackBuffer(300000, true).build()
-            ).build()
+        val player = PlayerFactory.build(
+            context = context,
+            trackSelector = trackSelector,
+            mediaSourceFactory = mediaSourceFactory
+        )
 
         player.setMediaItem(MediaItem.fromUri("file://${ep.filePath}"))
         player.prepare()

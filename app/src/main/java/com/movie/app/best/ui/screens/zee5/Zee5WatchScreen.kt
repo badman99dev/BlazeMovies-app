@@ -40,23 +40,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
-import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.data.model.Zee5Item
-import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.components.GlassBadge
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
+import com.movie.app.best.ui.screens.player.PlayerFactory
 import com.movie.app.best.ui.theme.AppBlack
 import com.movie.app.best.ui.theme.CardDark
 import com.movie.app.best.ui.theme.AppRed
@@ -106,11 +102,7 @@ fun Zee5WatchScreen(
     }
 
     val trackSelector = remember {
-        DefaultTrackSelector(context).apply {
-            val params = buildUponParameters()
-                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-            setParameters(VideoQualitySettings.applyTo(params).build())
-        }
+        PlayerFactory.trackSelector(context)
     }
 
     val exoPlayer = remember {
@@ -129,14 +121,11 @@ fun Zee5WatchScreen(
         val dsFactory = DefaultDataSource.Factory(context, okFactory)
         val hlsFactory = HlsMediaSource.Factory(dsFactory)
 
-        ExoPlayer.Builder(context)
-            .setTrackSelector(trackSelector)
-            .setMediaSourceFactory(hlsFactory)
-            .setLoadControl(
-                DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(5000, 30000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-                    .setBackBuffer(300000, true).build()
-            ).build()
+        PlayerFactory.build(
+            context = context,
+            trackSelector = trackSelector,
+            mediaSourceFactory = hlsFactory
+        )
     }
 
     LaunchedEffect(state.currentM3u8) {

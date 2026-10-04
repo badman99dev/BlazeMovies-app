@@ -74,25 +74,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import coil.compose.AsyncImage
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.model.CrewPerson
-import com.movie.app.best.data.settings.VideoQualitySettings
 import com.movie.app.best.ui.components.GlassBadge
 import com.movie.app.best.ui.components.CollapsibleCrewRow
 import com.movie.app.best.ui.components.InterestsGenreSection
@@ -103,6 +99,7 @@ import com.movie.app.best.ui.screens.moviedetail.components.MoreLikeThisSection
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestResultModal
 import com.movie.app.best.ui.screens.moviedetail.components.StreamRequestWaitingPopup
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
+import com.movie.app.best.ui.screens.player.PlayerFactory
 import com.movie.app.best.ui.screens.player.ServerScanOverlay
 import com.movie.app.best.ui.theme.AppBlack
 import com.movie.app.best.ui.theme.AppRed
@@ -147,11 +144,7 @@ fun MovieWatchScreen(
     val playerTitle = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title
 
     val trackSelector = remember {
-        DefaultTrackSelector(context).apply {
-            val params = buildUponParameters()
-                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-            setParameters(VideoQualitySettings.applyTo(params).build())
-        }
+        PlayerFactory.trackSelector(context)
     }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
@@ -228,14 +221,11 @@ fun MovieWatchScreen(
             else
                 DefaultMediaSourceFactory(dsFactory)
 
-        val player = ExoPlayer.Builder(context)
-            .setTrackSelector(trackSelector)
-            .setMediaSourceFactory(mediaFactory)
-            .setLoadControl(
-                DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(5000, 30000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-                    .setBackBuffer(300000, true).build()
-            ).build()
+        val player = PlayerFactory.build(
+            context = context,
+            trackSelector = trackSelector,
+            mediaSourceFactory = mediaFactory
+        )
 
         player.setMediaItem(MediaItem.fromUri(m3u8))
         player.prepare()
