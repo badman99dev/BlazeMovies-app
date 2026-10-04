@@ -83,6 +83,7 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
         initAcra {
             buildConfigClass = BuildConfig::class.java
             reportFormat = StringFormat.KEY_VALUE_LIST
+            alsoReportToAndroidFramework = true
 
             toast {
                 text = "Crash report Tempserv pe bhej raha hoon... 📤"

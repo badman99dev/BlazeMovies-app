@@ -1,46 +1,41 @@
 package com.movie.app.best.ui.screens.sports
 
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SportsBaseball
 import androidx.compose.material.icons.filled.SportsBasketball
 import androidx.compose.material.icons.filled.SportsCricket
-import androidx.compose.material.icons.filled.SportsFootball
 import androidx.compose.material.icons.filled.SportsMotorsports
 import androidx.compose.material.icons.filled.SportsMma
 import androidx.compose.material.icons.filled.SportsSoccer
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -48,18 +43,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -69,8 +60,16 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.movie.app.best.data.model.SportCategory
 import com.movie.app.best.data.model.SportEvent
+import com.movie.app.best.ui.components.AppHeader
+import com.movie.app.best.ui.components.TeamFlagBadge
 import com.movie.app.best.ui.navigation.Screen
+import com.movie.app.best.ui.navigation.navigateToBottomTab
 import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.CardDark
+import com.movie.app.best.ui.theme.AppSurface
+import com.movie.app.best.ui.theme.InfoBlue
+import com.movie.app.best.ui.theme.SuccessGreen
+import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 
 @Composable
 fun SportsScreen(
@@ -81,33 +80,111 @@ fun SportsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing = uiState.isRefreshing
+    val listState = rememberLazyListState()
+
+    val barsState = LocalCollapsibleBarsState.current
+    val isBarsVisible = barsState?.isBarsVisible?.value ?: true
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        if (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0) {
+            barsState?.show()
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0B0D14))
+            .background(Color.Black)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-        ) {
-            // ── Top Bar ──────────────────────────────────────────
-            SportsTopHeader(
-                onMenuClick = onMenuClick,
-                onRefreshClick = { viewModel.loadData(forceRefresh = true) },
-                onNotificationClick = onNotificationClick,
-                isSearchActive = uiState.isSearchActive,
-                searchQuery = uiState.searchQuery,
-                onSearchToggle = { viewModel.setSearchActive(!uiState.isSearchActive) },
-                onSearchQueryChange = { viewModel.onSearchQueryChange(it) }
-            )
+        Column(modifier = Modifier.fillMaxSize()) {
+            AnimatedVisibility(
+                visible = isBarsVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + expandVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                ) + shrinkVertically(
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                )
+            ) {
+                AppHeader(
+                    onMenuClick = onMenuClick,
+                    onSearchClick = { viewModel.setSearchActive(!uiState.isSearchActive) },
+                    onNotificationClick = onNotificationClick,
+                    onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
+                    hasNotification = false
+                )
+            }
 
-            // ── Announcement Ticker Banner ───────────────────────
-            AnnouncementBanner(
-                text = "⚡ Live sports streams updated in real-time · Tap any match to watch",
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-            )
+            // Inline search (event/team/league filter)
+            AnimatedVisibility(
+                visible = uiState.isSearchActive,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .background(AppSurface, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        BasicTextField(
+                            value = uiState.searchQuery,
+                            onValueChange = { viewModel.onSearchQueryChange(it) },
+                            singleLine = true,
+                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                            cursorBrush = SolidColor(AppRed),
+                            modifier = Modifier.weight(1f),
+                            decorationBox = { innerTextField ->
+                                if (uiState.searchQuery.isEmpty()) {
+                                    Text(
+                                        "Search matches, teams, leagues...",
+                                        color = Color.White.copy(alpha = 0.4f),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        )
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color.White.copy(alpha = 0.6f),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { viewModel.onSearchQueryChange("") }
+                            )
+                        }
+                    }
+                }
+            }
 
             // ── Category Icons Row ───────────────────────────────
             if (uiState.categories.isNotEmpty()) {
@@ -169,6 +246,7 @@ fun SportsScreen(
                     }
                 } else {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -186,207 +264,6 @@ fun SportsScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SportsTopHeader(
-    onMenuClick: () -> Unit,
-    onRefreshClick: () -> Unit,
-    onNotificationClick: () -> Unit,
-    isSearchActive: Boolean,
-    searchQuery: String,
-    onSearchToggle: () -> Unit,
-    onSearchQueryChange: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 6.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Menu Icon
-            HeaderIcon(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            // Brand Title (CRICFy TV / BLAZE SPORTS style)
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.Black)) {
-                        append("CRIC")
-                    }
-                    withStyle(SpanStyle(color = AppRed, fontWeight = FontWeight.Black)) {
-                        append("Fy ")
-                    }
-                    withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.Bold)) {
-                        append("TV")
-                    }
-                },
-                fontSize = 20.sp,
-                letterSpacing = (-0.5).sp,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Notifications
-            HeaderIcon(onClick = onNotificationClick) {
-                Box {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color.White,
-                        modifier = Modifier.size(23.dp)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(7.dp)
-                            .background(AppRed, CircleShape)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // Star / Favorites
-            HeaderIcon(onClick = {}) {
-                Icon(
-                    imageVector = Icons.Default.StarBorder,
-                    contentDescription = "Favorites",
-                    tint = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier.size(23.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // Refresh
-            HeaderIcon(onClick = onRefreshClick) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    tint = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier.size(23.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // Search
-            HeaderIcon(onClick = onSearchToggle) {
-                Icon(
-                    imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = if (isSearchActive) AppRed else Color.White,
-                    modifier = Modifier.size(23.dp)
-                )
-            }
-        }
-
-        // Inline Search Bar
-        AnimatedVisibility(
-            visible = isSearchActive,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp, bottom = 4.dp)
-                    .background(Color(0xFF191C28), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        singleLine = true,
-                        textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
-                        cursorBrush = SolidColor(AppRed),
-                        modifier = Modifier.weight(1f),
-                        decorationBox = { innerTextField ->
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    "Search matches, teams, leagues...",
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 14.sp
-                                )
-                            }
-                            innerTextField()
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeaderIcon(onClick: () -> Unit, content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
-}
-
-@Composable
-private fun AnnouncementBanner(text: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(Color(0xFF281816), Color(0xFF1E1E28))
-                ),
-                shape = RoundedCornerShape(10.dp)
-            )
-            .border(0.8.dp, Color(0xFFFA5035).copy(alpha = 0.4f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.Campaign,
-            contentDescription = null,
-            tint = Color(0xFFFF643D),
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = 11.5.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
@@ -413,15 +290,14 @@ private fun SportsCategoryRow(
                     .clickable { onSelect(cat.title) }
             ) {
                 Box(modifier = Modifier.size(54.dp)) {
-                    // Circular icon container
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            .background(if (isSelected) Color(0xFF242938) else Color(0xFF151824))
+                            .background(if (isSelected) CardDark else Color(0xFF111111))
                             .border(
                                 width = if (isSelected) 1.8.dp else 1.dp,
-                                color = if (isSelected) Color(0xFFFF643D) else Color.White.copy(alpha = 0.12f),
+                                color = if (isSelected) AppRed else Color.White.copy(alpha = 0.12f),
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
@@ -440,19 +316,18 @@ private fun SportsCategoryRow(
                             Icon(
                                 imageVector = defaultIcon,
                                 contentDescription = cat.title,
-                                tint = if (isSelected) Color(0xFFFF643D) else Color.White.copy(alpha = 0.85f),
+                                tint = if (isSelected) AppRed else Color.White.copy(alpha = 0.85f),
                                 modifier = Modifier.size(26.dp)
                             )
                         }
                     }
 
-                    // Red counter badge at top right
                     if (count > 0) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .offset(x = 2.dp, y = (-2).dp)
-                                .background(Color(0xFFE50914), RoundedCornerShape(50))
+                                .background(AppRed, RoundedCornerShape(50))
                                 .padding(horizontal = 5.dp, vertical = 1.dp)
                         ) {
                             Text(
@@ -469,7 +344,7 @@ private fun SportsCategoryRow(
 
                 Text(
                     text = cat.title,
-                    color = if (isSelected) Color(0xFFFF643D) else Color.White.copy(alpha = 0.7f),
+                    color = if (isSelected) AppRed else Color.White.copy(alpha = 0.7f),
                     fontSize = 11.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1
@@ -544,12 +419,12 @@ private fun StatusFilterPill(
     onClick: () -> Unit
 ) {
     val bg by animateColorAsState(
-        targetValue = if (isSelected) Color(0xFF281C1B) else Color(0xFF141722),
+        targetValue = if (isSelected) CardDark else Color(0xFF111111),
         animationSpec = tween(150),
         label = "pillBg"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) Color(0xFFFF5238) else Color.White.copy(alpha = 0.12f),
+        targetValue = if (isSelected) AppRed else Color.White.copy(alpha = 0.12f),
         animationSpec = tween(150),
         label = "pillBorder"
     )
@@ -565,7 +440,7 @@ private fun StatusFilterPill(
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color(0xFFFF5238) else Color.White.copy(alpha = 0.8f),
+            color = if (isSelected) AppRed else Color.White.copy(alpha = 0.8f),
             fontSize = 11.5.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1
@@ -598,10 +473,10 @@ private fun SportMatchCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF141722))
+            .background(CardDark)
             .border(
                 width = if (isLive) 1.2.dp else 0.8.dp,
-                color = if (isLive) Color(0xFFE50914).copy(alpha = 0.6f) else Color.White.copy(alpha = 0.08f),
+                color = if (isLive) AppRed.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.08f),
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onClick)
@@ -611,7 +486,6 @@ private fun SportMatchCard(
                 .fillMaxWidth()
                 .padding(top = 10.dp, bottom = 12.dp, start = 14.dp, end = 14.dp)
         ) {
-            // ── Top Header: SPORT | LEAGUE ────────────────────────
             val category = (info?.eventCat ?: event.cat ?: "").uppercase()
             val league = (info?.eventName ?: event.title).uppercase()
             val headerText = if (category.isNotBlank() && league.isNotBlank()) "$category | $league" else league
@@ -630,18 +504,16 @@ private fun SportMatchCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // ── Main Row: Team A ── VS / Center Status ── Team B ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Team A (Left)
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start
                 ) {
-                    TeamFlag(flagUrl = info?.teamAFlag)
+                    TeamFlagBadge(flagUrl = info?.teamAFlag)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = info?.teamA ?: event.title,
@@ -654,7 +526,6 @@ private fun SportMatchCard(
                     )
                 }
 
-                // Center Column: Status / Timer / Countdown
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 6.dp)
@@ -670,12 +541,12 @@ private fun SportMatchCard(
                                 Box(
                                     modifier = Modifier
                                         .size(7.dp)
-                                        .background(Color(0xFFE50914).copy(alpha = liveAlpha), CircleShape)
+                                        .background(AppRed.copy(alpha = liveAlpha), CircleShape)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "((•)) Live",
-                                    color = Color(0xFFE50914),
+                                    color = AppRed,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black
                                 )
@@ -694,7 +565,7 @@ private fun SportMatchCard(
                         event.isUpcoming -> {
                             Text(
                                 text = event.formattedStartTime,
-                                color = Color(0xFF38BDF8),
+                                color = InfoBlue,
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
@@ -718,7 +589,6 @@ private fun SportMatchCard(
                     }
                 }
 
-                // Team B (Right)
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
@@ -735,62 +605,26 @@ private fun SportMatchCard(
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    TeamFlag(flagUrl = info?.teamBFlag)
+                    TeamFlagBadge(flagUrl = info?.teamBFlag)
                 }
             }
 
-            // Bottom HOT badge if applicable
             if (isHot) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF10B981), Color(0xFF059669))
-                            ),
-                            shape = RoundedCornerShape(6.dp)
-                        )
+                        .background(SuccessGreen, RoundedCornerShape(6.dp))
                         .padding(horizontal = 7.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "HOT 🔥",
-                        color = Color.White,
+                        color = Color.Black,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TeamFlag(flagUrl: String?) {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(Color(0xFF222636))
-            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!flagUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = flagUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.SportsSoccer,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.4f),
-                modifier = Modifier.size(20.dp)
-            )
         }
     }
 }
