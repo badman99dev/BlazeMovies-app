@@ -233,6 +233,10 @@ class SportsViewModel @Inject constructor(
         return live + upcoming + recent
     }
 
+    fun onMatchCardClick(slug: String) {
+        repository.prefetchWatchEvent(slug)
+    }
+
     suspend fun getStreamsForEvent(slug: String): List<SportStream> {
         return repository.getEventStreams(slug).getOrDefault(emptyList())
     }

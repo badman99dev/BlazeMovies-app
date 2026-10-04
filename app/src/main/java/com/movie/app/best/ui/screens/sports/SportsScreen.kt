@@ -281,6 +281,7 @@ fun SportsScreen(
                                     event = event,
                                     timeTick = uiState.timeTick,
                                     onClick = {
+                                        viewModel.onMatchCardClick(event.slug)
                                         navController.navigate(Screen.SportsWatch.createRoute(event.slug))
                                     }
                                 )
