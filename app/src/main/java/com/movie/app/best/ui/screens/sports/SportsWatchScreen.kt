@@ -3,6 +3,9 @@ package com.movie.app.best.ui.screens.sports
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -296,7 +299,7 @@ fun SportsWatchScreen(
                         .background(Color.Black)
                 ) {
                     when {
-                        // 1. Loading State: Do NOT display any "LIVE" or fake player controls
+                        // 1. Loading State: Native player buffering animation
                         state.isLoading || event == null -> {
                             Box(
                                 modifier = Modifier
@@ -316,19 +319,11 @@ fun SportsWatchScreen(
                                         tint = Color.White
                                     )
                                 }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    CircularProgressIndicator(
-                                        color = AppRed,
-                                        modifier = Modifier.size(34.dp),
-                                        strokeWidth = 3.dp
-                                    )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Text(
-                                        text = "Loading match details...",
-                                        color = Color.White.copy(alpha = 0.75f),
-                                        fontSize = 13.sp
-                                    )
-                                }
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(64.dp),
+                                    strokeWidth = 3.5.dp
+                                )
                             }
                         }
 
@@ -403,278 +398,286 @@ fun SportsWatchScreen(
                                     .background(Color.Black),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    CircularProgressIndicator(
-                                        color = AppRed,
-                                        modifier = Modifier.size(34.dp),
-                                        strokeWidth = 3.dp
-                                    )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Text(
-                                        text = "Connecting to live stream...",
-                                        color = Color.White.copy(alpha = 0.75f),
-                                        fontSize = 13.sp
+                                IconButton(
+                                    onClick = onBackClick,
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = Color.White
                                     )
                                 }
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(64.dp),
+                                    strokeWidth = 3.5.dp
+                                )
                             }
                         }
                     }
                 }
 
-                if (!state.isLoading && event != null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .background(Color.Black)
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(Color.Black)
+                ) {
+                    AnimatedVisibility(
+                        visible = !state.isLoading && event != null,
+                        enter = fadeIn(animationSpec = tween(350)),
+                        exit = fadeOut(animationSpec = tween(150))
                     ) {
-                        val catText = listOfNotNull(
-                            info?.eventCat?.takeIf { it.isNotBlank() },
-                            info?.eventName?.takeIf { it.isNotBlank() }
-                        ).joinToString(" | ").uppercase()
-
-                        if (catText.isNotBlank()) {
-                            Text(
-                                text = catText,
-                                color = AppRed,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-
-                        if (displayTitle.isNotBlank()) {
-                            Text(
-                                text = displayTitle,
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(14.dp))
-                        }
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = CardDark),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black)
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    TeamFlagBadge(flagUrl = info?.teamAFlag, size = 48.dp, borderWidth = 1.5.dp)
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = info?.teamA ?: "Team A",
-                                        color = Color.White,
-                                        fontSize = 13.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 2
-                                    )
-                                }
+                            val catText = listOfNotNull(
+                                info?.eventCat?.takeIf { it.isNotBlank() },
+                                info?.eventName?.takeIf { it.isNotBlank() }
+                            ).joinToString(" | ").uppercase()
 
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.padding(horizontal = 8.dp)
-                                ) {
-                                    when {
-                                        isLive -> {
-                                            val pulse = rememberInfiniteTransition(label = "pulse")
-                                            val alpha by pulse.animateFloat(
-                                                initialValue = 0.5f,
-                                                targetValue = 1f,
-                                                animationSpec = infiniteRepeatable(
-                                                    animation = tween(600, easing = FastOutSlowInEasing),
-                                                    repeatMode = RepeatMode.Reverse
-                                                ),
-                                                label = "pulseAlpha"
-                                            )
-
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .background(AppRed.copy(alpha = 0.15f), RoundedCornerShape(50))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(7.dp)
-                                                        .background(AppRed.copy(alpha = alpha), CircleShape)
-                                                )
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                Text(
-                                                    text = "LIVE",
-                                                    color = AppRed,
-                                                    fontSize = 11.5.sp,
-                                                    fontWeight = FontWeight.Black
-                                                )
-                                            }
-                                        }
-                                        isUpcoming -> {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .background(InfoBlue.copy(alpha = 0.2f), RoundedCornerShape(50))
-                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                                            ) {
-                                                Icon(
-                                                    Icons.Default.HourglassTop,
-                                                    contentDescription = null,
-                                                    tint = InfoBlue,
-                                                    modifier = Modifier.size(13.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(
-                                                    text = "UPCOMING",
-                                                    color = InfoBlue,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Black
-                                                )
-                                            }
-                                        }
-                                        else -> {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(50))
-                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                                            ) {
-                                                Text(
-                                                    text = "ENDED",
-                                                    color = Color.White.copy(alpha = 0.7f),
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "VS",
-                                        color = Color.White.copy(alpha = 0.4f),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    TeamFlagBadge(flagUrl = info?.teamBFlag, size = 48.dp, borderWidth = 1.5.dp)
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = info?.teamB ?: "Team B",
-                                        color = Color.White,
-                                        fontSize = 13.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 2
-                                    )
-                                }
+                            if (catText.isNotBlank()) {
+                                Text(
+                                    text = catText,
+                                    color = AppRed,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
                             }
-                        }
 
-                        if (isUpcoming && event != null) {
-                            Spacer(modifier = Modifier.height(14.dp))
+                            if (displayTitle.isNotBlank()) {
+                                Text(
+                                    text = displayTitle,
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                            }
+
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = CardDark),
-                                border = BorderStroke(1.dp, InfoBlue.copy(alpha = 0.3f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.Default.CalendarToday,
-                                            contentDescription = null,
-                                            tint = InfoBlue,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = event.formattedStartTime,
-                                            color = InfoBlue,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = event.getNotchText(state.timeTick),
-                                        color = Color.White,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Live streaming will commence automatically when the match starts.",
-                                        color = Color.White.copy(alpha = 0.6f),
-                                        fontSize = 11.5.sp,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                        } else if (isEnded) {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(containerColor = CardDark),
                                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(14.dp),
+                                        .padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.EventBusy,
-                                        contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        TeamFlagBadge(flagUrl = info?.teamAFlag, size = 48.dp, borderWidth = 1.5.dp)
+                                        Spacer(modifier = Modifier.height(6.dp))
                                         Text(
-                                            text = "Broadcast Concluded",
+                                            text = info?.teamA ?: "Team A",
                                             color = Color.White,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center,
+                                            maxLines = 2
+                                        )
+                                    }
+
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                    ) {
+                                        when {
+                                            isLive -> {
+                                                val pulse = rememberInfiniteTransition(label = "pulse")
+                                                val alpha by pulse.animateFloat(
+                                                    initialValue = 0.5f,
+                                                    targetValue = 1f,
+                                                    animationSpec = infiniteRepeatable(
+                                                        animation = tween(600, easing = FastOutSlowInEasing),
+                                                        repeatMode = RepeatMode.Reverse
+                                                    ),
+                                                    label = "pulseAlpha"
+                                                )
+
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .background(AppRed.copy(alpha = 0.15f), RoundedCornerShape(50))
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(7.dp)
+                                                            .background(AppRed.copy(alpha = alpha), CircleShape)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Text(
+                                                        text = "LIVE",
+                                                        color = AppRed,
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                }
+                                            }
+                                            isUpcoming -> {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .background(InfoBlue.copy(alpha = 0.2f), RoundedCornerShape(50))
+                                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.HourglassTop,
+                                                        contentDescription = null,
+                                                        tint = InfoBlue,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "UPCOMING",
+                                                        color = InfoBlue,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                }
+                                            }
+                                            else -> {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(50))
+                                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "ENDED",
+                                                        color = Color.White.copy(alpha = 0.7f),
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "VS",
+                                            color = Color.White.copy(alpha = 0.4f),
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold
                                         )
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                    }
+
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        TeamFlagBadge(flagUrl = info?.teamBFlag, size = 48.dp, borderWidth = 1.5.dp)
+                                        Spacer(modifier = Modifier.height(6.dp))
                                         Text(
-                                            text = "This match has ended. Live streaming is no longer active.",
-                                            color = Color.White.copy(alpha = 0.6f),
-                                            fontSize = 11.5.sp
+                                            text = info?.teamB ?: "Team B",
+                                            color = Color.White,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center,
+                                            maxLines = 2
                                         )
+                                    }
+                                }
+                            }
+
+                            if (isUpcoming && event != null) {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = CardDark),
+                                    border = BorderStroke(1.dp, InfoBlue.copy(alpha = 0.3f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Default.CalendarToday,
+                                                contentDescription = null,
+                                                tint = InfoBlue,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = event.formattedStartTime,
+                                                color = InfoBlue,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = event.getNotchText(state.timeTick),
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Live streaming will commence automatically when the match starts.",
+                                            color = Color.White.copy(alpha = 0.6f),
+                                            fontSize = 11.5.sp,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            } else if (isEnded) {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = CardDark),
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.EventBusy,
+                                            contentDescription = null,
+                                            tint = Color.White.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = "Broadcast Concluded",
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "This match has ended. Live streaming is no longer active.",
+                                                color = Color.White.copy(alpha = 0.6f),
+                                                fontSize = 11.5.sp
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                } else {
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    )
                 }
             }
         }
