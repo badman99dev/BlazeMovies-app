@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PictureInPicture
@@ -90,6 +91,9 @@ fun ControlsBottomView(
 ) {
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val isLandscape = context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val isEffectivelyFullscreen = !isInline || isLandscape || com.movie.app.best.util.FullscreenPlayerState.isActive
 
     if (isInline) {
         Column(
@@ -144,8 +148,8 @@ fun ControlsBottomView(
                     modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Fullscreen,
-                        contentDescription = "Fullscreen",
+                        imageVector = if (isEffectivelyFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                        contentDescription = if (isEffectivelyFullscreen) "Exit Fullscreen" else "Fullscreen",
                         modifier = Modifier.size(20.dp),
                         tint = Color.White.copy(alpha = 0.9f),
                     )
@@ -244,7 +248,10 @@ fun ControlsBottomView(
                 Spacer(modifier = Modifier.weight(1f))
 
                 PlayerButton(onClick = onFullscreenClick) {
-                    Icon(imageVector = Icons.Default.Fullscreen, contentDescription = null)
+                    Icon(
+                        imageVector = if (isEffectivelyFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                        contentDescription = if (isEffectivelyFullscreen) "Exit Fullscreen" else "Fullscreen"
+                    )
                 }
             }
         }
