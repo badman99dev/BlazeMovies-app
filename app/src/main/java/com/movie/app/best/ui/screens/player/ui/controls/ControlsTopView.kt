@@ -80,9 +80,13 @@ fun ControlsTopView(
     } else {
         Row(
             modifier = modifier
-                .padding(start = systemBarsPadding.calculateLeftPadding(layoutDirection), end = systemBarsPadding.calculateRightPadding(layoutDirection), top = systemBarsPadding.calculateTopPadding(), bottom = 0.dp)
-                .padding(horizontal = 8.dp)
-                .padding(bottom = 16.dp),
+                .fillMaxWidth()
+                .padding(
+                    start = systemBarsPadding.calculateLeftPadding(layoutDirection) + 8.dp,
+                    end = systemBarsPadding.calculateRightPadding(layoutDirection) + 8.dp,
+                    top = 8.dp,
+                    bottom = 4.dp,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
