@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -53,6 +54,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.movie.app.best.ui.screens.player.buttons.PlayerButton
@@ -93,18 +96,19 @@ fun ControlsBottomView(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
+                .padding(bottom = 2.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 0.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
             ) {
                 var showPendingPosition by rememberSaveable { mutableStateOf(false) }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.noRippleClickable { if (!isLive) showPendingPosition = !showPendingPosition },
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                        .noRippleClickable { if (!isLive) showPendingPosition = !showPendingPosition },
                 ) {
                     if (isLive) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -117,7 +121,8 @@ fun ControlsBottomView(
                             Text(
                                 text = "LIVE",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.95f),
                             )
                         }
                     } else {
@@ -127,30 +132,33 @@ fun ControlsBottomView(
                                 false -> "${mediaPresentationState.positionFormatted} / ${mediaPresentationState.durationFormatted}"
                             },
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = Color.White.copy(alpha = 0.85f),
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                PlayerButton(onClick = onFullscreenClick) {
+                IconButton(
+                    onClick = onFullscreenClick,
+                    modifier = Modifier.size(28.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Fullscreen,
-                        contentDescription = null,
+                        contentDescription = "Fullscreen",
                         modifier = Modifier.size(20.dp),
-                        tint = Color.White.copy(alpha = 0.85f),
+                        tint = Color.White.copy(alpha = 0.9f),
                     )
                 }
             }
 
             CustomSeekbar(
-                modifier = Modifier.offset(y = 2.dp),
                 position = if (isLive) mediaPresentationState.duration.toFloat() else mediaPresentationState.position.toFloat(),
                 duration = mediaPresentationState.duration.toFloat(),
                 onSeek = { if (!isLive) onSeek(it.toLong()) },
                 onSeekEnd = { if (!isLive) onSeekEnd() },
                 isLive = isLive,
+                barHeight = if (isLive) 6.dp else 16.dp,
             )
         }
     } else {
@@ -251,10 +259,11 @@ private fun CustomSeekbar(
     onSeek: (Float) -> Unit,
     onSeekEnd: () -> Unit,
     isLive: Boolean = false,
+    barHeight: Dp = if (isLive) 6.dp else 20.dp,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val trackHeight = 2.dp
-    val thumbRadius = 6.dp
+    val thumbRadius = if (isLive) 0.dp else 6.dp
     
     var sliderWidth by rememberSaveable { mutableStateOf(0f) }
     var isDragging by rememberSaveable { mutableStateOf(false) }
@@ -265,7 +274,7 @@ private fun CustomSeekbar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(20.dp)
+            .height(barHeight)
             .onGloballyPositioned { coordinates ->
                 sliderWidth = coordinates.size.width.toFloat()
             }
