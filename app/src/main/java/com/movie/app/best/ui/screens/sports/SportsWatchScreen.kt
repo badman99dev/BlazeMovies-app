@@ -307,18 +307,6 @@ fun SportsWatchScreen(
                                     .background(Color.Black),
                                 contentAlignment = Alignment.Center
                             ) {
-                                IconButton(
-                                    onClick = onBackClick,
-                                    modifier = Modifier
-                                        .align(Alignment.TopStart)
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = Color.White
-                                    )
-                                }
                                 CircularProgressIndicator(
                                     color = Color.White,
                                     modifier = Modifier.size(64.dp),
@@ -398,18 +386,6 @@ fun SportsWatchScreen(
                                     .background(Color.Black),
                                 contentAlignment = Alignment.Center
                             ) {
-                                IconButton(
-                                    onClick = onBackClick,
-                                    modifier = Modifier
-                                        .align(Alignment.TopStart)
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = Color.White
-                                    )
-                                }
                                 CircularProgressIndicator(
                                     color = Color.White,
                                     modifier = Modifier.size(64.dp),
