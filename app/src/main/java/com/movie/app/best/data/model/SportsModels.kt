@@ -97,20 +97,62 @@ data class SportEvent(
             return outputFormat.format(d)
         }
 
-    val countdownText: String
+    val formattedTimeOnly: String
         get() {
-            val start = startDate?.time ?: return ""
-            val diff = start - System.currentTimeMillis()
-            if (diff <= 0) return "Match Starting"
-            val hours = diff / (1000 * 60 * 60)
-            val minutes = (diff / (1000 * 60)) % 60
-            val seconds = (diff / 1000) % 60
-            return if (hours > 0) {
-                String.format(Locale.getDefault(), "Match Starting in %dh %02dm", hours, minutes)
-            } else {
-                String.format(Locale.getDefault(), "Match Starting in %02d:%02d", minutes, seconds)
-            }
+            val d = startDate ?: return ""
+            return SimpleDateFormat("hh:mm a", Locale.getDefault()).format(d)
         }
+
+    val formattedDateOnly: String
+        get() {
+            val d = startDate ?: return ""
+            return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(d)
+        }
+
+    fun getNotchText(now: Long = System.currentTimeMillis()): String {
+        return when {
+            isLive -> {
+                val start = startDate?.time ?: 0L
+                val elapsed = now - start
+                if (elapsed <= 0) "00:00"
+                else {
+                    val hours = elapsed / (1000 * 60 * 60)
+                    val minutes = (elapsed / (1000 * 60)) % 60
+                    val seconds = (elapsed / 1000) % 60
+                    if (hours > 0) {
+                        String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
+                    } else {
+                        String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+                    }
+                }
+            }
+            isUpcoming -> {
+                val start = startDate?.time ?: return ""
+                val diff = start - now
+                if (diff <= 0) return "Match Starting"
+
+                val totalDays = diff / (1000L * 60 * 60 * 24)
+                val totalWeeks = totalDays / 7L
+                val totalHours = diff / (1000L * 60 * 60)
+                val minutes = (diff / (1000L * 60)) % 60
+                val seconds = (diff / 1000L) % 60
+
+                when {
+                    totalDays >= 7L -> if (totalWeeks == 1L) "Starts in 1 Week" else "Starts in $totalWeeks Weeks"
+                    totalDays >= 1L -> if (totalDays == 1L) "Starts in 1 Day" else "Starts in $totalDays Days"
+                    totalHours >= 2L -> if (totalHours == 1L) "Starts in 1 Hour" else "Starts in $totalHours Hours"
+                    totalHours >= 1L -> String.format(Locale.getDefault(), "Match Starting in %d:%02d:%02d", totalHours, minutes, seconds)
+                    minutes >= 1L -> String.format(Locale.getDefault(), "Match Starting in %02d:%02d", minutes, seconds)
+                    seconds > 0L -> String.format(Locale.getDefault(), "Match Starting in %02ds", seconds)
+                    else -> "Match Starting"
+                }
+            }
+            else -> "Ended"
+        }
+    }
+
+    val countdownText: String
+        get() = getNotchText()
 
     val elapsedLiveText: String
         get() {
@@ -121,7 +163,7 @@ data class SportEvent(
             val minutes = (elapsed / (1000 * 60)) % 60
             val seconds = (elapsed / 1000) % 60
             return if (hours > 0) {
-                String.format(Locale.getDefault(), "%dh %02dm", hours, minutes)
+                String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
             } else {
                 String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
             }

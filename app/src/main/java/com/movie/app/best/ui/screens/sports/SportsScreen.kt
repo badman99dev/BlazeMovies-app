@@ -460,10 +460,10 @@ private fun SportMatchCard(
 
     val pulseTransition = rememberInfiniteTransition(label = "livePulse")
     val liveAlpha by pulseTransition.animateFloat(
-        initialValue = 0.4f,
+        initialValue = 0.35f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = FastOutSlowInEasing),
+            animation = tween(650, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseAlpha"
@@ -472,48 +472,68 @@ private fun SportMatchCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(CardDark)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF0F1523))
             .border(
-                width = if (isLive) 1.2.dp else 0.8.dp,
-                color = if (isLive) AppRed.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.08f),
-                shape = RoundedCornerShape(16.dp)
+                width = 1.dp,
+                color = if (isLive) AppRed.copy(alpha = 0.55f) else Color(0xFF1E283C),
+                shape = RoundedCornerShape(18.dp)
             )
             .clickable(onClick = onClick)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp, bottom = 12.dp, start = 14.dp, end = 14.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // ── Top Bar: Category Icon & League Name ────────────────
+            Spacer(modifier = Modifier.height(10.dp))
             val category = (info?.eventCat ?: event.cat ?: "").uppercase()
             val league = (info?.eventName ?: event.title).uppercase()
             val headerText = if (category.isNotBlank() && league.isNotBlank()) "$category | $league" else league
 
-            Text(
-                text = headerText,
-                color = Color.White.copy(alpha = 0.75f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.4.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                val sportIcon = getSportIcon(category)
+                Icon(
+                    imageVector = sportIcon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = headerText,
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // ── Center Row: Team A | Center Status | Team B ─────────
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Team A (Left)
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start
                 ) {
-                    TeamFlagBadge(flagUrl = info?.teamAFlag)
+                    TeamFlagBadge(flagUrl = info?.teamAFlag, size = 42.dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = info?.teamA ?: event.title,
@@ -526,55 +546,42 @@ private fun SportMatchCard(
                     )
                 }
 
+                // Center Column: Live Dot / Time & Date / Ended
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 6.dp)
-                        .widthIn(min = 90.dp),
+                        .widthIn(min = 86.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     when {
                         isLive -> {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(7.dp)
-                                        .background(AppRed.copy(alpha = liveAlpha), CircleShape)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "((•)) Live",
-                                    color = AppRed,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                            val elapsed = event.elapsedLiveText
-                            if (elapsed.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(
-                                    text = elapsed,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                        event.isUpcoming -> {
-                            Text(
-                                text = event.formattedStartTime,
-                                color = InfoBlue,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .background(AppRed.copy(alpha = liveAlpha), CircleShape)
                             )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = event.countdownText,
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 10.sp,
+                                text = "Live",
+                                color = AppRed,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        event.isUpcoming -> {
+                            Text(
+                                text = event.formattedTimeOnly,
+                                color = Color(0xFF00B4D8),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = event.formattedDateOnly,
+                                color = Color.White.copy(alpha = 0.65f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -589,6 +596,7 @@ private fun SportMatchCard(
                     }
                 }
 
+                // Team B (Right)
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
@@ -605,25 +613,57 @@ private fun SportMatchCard(
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    TeamFlagBadge(flagUrl = info?.teamBFlag)
+                    TeamFlagBadge(flagUrl = info?.teamBFlag, size = 42.dp)
                 }
             }
 
-            if (isHot) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ── Bottom Notch Pill ──────────────────────────────────
+            val notchText = event.getNotchText(timeTick)
+            if (notchText.isNotBlank()) {
+                Box(
                     modifier = Modifier
-                        .background(SuccessGreen, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 10.dp, bottomEnd = 10.dp))
+                        .background(Color(0xFF080D1A))
+                        .border(
+                            width = 0.8.dp,
+                            color = Color.White.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 10.dp, bottomEnd = 10.dp)
+                        )
+                        .padding(horizontal = 18.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "HOT 🔥",
-                        color = Color.Black,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black
+                        text = notchText,
+                        color = Color.White.copy(alpha = 0.92f),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.2.sp
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        // HOT Badge at Top Right if active
+        if (isHot) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 8.dp, end = 10.dp)
+                    .background(SuccessGreen, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "HOT 🔥",
+                    color = Color.Black,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
         }
     }
