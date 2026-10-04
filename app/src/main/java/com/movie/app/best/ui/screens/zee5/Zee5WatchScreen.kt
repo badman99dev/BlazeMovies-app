@@ -2,7 +2,9 @@ package com.movie.app.best.ui.screens.zee5
 
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,6 +44,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
@@ -72,6 +75,17 @@ fun Zee5WatchScreen(
     val activity = context as? android.app.Activity
     val lifecycleOwner = LocalLifecycleOwner.current
     var isFullscreen by remember { mutableStateOf(false) }
+    var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
+
+    LaunchedEffect(state.currentM3u8) {
+        videoAspect = 16f / 9f
+    }
+
+    val animatedAspect by animateFloatAsState(
+        targetValue = videoAspect,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+        label = "zee5_player_aspect"
+    )
     val episodeListState = rememberLazyListState()
     var playerError by remember { mutableStateOf<String?>(null) }
     var zee5PlayerErrorRetryCount by remember { mutableStateOf(0) }
@@ -170,8 +184,18 @@ fun Zee5WatchScreen(
                     ImmersiveMode.keepScreenOn(it, playing || playbackState == Player.STATE_BUFFERING)
                 }
             }
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                if (videoSize.width > 0 && videoSize.height > 0) {
+                    val ratio = videoSize.width.toFloat() / videoSize.height.toFloat()
+                    videoAspect = ratio.coerceIn(1.33f, 2.45f)
+                }
+            }
         }
         exoPlayer.addListener(listener)
+        if (exoPlayer.videoSize.width > 0 && exoPlayer.videoSize.height > 0) {
+            val ratio = exoPlayer.videoSize.width.toFloat() / exoPlayer.videoSize.height.toFloat()
+            videoAspect = ratio.coerceIn(1.33f, 2.45f)
+        }
         onDispose {
             exoPlayer.removeListener(listener)
             exoPlayer.release()
@@ -249,7 +273,7 @@ fun Zee5WatchScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(16f / 9f)
+                .aspectRatio(animatedAspect)
                 .background(Color.Black)
                 .zIndex(1f)
         ) {

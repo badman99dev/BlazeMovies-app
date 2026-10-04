@@ -3,6 +3,8 @@ package com.movie.app.best.ui.screens.moviewatch
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -49,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -77,6 +80,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -149,6 +153,17 @@ fun MovieWatchScreen(
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
     var langSwitchSeek by remember { mutableStateOf(0L) }
+    var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
+
+    LaunchedEffect(state.currentM3u8) {
+        videoAspect = 16f / 9f
+    }
+
+    val animatedAspect by animateFloatAsState(
+        targetValue = videoAspect,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+        label = "inline_player_aspect"
+    )
 
     LaunchedEffect(isFullscreen) {
         FullscreenPlayerState.isActive = isFullscreen
@@ -270,8 +285,18 @@ fun MovieWatchScreen(
                 // Playback failed -> trigger Gemma fallback (or next candidate)
                 viewModel.onPlaybackError()
             }
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                if (videoSize.width > 0 && videoSize.height > 0) {
+                    val ratio = videoSize.width.toFloat() / videoSize.height.toFloat()
+                    videoAspect = ratio.coerceIn(1.33f, 2.45f)
+                }
+            }
         }
         player.addListener(listener)
+        if (player.videoSize.width > 0 && player.videoSize.height > 0) {
+            val ratio = player.videoSize.width.toFloat() / player.videoSize.height.toFloat()
+            videoAspect = ratio.coerceIn(1.33f, 2.45f)
+        }
         onDispose {
             player.removeListener(listener)
             activity?.let { ImmersiveMode.keepScreenOn(it, false) }
@@ -447,7 +472,7 @@ fun MovieWatchScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(16f / 9f)
+                .aspectRatio(animatedAspect)
                 .background(Color.Black)
                 .zIndex(1f)
         ) {
