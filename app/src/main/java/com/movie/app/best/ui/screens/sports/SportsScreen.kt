@@ -316,63 +316,62 @@ private fun SportsCategoryRow(
             val count = counts[cat.title] ?: 0
 
             Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable { onSelect(cat.title) }
+                modifier = Modifier.size(56.dp)
             ) {
-                Box(modifier = Modifier.size(54.dp)) {
+                // Circle Button
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .align(Alignment.Center)
+                        .clip(CircleShape)
+                        .background(if (isSelected) CardDark else Color(0xFF111111))
+                        .border(
+                            width = if (isSelected) 1.8.dp else 1.dp,
+                            color = if (isSelected) AppRed else Color.White.copy(alpha = 0.12f),
+                            shape = CircleShape
+                        )
+                        .clickable { onSelect(cat.title) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (cat.image.isNotBlank()) {
+                        AsyncImage(
+                            model = cat.image,
+                            contentDescription = cat.title,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        val defaultIcon = getSportIcon(cat.title)
+                        Icon(
+                            imageVector = defaultIcon,
+                            contentDescription = cat.title,
+                            tint = if (isSelected) AppRed else Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                // Unclipped Badge on Top-End
+                if (count > 0) {
+                    val countText = if (count > 99) "99+" else count.toString()
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .align(Alignment.TopEnd)
+                            .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) CardDark else Color(0xFF111111))
-                            .border(
-                                width = if (isSelected) 1.8.dp else 1.dp,
-                                color = if (isSelected) AppRed else Color.White.copy(alpha = 0.12f),
-                                shape = CircleShape
-                            ),
+                            .background(AppRed)
+                            .padding(horizontal = if (countText.length > 1) 4.5.dp else 0.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (cat.image.isNotBlank()) {
-                            AsyncImage(
-                                model = cat.image,
-                                contentDescription = cat.title,
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Fit
-                            )
-                        } else {
-                            val defaultIcon = getSportIcon(cat.title)
-                            Icon(
-                                imageVector = defaultIcon,
-                                contentDescription = cat.title,
-                                tint = if (isSelected) AppRed else Color.White.copy(alpha = 0.85f),
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                    }
-
-                    if (count > 0) {
-                        val countText = if (count > 99) "99+" else count.toString()
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 1.dp, y = (-1).dp)
-                                .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
-                                .clip(CircleShape)
-                                .background(AppRed)
-                                .padding(horizontal = if (countText.length > 1) 4.dp else 0.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = countText,
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                        Text(
+                            text = countText,
+                            color = Color.White,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
