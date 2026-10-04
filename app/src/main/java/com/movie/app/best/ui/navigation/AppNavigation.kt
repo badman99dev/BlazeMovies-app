@@ -547,6 +547,7 @@ fun AppNavigation(
             com.movie.app.best.ui.screens.sports.SportsScreen(
                 navController = navController,
                 onMenuClick = onMenuClick,
+                onSearchClick = { navController.navigate(Screen.Search.route) },
                 onNotificationClick = { navController.navigate(Screen.Notifications.route) }
             )
         }

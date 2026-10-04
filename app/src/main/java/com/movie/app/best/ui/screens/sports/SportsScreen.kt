@@ -27,10 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SportsBaseball
 import androidx.compose.material.icons.filled.SportsBasketball
 import androidx.compose.material.icons.filled.SportsCricket
@@ -81,6 +78,7 @@ import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 fun SportsScreen(
     navController: NavController,
     onMenuClick: () -> Unit = {},
+    onSearchClick: () -> Unit = { navController.navigate(Screen.Search.route) },
     onNotificationClick: () -> Unit = {},
     viewModel: SportsViewModel = hiltViewModel()
 ) {
@@ -132,7 +130,7 @@ fun SportsScreen(
             ) {
                 AppHeader(
                     onMenuClick = onMenuClick,
-                    onSearchClick = { viewModel.setSearchActive(!uiState.isSearchActive) },
+                    onSearchClick = onSearchClick,
                     onNotificationClick = onNotificationClick,
                     onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
                     hasNotification = false
@@ -157,59 +155,6 @@ fun SportsScreen(
                     .weight(1f)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Inline search (event/team/league filter)
-                    AnimatedVisibility(
-                        visible = uiState.isSearchActive,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 6.dp)
-                                .background(AppSurface, RoundedCornerShape(10.dp))
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = Color.White.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                BasicTextField(
-                                    value = uiState.searchQuery,
-                                    onValueChange = { viewModel.onSearchQueryChange(it) },
-                                    singleLine = true,
-                                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
-                                    cursorBrush = SolidColor(AppRed),
-                                    modifier = Modifier.weight(1f),
-                                    decorationBox = { innerTextField ->
-                                        if (uiState.searchQuery.isEmpty()) {
-                                            Text(
-                                                "Search matches, teams, leagues...",
-                                                color = Color.White.copy(alpha = 0.4f),
-                                                fontSize = 14.sp
-                                            )
-                                        }
-                                        innerTextField()
-                                    }
-                                )
-                                if (uiState.searchQuery.isNotEmpty()) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear",
-                                        tint = Color.White.copy(alpha = 0.6f),
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .clickable { viewModel.onSearchQueryChange("") }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
                     // ── Category Icons Row (Fixed height container: Zero layout shift) ──
                     Box(
                         modifier = Modifier
