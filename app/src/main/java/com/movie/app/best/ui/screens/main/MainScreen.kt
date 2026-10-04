@@ -399,7 +399,6 @@ fun MainContent(
         Screen.Sports.route,
         Screen.Movies.route,
         Screen.TVShows.route,
-        Screen.Categories.route,
         Screen.Library.route,
         Screen.Zee5.route,
         Screen.Downloads.route,
@@ -414,8 +413,7 @@ fun MainContent(
             Screen.Zee5.route,
             Screen.Library.route,
             Screen.Downloads.route,
-            Screen.Profile.route,
-            Screen.Categories.route
+            Screen.Profile.route
         ) && isConnected,
         drawerContent = {
             AppDrawerContent(

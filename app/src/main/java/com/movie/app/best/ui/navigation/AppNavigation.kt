@@ -163,8 +163,7 @@ fun AppNavigation(
         Screen.Downloads.route,
         Screen.Library.route,
         Screen.Movies.route,
-        Screen.TVShows.route,
-        Screen.Categories.route
+        Screen.TVShows.route
     )
 
     fun isTabTransition(from: String?, to: String?): Boolean {
