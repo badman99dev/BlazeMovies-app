@@ -30,6 +30,8 @@ data class SportsWatchUiState(
     val playbackOptions: List<PlaybackOption> = emptyList(),
     val selectedOptionId: String? = null,
     val currentStream: SportStream? = null,
+    val isSwitchingServer: Boolean = false,
+    val playToken: Long = 0,
     val timeTick: Long = System.currentTimeMillis()
 ) {
     val displayTitle: String
@@ -71,6 +73,19 @@ class SportsWatchViewModel @Inject constructor(
         startTicker()
     }
 
+    private fun buildOptions(streams: List<SportStream>): List<PlaybackOption> =
+        streams.mapIndexed { idx, st ->
+            val label = st.title?.ifBlank { "Server ${idx + 1}" } ?: "Server ${idx + 1}"
+            PlaybackOption(
+                id = "sport_server_$idx",
+                label = label,
+                kind = PlaybackKind.NATIVE,
+                url = st.url,
+                playbackType = if (st.isDash) "dash" else "hls",
+                languages = listOf(if (st.isDash) "DASH" else "HLS")
+            )
+        }
+
     private fun startTicker() {
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
@@ -81,19 +96,9 @@ class SportsWatchViewModel @Inject constructor(
                 val s = _uiState.value
                 val event = s.event
 
-                if (event != null && s.currentStream == null && event.isLive && s.streams.isNotEmpty()) {
+                if (event != null && s.currentStream == null && s.error == null && event.isLive && s.streams.isNotEmpty()) {
                     // Match transitioned from UPCOMING to LIVE in real time!
-                    val options = s.streams.mapIndexed { idx, st ->
-                        val label = st.title?.ifBlank { "Server ${idx + 1}" } ?: "Server ${idx + 1}"
-                        PlaybackOption(
-                            id = "sport_server_$idx",
-                            label = label,
-                            kind = PlaybackKind.NATIVE,
-                            url = st.url,
-                            playbackType = if (st.isDash) "dash" else "hls",
-                            languages = listOf(if (st.isDash) "DASH" else "HLS")
-                        )
-                    }
+                    val options = buildOptions(s.streams)
                     val firstOpt = options.firstOrNull()
                     val firstStream = s.streams.firstOrNull()
                     _uiState.update {
@@ -101,7 +106,9 @@ class SportsWatchViewModel @Inject constructor(
                             timeTick = now,
                             playbackOptions = options,
                             selectedOptionId = firstOpt?.id,
-                            currentStream = firstStream
+                            currentStream = firstStream,
+                            isSwitchingServer = false,
+                            playToken = it.playToken + 1
                         )
                     }
                 } else {
@@ -157,17 +164,7 @@ class SportsWatchViewModel @Inject constructor(
                     val isLive = event.isLive
 
                     val options = if (isLive && streamList.isNotEmpty()) {
-                        streamList.mapIndexed { idx, s ->
-                            val label = s.title?.ifBlank { "Server ${idx + 1}" } ?: "Server ${idx + 1}"
-                            PlaybackOption(
-                                id = "sport_server_$idx",
-                                label = label,
-                                kind = PlaybackKind.NATIVE,
-                                url = s.url,
-                                playbackType = if (s.isDash) "dash" else "hls",
-                                languages = listOf(if (s.isDash) "DASH" else "HLS")
-                            )
-                        }
+                        buildOptions(streamList)
                     } else {
                         emptyList()
                     }
@@ -183,6 +180,7 @@ class SportsWatchViewModel @Inject constructor(
                             playbackOptions = options,
                             selectedOptionId = firstOpt?.id,
                             currentStream = firstStream,
+                            isSwitchingServer = false,
                             error = if (isLive && streamList.isEmpty()) "No stream servers available at the moment." else null
                         )
                     }
@@ -199,9 +197,54 @@ class SportsWatchViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     selectedOptionId = optionId,
-                    currentStream = selectedStream
+                    currentStream = selectedStream,
+                    isSwitchingServer = false,
+                    playToken = it.playToken + 1
                 )
             }
+        }
+    }
+
+    /**
+     * Auto-failover: current server failed -> move to the next one in the list.
+     * Mirrors MovieWatchViewModel.advanceFrom / onPlaybackError.
+     */
+    private fun advanceFrom(failedId: String?): Boolean {
+        val s = _uiState.value
+        val idx = failedId?.let { id -> s.playbackOptions.indexOfFirst { it.id == id } } ?: -1
+        val nextIdx = idx + 1
+        val nextStream = s.streams.getOrNull(nextIdx)
+        if (nextStream == null) {
+            // No more servers left
+            _uiState.update {
+                it.copy(
+                    currentStream = null,
+                    isSwitchingServer = false,
+                    error = "All stream servers failed. Please try again later."
+                )
+            }
+            return false
+        }
+        val nextOption = s.playbackOptions.getOrNull(nextIdx)
+        _uiState.update {
+            it.copy(
+                selectedOptionId = nextOption?.id,
+                currentStream = nextStream,
+                isSwitchingServer = true,
+                error = null,
+                playToken = it.playToken + 1
+            )
+        }
+        return true
+    }
+
+    fun onPlaybackError() {
+        advanceFrom(_uiState.value.selectedOptionId)
+    }
+
+    fun onPlaybackReady() {
+        if (_uiState.value.isSwitchingServer) {
+            _uiState.update { it.copy(isSwitchingServer = false) }
         }
     }
 

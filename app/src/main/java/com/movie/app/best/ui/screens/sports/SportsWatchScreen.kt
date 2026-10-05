@@ -69,7 +69,6 @@ fun SportsWatchScreen(
     var isFullscreen by remember { mutableStateOf(false) }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isPlayerBuffering by remember { mutableStateOf(true) }
-    var playerErrorMsg by remember { mutableStateOf<String?>(null) }
     var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
 
     val animatedAspect by animateFloatAsState(
@@ -127,7 +126,7 @@ fun SportsWatchScreen(
         }
     }
 
-    LaunchedEffect(state.currentStream?.url) {
+    LaunchedEffect(state.playToken, state.currentStream?.url) {
         val stream = state.currentStream
         if (stream == null || stream.url.isBlank()) {
             exoPlayer?.release()
@@ -137,7 +136,6 @@ fun SportsWatchScreen(
 
         exoPlayer?.release()
         isPlayerBuffering = true
-        playerErrorMsg = null
         videoAspect = 16f / 9f
 
         val newPlayer = PlayerFactory.build(
@@ -149,11 +147,15 @@ fun SportsWatchScreen(
         newPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 isPlayerBuffering = playbackState == Player.STATE_BUFFERING
+                if (playbackState == Player.STATE_READY) {
+                    viewModel.onPlaybackReady()
+                }
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 isPlayerBuffering = false
-                playerErrorMsg = "Playback error: ${error.message ?: "Failed to play this server stream"}"
+                // Auto-failover to the next available server (mirrors Movie/Series players)
+                viewModel.onPlaybackError()
             }
 
             override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -289,6 +291,33 @@ fun SportsWatchScreen(
                         timeTick = state.timeTick,
                         onBackClick = { exitFullscreen() }
                     )
+                } else if (state.error != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black)
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = state.error ?: "Stream connection error",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { viewModel.loadMatchAndStreams() },
+                                colors = ButtonDefaults.buttonColors(containerColor = AppRed),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Retry Stream", color = Color.White, fontSize = 13.sp)
+                            }
+                        }
+                    }
                 } else {
                     EndedMatchPlayerOverlay(
                         event = event,
@@ -357,8 +386,8 @@ fun SportsWatchScreen(
                             )
                         }
 
-                        // 5. Playback Error on Live Match
-                        playerErrorMsg != null -> {
+                        // 5. All servers failed / stream error
+                        state.error != null -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -368,7 +397,7 @@ fun SportsWatchScreen(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
-                                        text = playerErrorMsg ?: "Stream connection error",
+                                        text = state.error ?: "Stream connection error",
                                         color = Color.White.copy(alpha = 0.8f),
                                         fontSize = 13.sp,
                                         textAlign = TextAlign.Center
@@ -401,6 +430,34 @@ fun SportsWatchScreen(
                                     strokeWidth = 3.5.dp
                                 )
                             }
+                        }
+                    }
+
+                    // Auto-failover banner: server failed, trying next one
+                    AnimatedVisibility(
+                        visible = state.isSwitchingServer && isLive && !state.isLoading,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier.align(Alignment.Center)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(50))
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Switching server…",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }
