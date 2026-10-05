@@ -53,8 +53,9 @@ class SeekGestureState(
         val duration = player.duration
         if (duration == C.TIME_UNSET) return
         val isLiveStream = isLive || player.isCurrentMediaItemLive
+        val minTarget = if (isLiveStream && duration > 12000L) 6000L else 0L
         val maxTarget = if (isLiveStream && duration > 6000L) (duration - 6000L) else duration
-        val target = value.coerceIn(0L, maxTarget)
+        val target = value.coerceIn(minTarget, maxTarget)
         seekAmount = (target - startPos)
         player.seekTo(target)
     }

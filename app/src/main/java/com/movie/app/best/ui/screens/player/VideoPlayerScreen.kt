@@ -138,7 +138,20 @@ fun VideoPlayerScreen(
 
     LaunchedEffect(effectiveUrl) {
         if (effectiveUrl.isNotEmpty() && exoPlayer != null) {
-            exoPlayer.setMediaItem(MediaItem.fromUri(effectiveUrl))
+            val mediaItem = if (isLive) {
+                val liveConfig = MediaItem.LiveConfiguration.Builder()
+                    .setTargetOffsetMs(6000L)
+                    .setMinOffsetMs(4000L)
+                    .setMaxOffsetMs(14000L)
+                    .build()
+                MediaItem.Builder()
+                    .setUri(effectiveUrl)
+                    .setLiveConfiguration(liveConfig)
+                    .build()
+            } else {
+                MediaItem.fromUri(effectiveUrl)
+            }
+            exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
         }
         activity?.let { ImmersiveMode.enter(it) }

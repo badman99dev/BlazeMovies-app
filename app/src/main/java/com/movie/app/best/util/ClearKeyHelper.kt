@@ -100,7 +100,15 @@ object ClearKeyHelper {
         isHls: Boolean = false
     ): MediaSource {
         val dataSourceFactory = buildHttpDataSourceFactory(headers)
-        val mediaItem = MediaItem.fromUri(url)
+        val liveConfig = MediaItem.LiveConfiguration.Builder()
+            .setTargetOffsetMs(6000L)
+            .setMinOffsetMs(4000L)
+            .setMaxOffsetMs(14000L)
+            .build()
+        val mediaItem = MediaItem.Builder()
+            .setUri(url)
+            .setLiveConfiguration(liveConfig)
+            .build()
         val drmManager = if (!drmKey.isNullOrBlank()) buildDrmSessionManager(drmKey) else null
 
         val useDash = isDash || url.contains(".mpd", ignoreCase = true)

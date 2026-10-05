@@ -84,7 +84,10 @@ class TapGestureState(
 
         when (action) {
             DoubleTapAction.SEEK_BACKWARD -> {
-                player.seekTo(player.currentPosition - seekIncrementMillis)
+                val isLiveStream = isLive || player.isCurrentMediaItemLive
+                val minSafe = if (isLiveStream && player.duration > 12000L) 6000L else 0L
+                val target = (player.currentPosition - seekIncrementMillis).coerceAtLeast(minSafe)
+                player.seekTo(target)
                 if (seekMillis > 0L) seekMillis = 0L
                 seekMillis -= seekIncrementMillis
                 interactionSource.tryEmit(PressInteraction.Press(offset))

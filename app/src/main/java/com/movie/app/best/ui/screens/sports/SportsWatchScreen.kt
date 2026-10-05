@@ -72,6 +72,7 @@ fun SportsWatchScreen(
     var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
     var consecutiveSegmentErrors by remember { mutableStateOf(0) }
     var isSyncingLive by remember { mutableStateOf(false) }
+    var hasInitialLiveSynced by remember { mutableStateOf(false) }
 
     val animatedAspect by animateFloatAsState(
         targetValue = videoAspect,
@@ -143,6 +144,7 @@ fun SportsWatchScreen(
         videoAspect = 16f / 9f
         consecutiveSegmentErrors = 0
         isSyncingLive = false
+        hasInitialLiveSynced = false
         activity?.let { ImmersiveMode.keepScreenOn(it, false) }
 
         val newPlayer = PlayerFactory.build(
@@ -159,6 +161,16 @@ fun SportsWatchScreen(
                     // 🟢 Any successful playback state resets consecutive failure streak to 0!
                     consecutiveSegmentErrors = 0
                     isSyncingLive = false
+                    if (!hasInitialLiveSynced) {
+                        hasInitialLiveSynced = true
+                        val liveOff = newPlayer.currentLiveOffset
+                        if (liveOff != androidx.media3.common.C.TIME_UNSET && liveOff > 14_000L) {
+                            val dur = newPlayer.duration
+                            if (dur > 6000L) {
+                                newPlayer.seekTo(dur - 6000L)
+                            }
+                        }
+                    }
                 }
                 activity?.let {
                     val playing = newPlayer.isPlaying
@@ -183,7 +195,8 @@ fun SportsWatchScreen(
                 if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
                     consecutiveSegmentErrors = 0 // 🟢 Explicit streak wipe on live sync!
                     isSyncingLive = true
-                    newPlayer.seekToDefaultPosition()
+                    val dur = newPlayer.duration
+                    if (dur > 6000L) newPlayer.seekTo(dur - 6000L) else newPlayer.seekToDefaultPosition()
                     newPlayer.prepare()
                     newPlayer.play()
                     return
@@ -205,7 +218,8 @@ fun SportsWatchScreen(
                     // Strike 1 or 2: Attempt auto-resync to live edge
                     isSyncingLive = true
                     isPlayerBuffering = true
-                    newPlayer.seekToDefaultPosition()
+                    val dur = newPlayer.duration
+                    if (dur > 6000L) newPlayer.seekTo(dur - 6000L) else newPlayer.seekToDefaultPosition()
                     newPlayer.prepare()
                     newPlayer.play()
                 } else {

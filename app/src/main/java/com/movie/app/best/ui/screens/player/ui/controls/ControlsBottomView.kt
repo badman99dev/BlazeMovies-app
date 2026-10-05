@@ -263,17 +263,18 @@ private fun CustomSeekbar(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val trackHeight = 2.dp
-    val hasDvr = isLive && duration > 20_000f
+    val hasDvr = isLive && duration >= 90_000f
     val isPureLive = isLive && !hasDvr
     val canSeek = !isLive || hasDvr
     val thumbRadius = if (canSeek && !isPureLive) 6.dp else 0.dp
+    val minSafePosition = if (isLive && duration >= 90_000f) 6000f else 0f
     val maxSafePosition = if (isLive && duration > 6000f) (duration - 6000f) else duration
     
     var sliderWidth by rememberSaveable { mutableStateOf(0f) }
     var isDragging by rememberSaveable { mutableStateOf(false) }
     var dragPosition by rememberSaveable { mutableStateOf(0f) }
     
-    val currentPosition = if (isDragging) dragPosition else position.coerceIn(0f, maxSafePosition)
+    val currentPosition = if (isDragging) dragPosition else position.coerceIn(minSafePosition, maxSafePosition)
     
     Box(
         modifier = modifier
@@ -287,7 +288,7 @@ private fun CustomSeekbar(
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
                             isDragging = true
-                            dragPosition = ((offset.x / sliderWidth) * duration).coerceIn(0f, maxSafePosition)
+                            dragPosition = ((offset.x / sliderWidth) * duration).coerceIn(minSafePosition, maxSafePosition)
                         },
                         onDragEnd = {
                             isDragging = false
@@ -295,7 +296,7 @@ private fun CustomSeekbar(
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            dragPosition = ((dragPosition + (dragAmount / sliderWidth) * duration).coerceIn(0f, maxSafePosition))
+                            dragPosition = ((dragPosition + (dragAmount / sliderWidth) * duration).coerceIn(minSafePosition, maxSafePosition))
                             onSeek(dragPosition)
                         }
                     )
@@ -356,7 +357,7 @@ fun LiveBadge(
     modifier: Modifier = Modifier,
     isSmall: Boolean = false,
 ) {
-    val isAtLiveEdge = liveOffsetMs <= 10_000L
+    val isAtLiveEdge = liveOffsetMs <= 14_000L
     val dotSize = if (isSmall) 6.dp else 8.dp
     val textStyle = if (isSmall) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium
     val dotColor = if (isAtLiveEdge) Color(0xFFFF0000) else Color.White.copy(alpha = 0.55f)

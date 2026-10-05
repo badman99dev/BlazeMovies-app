@@ -82,7 +82,7 @@ class MediaPresentationState(private val player: Player, initialIsLive: Boolean 
     var isBuffering: Boolean by mutableStateOf(false)
         internal set
 
-    val isAtLiveEdge: Boolean get() = !isLive || liveOffsetMs <= 10_000L
+    val isAtLiveEdge: Boolean get() = !isLive || liveOffsetMs <= 14_000L
 
     fun updatePosition() {
         position = player.currentPosition.coerceAtLeast(0L)
