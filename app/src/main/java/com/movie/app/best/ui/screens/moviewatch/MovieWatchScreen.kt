@@ -1,6 +1,12 @@
 package com.movie.app.best.ui.screens.moviewatch
 
+import android.content.Context
 import android.content.pm.ActivityInfo
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import com.movie.app.best.util.NetworkUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -181,6 +187,33 @@ fun MovieWatchScreen(
     var consecutiveErrors by remember { mutableStateOf(0) }
     var hasResumed by remember { mutableStateOf(false) }
 
+    val connectivityManager = remember {
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+    }
+    DisposableEffect(connectivityManager) {
+        val cm = connectivityManager ?: return@DisposableEffect onDispose {}
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                exoPlayer?.let { player ->
+                    if (player.playbackState == Player.STATE_IDLE) {
+                        if (serverFailoverSeek > 0L) player.seekTo(serverFailoverSeek)
+                        player.prepare()
+                        player.play()
+                    }
+                }
+            }
+        }
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        try {
+            cm.registerNetworkCallback(request, callback)
+        } catch (_: Exception) {}
+        onDispose {
+            try { cm.unregisterNetworkCallback(callback) } catch (_: Exception) {}
+        }
+    }
+
     LaunchedEffect(state.playToken, state.currentM3u8, state.selectedOptionId) {
         val m3u8 = state.currentM3u8
         hasResumed = false
@@ -297,6 +330,12 @@ fun MovieWatchScreen(
                 val currentPos = player.currentPosition
                 if (currentPos > 0L) {
                     serverFailoverSeek = currentPos
+                }
+
+                // 0. Check if user's device lost internet connection (Wi-Fi off / no data):
+                if (NetworkUtils.isDeviceOffline(context, error)) {
+                    // 🚫 Device is offline -> DO NOT count strikes, DO NOT switch servers!
+                    return
                 }
 
                 val isDeadOnArrival = player.currentPosition == 0L && player.playbackState == Player.STATE_IDLE

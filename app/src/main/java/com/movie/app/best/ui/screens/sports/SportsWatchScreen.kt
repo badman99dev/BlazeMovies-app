@@ -1,7 +1,12 @@
 package com.movie.app.best.ui.screens.sports
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.ActivityInfo
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -48,6 +53,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
 import com.movie.app.best.ui.screens.player.PlayerFactory
+import com.movie.app.best.util.NetworkUtils
 import com.movie.app.best.ui.components.TeamFlagBadge
 import com.movie.app.best.ui.theme.AppRed
 import com.movie.app.best.ui.theme.CardDark
@@ -117,6 +123,32 @@ fun SportsWatchScreen(
             }
             exoPlayer?.release()
             exoPlayer = null
+        }
+    }
+
+    val connectivityManager = remember {
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+    }
+    DisposableEffect(connectivityManager) {
+        val cm = connectivityManager ?: return@DisposableEffect onDispose {}
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                exoPlayer?.let { player ->
+                    if (player.playbackState == Player.STATE_IDLE) {
+                        player.prepare()
+                        player.play()
+                    }
+                }
+            }
+        }
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        try {
+            cm.registerNetworkCallback(request, callback)
+        } catch (_: Exception) {}
+        onDispose {
+            try { cm.unregisterNetworkCallback(callback) } catch (_: Exception) {}
         }
     }
 
@@ -191,6 +223,14 @@ fun SportsWatchScreen(
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                // 0. Check if user's device lost internet connection (Wi-Fi off / no data):
+                if (NetworkUtils.isDeviceOffline(context, error)) {
+                    isSyncingLive = false
+                    isPlayerBuffering = true
+                    // 🚫 Device is offline -> DO NOT count strikes, DO NOT switch servers!
+                    return
+                }
+
                 // 1. Check if user fell behind the sliding buffer window (e.g. while paused):
                 if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
                     consecutiveSegmentErrors = 0 // 🟢 Explicit streak wipe on live sync!
