@@ -27,9 +27,10 @@ fun rememberTapGestureState(
     seekIncrementMillis: Long,
     useLongPressGesture: Boolean,
     longPressSpeed: Float,
+    isLive: Boolean = false,
 ): TapGestureState {
     val coroutineScope = rememberCoroutineScope()
-    return remember {
+    return remember(player, isLive) {
         TapGestureState(
             player = player,
             doubleTapGesture = doubleTapGesture,
@@ -37,6 +38,7 @@ fun rememberTapGestureState(
             useLongPressGesture = useLongPressGesture,
             longPressSpeed = longPressSpeed,
             coroutineScope = coroutineScope,
+            isLive = isLive,
         )
     }
 }
@@ -50,6 +52,7 @@ class TapGestureState(
     val longPressSpeed: Float = 2.0f,
     val doubleTapGesture: DoubleTapGesture,
     val interactionSource: MutableInteractionSource = MutableInteractionSource(),
+    val isLive: Boolean = false,
 ) {
     var seekMillis by mutableLongStateOf(0L)
     var isLongPressGestureInAction by mutableStateOf(false)
@@ -87,7 +90,14 @@ class TapGestureState(
                 interactionSource.tryEmit(PressInteraction.Press(offset))
             }
             DoubleTapAction.SEEK_FORWARD -> {
-                player.seekTo(player.currentPosition + seekIncrementMillis)
+                val isLiveStream = isLive || player.isCurrentMediaItemLive
+                val target = if (isLiveStream && player.duration > 0) {
+                    val maxSafe = (player.duration - 6000L).coerceAtLeast(0L)
+                    (player.currentPosition + seekIncrementMillis).coerceAtMost(maxSafe)
+                } else {
+                    player.currentPosition + seekIncrementMillis
+                }
+                player.seekTo(target)
                 if (seekMillis < 0L) seekMillis = 0L
                 seekMillis += seekIncrementMillis
                 interactionSource.tryEmit(PressInteraction.Press(offset))
@@ -102,6 +112,12 @@ class TapGestureState(
     fun handleLongPress(offset: Offset) {
         if (!useLongPressGesture) return
         if (!player.isPlaying) return
+        val isLiveStream = isLive || player.isCurrentMediaItemLive
+        if (isLiveStream && player.duration > 0) {
+            val offsetFromLive = player.duration - player.currentPosition
+            // 6-second safety wall: cannot overdrive past live edge
+            if (offsetFromLive <= 6000L) return
+        }
         isLongPressGestureInAction = true
         currentSpeed = player.playbackParameters.speed
         player.setPlaybackSpeed(longPressSpeed)
@@ -110,7 +126,9 @@ class TapGestureState(
     fun handleOnLongPressRelease() {
         if (isLongPressGestureInAction) {
             isLongPressGestureInAction = false
-            player.setPlaybackSpeed(currentSpeed)
+            if (player.playbackParameters.speed == longPressSpeed) {
+                player.setPlaybackSpeed(currentSpeed)
+            }
         }
     }
 

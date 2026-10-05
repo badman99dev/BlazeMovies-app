@@ -117,7 +117,7 @@ fun MediaPlayerScreen(
 
     val volumeState = rememberVolumeState(player = player)
     player ?: return
-    val mediaPresentationState = rememberMediaPresentationState(player)
+    val mediaPresentationState = rememberMediaPresentationState(player = player, isLive = isLive)
     val controlsVisibilityState = rememberControlsVisibilityState(
         player = player,
         hideAfter = 4.seconds,
@@ -129,11 +129,13 @@ fun MediaPlayerScreen(
         seekIncrementMillis = 10000L,
         useLongPressGesture = true,
         longPressSpeed = 2.0f,
+        isLive = isLive,
     )
     val seekGestureState = rememberSeekGestureState(
         player = player,
         sensitivity = 0.5f,
-        enableSeekGesture = !isInline && !isLive,
+        enableSeekGesture = !isInline,
+        isLive = isLive,
     )
     val videoZoomAndContentScaleState = rememberVideoZoomAndContentScaleState(
         player = player,

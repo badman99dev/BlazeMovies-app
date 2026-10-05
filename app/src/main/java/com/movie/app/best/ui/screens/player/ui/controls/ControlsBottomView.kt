@@ -115,20 +115,15 @@ fun ControlsBottomView(
                         .noRippleClickable { if (!isLive) showPendingPosition = !showPendingPosition },
                 ) {
                     if (isLive) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(Color(0xFFFF0000), CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "LIVE",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.95f),
-                            )
-                        }
+                        LiveBadge(
+                            liveOffsetMs = mediaPresentationState.liveOffsetMs,
+                            onCatchUpToLive = {
+                                val dur = player.duration.coerceAtLeast(0L)
+                                val target = if (dur > 6000L) dur - 6000L else dur
+                                if (target > 0L) player.seekTo(target)
+                            },
+                            isSmall = true,
+                        )
                     } else {
                         Text(
                             text = when (showPendingPosition) {
@@ -157,12 +152,12 @@ fun ControlsBottomView(
             }
 
             CustomSeekbar(
-                position = if (isLive) mediaPresentationState.duration.toFloat() else mediaPresentationState.position.toFloat(),
+                position = if (isLive) (mediaPresentationState.duration - mediaPresentationState.liveOffsetMs).toFloat().coerceAtLeast(0f) else mediaPresentationState.position.toFloat(),
                 duration = mediaPresentationState.duration.toFloat(),
-                onSeek = { if (!isLive) onSeek(it.toLong()) },
-                onSeekEnd = { if (!isLive) onSeekEnd() },
+                onSeek = { onSeek(it.toLong()) },
+                onSeekEnd = { onSeekEnd() },
                 isLive = isLive,
-                barHeight = if (isLive) 6.dp else 16.dp,
+                barHeight = if (isLive) 12.dp else 16.dp,
             )
         }
     } else {
@@ -185,19 +180,15 @@ fun ControlsBottomView(
                     modifier = Modifier.noRippleClickable { if (!isLive) showPendingPosition = !showPendingPosition },
                 ) {
                     if (isLive) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(Color(0xFFFF0000), CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "LIVE",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White,
-                            )
-                        }
+                        LiveBadge(
+                            liveOffsetMs = mediaPresentationState.liveOffsetMs,
+                            onCatchUpToLive = {
+                                val dur = player.duration.coerceAtLeast(0L)
+                                val target = if (dur > 6000L) dur - 6000L else dur
+                                if (target > 0L) player.seekTo(target)
+                            },
+                            isSmall = false,
+                        )
                     } else {
                         Text(
                             text = when (showPendingPosition) {
@@ -218,10 +209,10 @@ fun ControlsBottomView(
             }
 
             CustomSeekbar(
-                position = if (isLive) mediaPresentationState.duration.toFloat() else mediaPresentationState.position.toFloat(),
+                position = if (isLive) (mediaPresentationState.duration - mediaPresentationState.liveOffsetMs).toFloat().coerceAtLeast(0f) else mediaPresentationState.position.toFloat(),
                 duration = mediaPresentationState.duration.toFloat(),
-                onSeek = { if (!isLive) onSeek(it.toLong()) },
-                onSeekEnd = { if (!isLive) onSeekEnd() },
+                onSeek = { onSeek(it.toLong()) },
+                onSeekEnd = { onSeekEnd() },
                 isLive = isLive,
             )
 
@@ -266,17 +257,20 @@ private fun CustomSeekbar(
     onSeek: (Float) -> Unit,
     onSeekEnd: () -> Unit,
     isLive: Boolean = false,
-    barHeight: Dp = if (isLive) 6.dp else 20.dp,
+    barHeight: Dp = if (isLive) 12.dp else 20.dp,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val trackHeight = 2.dp
-    val thumbRadius = if (isLive) 0.dp else 6.dp
+    val hasDvr = isLive && duration > 15_000f
+    val canSeek = !isLive || hasDvr
+    val thumbRadius = if (canSeek) 6.dp else 0.dp
+    val maxSafePosition = if (isLive && duration > 6000f) (duration - 6000f) else duration
     
     var sliderWidth by rememberSaveable { mutableStateOf(0f) }
     var isDragging by rememberSaveable { mutableStateOf(false) }
     var dragPosition by rememberSaveable { mutableStateOf(0f) }
     
-    val currentPosition = if (isDragging) dragPosition else position
+    val currentPosition = if (isDragging) dragPosition else position.coerceIn(0f, maxSafePosition)
     
     Box(
         modifier = modifier
@@ -286,11 +280,11 @@ private fun CustomSeekbar(
                 sliderWidth = coordinates.size.width.toFloat()
             }
             .then(
-                if (isLive) Modifier else Modifier.pointerInput(Unit) {
+                if (!canSeek) Modifier else Modifier.pointerInput(canSeek, duration) {
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
                             isDragging = true
-                            dragPosition = (offset.x / sliderWidth) * duration
+                            dragPosition = ((offset.x / sliderWidth) * duration).coerceIn(0f, maxSafePosition)
                         },
                         onDragEnd = {
                             isDragging = false
@@ -298,7 +292,7 @@ private fun CustomSeekbar(
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            dragPosition = ((dragPosition + (dragAmount / sliderWidth) * duration).coerceIn(0f, duration))
+                            dragPosition = ((dragPosition + (dragAmount / sliderWidth) * duration).coerceIn(0f, maxSafePosition))
                             onSeek(dragPosition)
                         }
                     )
@@ -313,21 +307,19 @@ private fun CustomSeekbar(
             val radius = thumbRadius.toPx()
             
             // Calculate the position of the circle center
-            val fraction = if (isLive) 1f else if (duration > 0) (currentPosition / duration).coerceIn(0f, 1f) else 0f
+            val fraction = if (duration > 0f) (currentPosition / duration).coerceIn(0f, 1f) else if (isLive) 1f else 0f
             val circleCenterX = radius + (size.width - 2 * radius) * fraction
             
-            if (!isLive) {
-                // Draw grey track from circle center to end
-                drawLine(
-                    color = Color(0xFF333333),
-                    start = Offset(circleCenterX, centerY),
-                    end = Offset(size.width - radius, centerY),
-                    strokeWidth = trackStrokeWidth,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-            }
+            // Draw grey track from circle center to end
+            drawLine(
+                color = Color(0xFF333333),
+                start = Offset(circleCenterX, centerY),
+                end = Offset(size.width - radius, centerY),
+                strokeWidth = trackStrokeWidth,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
             
-            // Draw red track from start to circle center (or full width when live)
+            // Draw red track from start to circle center
             drawLine(
                 color = primaryColor,
                 start = Offset(radius, centerY),
@@ -336,7 +328,7 @@ private fun CustomSeekbar(
                 cap = androidx.compose.ui.graphics.StrokeCap.Round
             )
             
-            if (!isLive) {
+            if (canSeek) {
                 // Draw filled circle thumb at the boundary
                 drawCircle(
                     color = primaryColor,
@@ -345,6 +337,64 @@ private fun CustomSeekbar(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun LiveBadge(
+    liveOffsetMs: Long,
+    onCatchUpToLive: () -> Unit,
+    modifier: Modifier = Modifier,
+    isSmall: Boolean = false,
+) {
+    val isAtLiveEdge = liveOffsetMs <= 10_000L
+    val dotSize = if (isSmall) 6.dp else 8.dp
+    val textStyle = if (isSmall) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium
+    val dotColor = if (isAtLiveEdge) Color(0xFFFF0000) else Color.White.copy(alpha = 0.55f)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(enabled = !isAtLiveEdge) {
+                onCatchUpToLive()
+            }
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        if (!isAtLiveEdge) {
+            Text(
+                text = formatLiveOffset(liveOffsetMs),
+                style = textStyle,
+                color = Color.White.copy(alpha = 0.85f),
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+        }
+
+        Box(
+            modifier = Modifier
+                .size(dotSize)
+                .background(dotColor, CircleShape)
+        )
+        Spacer(modifier = Modifier.width(if (isSmall) 4.dp else 6.dp))
+        Text(
+            text = "LIVE",
+            style = textStyle,
+            fontWeight = FontWeight.Bold,
+            color = if (isAtLiveEdge) Color.White else Color.White.copy(alpha = 0.75f),
+        )
+    }
+}
+
+fun formatLiveOffset(offsetMs: Long): String {
+    val totalSec = (offsetMs / 1000L).coerceAtLeast(0L)
+    val minutes = totalSec / 60L
+    val seconds = totalSec % 60L
+    val hours = minutes / 60L
+    return if (hours > 0L) {
+        String.format("-%d:%02d:%02d", hours, minutes % 60L, seconds)
+    } else {
+        String.format("-%02d:%02d", minutes, seconds)
     }
 }
 

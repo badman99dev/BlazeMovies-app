@@ -15,8 +15,11 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 
 @Composable
-fun rememberMediaPresentationState(player: Player): MediaPresentationState {
-    val state = remember { MediaPresentationState(player) }
+fun rememberMediaPresentationState(player: Player, isLive: Boolean = false): MediaPresentationState {
+    val state = remember { MediaPresentationState(player, isLive) }
+    LaunchedEffect(isLive) {
+        state.isLive = isLive
+    }
     LaunchedEffect(player) {
         state.updatePosition()
         state.updateDuration()
@@ -47,7 +50,15 @@ fun rememberMediaPresentationState(player: Player): MediaPresentationState {
         try {
             while (true) {
                 delay(500)
-                if (player.isPlaying) state.updatePosition()
+                if (player.isPlaying) {
+                    state.updatePosition()
+                    // Speed auto-governor for live streams: drop to 1.0x when reaching 6s safety wall
+                    if ((player.isCurrentMediaItemLive || state.isLive) && player.playbackParameters.speed > 1.0f) {
+                        if (state.liveOffsetMs <= 6000L) {
+                            player.setPlaybackSpeed(1.0f)
+                        }
+                    }
+                }
             }
         } finally {
             player.removeListener(listener)
@@ -57,18 +68,41 @@ fun rememberMediaPresentationState(player: Player): MediaPresentationState {
 }
 
 @Stable
-class MediaPresentationState(private val player: Player) {
+class MediaPresentationState(private val player: Player, initialIsLive: Boolean = false) {
+    var isLive: Boolean by mutableStateOf(initialIsLive)
+        internal set
     var position: Long by mutableLongStateOf(0L)
         internal set
     var duration: Long by mutableLongStateOf(0L)
+        internal set
+    var liveOffsetMs: Long by mutableLongStateOf(0L)
         internal set
     var isPlaying: Boolean by mutableStateOf(false)
         internal set
     var isBuffering: Boolean by mutableStateOf(false)
         internal set
 
-    fun updatePosition() { position = player.currentPosition.coerceAtLeast(0L) }
-    fun updateDuration() { duration = player.duration.coerceAtLeast(0L) }
+    val isAtLiveEdge: Boolean get() = !isLive || liveOffsetMs <= 10_000L
+
+    fun updatePosition() {
+        position = player.currentPosition.coerceAtLeast(0L)
+        updateLiveOffset()
+    }
+    fun updateDuration() {
+        duration = player.duration.coerceAtLeast(0L)
+        updateLiveOffset()
+    }
+
+    private fun updateLiveOffset() {
+        val currentLive = player.currentLiveOffset
+        val dur = player.duration.coerceAtLeast(0L)
+        val pos = player.currentPosition.coerceAtLeast(0L)
+        liveOffsetMs = when {
+            currentLive != androidx.media3.common.C.TIME_UNSET && currentLive >= 0L -> currentLive
+            dur > 0L && pos > 0L -> (dur - pos).coerceAtLeast(0L)
+            else -> 0L
+        }
+    }
 }
 
 val MediaPresentationState.positionFormatted: String get() = position.milliseconds.formatted()
