@@ -181,6 +181,7 @@ fun SportsWatchScreen(
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 // 1. Check if user fell behind the sliding buffer window (e.g. while paused):
                 if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+                    consecutiveSegmentErrors = 0 // 🟢 Explicit streak wipe on live sync!
                     isSyncingLive = true
                     newPlayer.seekToDefaultPosition()
                     newPlayer.prepare()

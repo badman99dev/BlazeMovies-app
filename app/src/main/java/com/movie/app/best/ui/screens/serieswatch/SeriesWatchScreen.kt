@@ -122,6 +122,7 @@ fun SeriesWatchScreen(
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
     var langSwitchSeek by remember { mutableStateOf(0L) }
+    var consecutiveErrors by remember { mutableIntStateOf(0) }
     var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
 
     LaunchedEffect(state.currentM3u8) {
@@ -207,16 +208,23 @@ fun SeriesWatchScreen(
         val player = exoPlayer ?: return@DisposableEffect onDispose {}
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    consecutiveErrors = 0
+                }
                 activity?.let {
                     val pState = player.playbackState
                     ImmersiveMode.keepScreenOn(it, isPlaying || pState == Player.STATE_BUFFERING)
                 }
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_READY && langSwitchSeek > 0) {
-                    val seekTo = langSwitchSeek
-                    langSwitchSeek = 0L
-                    player.seekTo(seekTo)
+                if (playbackState == Player.STATE_READY) {
+                    consecutiveErrors = 0
+                    if (langSwitchSeek > 0) {
+                        val duration = player.duration
+                        val seekTo = if (duration > 2000L) langSwitchSeek.coerceIn(0L, duration - 2000L) else langSwitchSeek
+                        langSwitchSeek = 0L
+                        player.seekTo(seekTo)
+                    }
                 }
                 activity?.let {
                     val playing = player.isPlaying
@@ -224,7 +232,29 @@ fun SeriesWatchScreen(
                 }
             }
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                viewModel.onPlaybackError()
+                val currentPos = player.currentPosition
+                if (currentPos > 0L) {
+                    langSwitchSeek = currentPos // Preserves current scene position across server switches!
+                }
+
+                val isDeadOnArrival = player.currentPosition == 0L && player.playbackState == Player.STATE_IDLE
+                if (isDeadOnArrival) {
+                    consecutiveErrors = 0
+                    viewModel.onPlaybackError()
+                    return
+                }
+
+                consecutiveErrors++
+                if (consecutiveErrors < 3) {
+                    // Strike 1 or 2: Attempt local re-prepare with preserved position
+                    if (currentPos > 0L) player.seekTo(currentPos)
+                    player.prepare()
+                    player.play()
+                } else {
+                    // Strike 3: Dead server confirmed -> Switch to next candidate/server with preserved position!
+                    consecutiveErrors = 0
+                    viewModel.onPlaybackError()
+                }
             }
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 if (videoSize.width > 0 && videoSize.height > 0) {

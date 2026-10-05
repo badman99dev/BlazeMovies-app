@@ -177,6 +177,8 @@ fun MovieWatchScreen(
 
     // Resume position
     var resumePos by remember { mutableStateOf(0L) }
+    var serverFailoverSeek by remember { mutableStateOf(0L) }
+    var consecutiveErrors by remember { mutableIntStateOf(0) }
     var hasResumed by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.playToken, state.currentM3u8, state.selectedOptionId) {
@@ -191,8 +193,11 @@ fun MovieWatchScreen(
 
         exoPlayer?.release()
 
-        // On language switch: resume from captured position; else slug-based saved progress
-        if (langSwitchSeek > 0) {
+        // Priority 1: Server failover seek; Priority 2: Language switch seek; Priority 3: Saved progress
+        if (serverFailoverSeek > 0) {
+            resumePos = serverFailoverSeek
+            serverFailoverSeek = 0L
+        } else if (langSwitchSeek > 0) {
             resumePos = langSwitchSeek
             langSwitchSeek = 0L
         } else if (slug.isNotEmpty()) {
@@ -264,11 +269,15 @@ fun MovieWatchScreen(
         val player = exoPlayer ?: return@DisposableEffect onDispose {}
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_READY && resumePos > 0 && !hasResumed) {
-                    hasResumed = true
-                    val seekTo = resumePos
-                    resumePos = 0L
-                    exoPlayer?.seekTo(seekTo)
+                if (playbackState == Player.STATE_READY) {
+                    consecutiveErrors = 0
+                    if (resumePos > 0 && !hasResumed) {
+                        hasResumed = true
+                        val duration = exoPlayer?.duration ?: 0L
+                        val seekTo = if (duration > 2000L) resumePos.coerceIn(0L, duration - 2000L) else resumePos
+                        resumePos = 0L
+                        exoPlayer?.seekTo(seekTo)
+                    }
                 }
                 activity?.let {
                     val playing = player.isPlaying
@@ -276,14 +285,38 @@ fun MovieWatchScreen(
                 }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    consecutiveErrors = 0
+                }
                 activity?.let {
                     val pState = player.playbackState
                     ImmersiveMode.keepScreenOn(it, isPlaying || pState == Player.STATE_BUFFERING)
                 }
             }
             override fun onPlayerError(error: PlaybackException) {
-                // Playback failed -> trigger Gemma fallback (or next candidate)
-                viewModel.onPlaybackError()
+                val currentPos = player.currentPosition
+                if (currentPos > 0L) {
+                    serverFailoverSeek = currentPos
+                }
+
+                val isDeadOnArrival = player.currentPosition == 0L && player.playbackState == Player.STATE_IDLE
+                if (isDeadOnArrival) {
+                    consecutiveErrors = 0
+                    viewModel.onPlaybackError()
+                    return
+                }
+
+                consecutiveErrors++
+                if (consecutiveErrors < 3) {
+                    // Strike 1 or 2: Attempt re-prepare with preserved position
+                    if (currentPos > 0L) player.seekTo(currentPos)
+                    player.prepare()
+                    player.play()
+                } else {
+                    // Strike 3: Dead server confirmed -> Switch to next server with preserved position!
+                    consecutiveErrors = 0
+                    viewModel.onPlaybackError()
+                }
             }
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 if (videoSize.width > 0 && videoSize.height > 0) {
