@@ -122,7 +122,7 @@ fun SeriesWatchScreen(
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
     var langSwitchSeek by remember { mutableStateOf(0L) }
-    var consecutiveErrors by remember { mutableIntStateOf(0) }
+    var consecutiveErrors by remember { mutableStateOf(0) }
     var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
 
     LaunchedEffect(state.currentM3u8) {

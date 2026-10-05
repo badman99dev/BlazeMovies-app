@@ -70,7 +70,7 @@ fun SportsWatchScreen(
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isPlayerBuffering by remember { mutableStateOf(true) }
     var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
-    var consecutiveSegmentErrors by remember { mutableIntStateOf(0) }
+    var consecutiveSegmentErrors by remember { mutableStateOf(0) }
     var isSyncingLive by remember { mutableStateOf(false) }
 
     val animatedAspect by animateFloatAsState(

@@ -178,7 +178,7 @@ fun MovieWatchScreen(
     // Resume position
     var resumePos by remember { mutableStateOf(0L) }
     var serverFailoverSeek by remember { mutableStateOf(0L) }
-    var consecutiveErrors by remember { mutableIntStateOf(0) }
+    var consecutiveErrors by remember { mutableStateOf(0) }
     var hasResumed by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.playToken, state.currentM3u8, state.selectedOptionId) {
