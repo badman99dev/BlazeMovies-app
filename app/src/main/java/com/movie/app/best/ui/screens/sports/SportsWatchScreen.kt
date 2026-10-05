@@ -434,31 +434,11 @@ fun SportsWatchScreen(
                     }
 
                     // Auto-failover banner: server failed, trying next one
-                    AnimatedVisibility(
+                    ServerSwitchingBanner(
                         visible = state.isSwitchingServer && isLive && !state.isLoading,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
                         modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(50))
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Switching server…",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                    )
+                }
                     }
                 }
 
@@ -992,6 +972,39 @@ private fun EndedMatchPlayerOverlay(
                     fontSize = 10.5.sp
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ServerSwitchingBanner(
+    visible: Boolean,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(50))
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+        ) {
+            CircularProgressIndicator(
+                color = Color.White,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Switching server...",
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
