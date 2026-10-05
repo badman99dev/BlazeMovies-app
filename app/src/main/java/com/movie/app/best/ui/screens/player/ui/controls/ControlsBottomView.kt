@@ -267,8 +267,11 @@ private fun CustomSeekbar(
     val isPureLive = isLive && !hasDvr
     val canSeek = !isLive || hasDvr
     val thumbRadius = if (canSeek && !isPureLive) 6.dp else 0.dp
+    
+    // 🎯 Virtual Max: Subtract 6s safety margin from visual live duration so seekbar reaches 100% right edge!
+    val virtualDuration = if (isLive && duration > 6000f) (duration - 6000f) else duration
     val minSafePosition = if (isLive && duration >= 90_000f) 6000f else 0f
-    val maxSafePosition = if (isLive && duration > 6000f) (duration - 6000f) else duration
+    val maxSafePosition = virtualDuration
     
     var sliderWidth by rememberSaveable { mutableStateOf(0f) }
     var isDragging by rememberSaveable { mutableStateOf(false) }
@@ -284,11 +287,11 @@ private fun CustomSeekbar(
                 sliderWidth = coordinates.size.width.toFloat()
             }
             .then(
-                if (!canSeek) Modifier else Modifier.pointerInput(canSeek, duration) {
+                if (!canSeek) Modifier else Modifier.pointerInput(canSeek, virtualDuration) {
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
                             isDragging = true
-                            dragPosition = ((offset.x / sliderWidth) * duration).coerceIn(minSafePosition, maxSafePosition)
+                            dragPosition = ((offset.x / sliderWidth) * virtualDuration).coerceIn(minSafePosition, maxSafePosition)
                         },
                         onDragEnd = {
                             isDragging = false
@@ -296,7 +299,7 @@ private fun CustomSeekbar(
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            dragPosition = ((dragPosition + (dragAmount / sliderWidth) * duration).coerceIn(minSafePosition, maxSafePosition))
+                            dragPosition = ((dragPosition + (dragAmount / sliderWidth) * virtualDuration).coerceIn(minSafePosition, maxSafePosition))
                             onSeek(dragPosition)
                         }
                     )
@@ -313,7 +316,7 @@ private fun CustomSeekbar(
             // Calculate the position of the circle center
             val fraction = when {
                 isPureLive -> 1f // Always Full Solid Red Bar for pure live streams!
-                duration > 0f -> (currentPosition / duration).coerceIn(0f, 1f)
+                virtualDuration > 0f -> (currentPosition / virtualDuration).coerceIn(0f, 1f)
                 else -> 1f
             }
             val circleCenterX = radius + (size.width - 2 * radius) * fraction

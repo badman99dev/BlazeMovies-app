@@ -186,6 +186,21 @@ fun SportsWatchScreen(
         )
 
         newPlayer.addListener(object : Player.Listener {
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                // 🚀 Pre-download intercept: Direct -12s start before ExoPlayer requests -30s segment!
+                if (!timeline.isEmpty && !hasInitialLiveSynced) {
+                    val window = androidx.media3.common.Timeline.Window()
+                    timeline.getWindow(0, window)
+                    if (window.isLive()) {
+                        hasInitialLiveSynced = true
+                        val dur = window.durationMs
+                        if (dur > 12_000L) {
+                            newPlayer.seekTo(dur - 12_000L)
+                        }
+                    }
+                }
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 isPlayerBuffering = playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) {
@@ -193,16 +208,6 @@ fun SportsWatchScreen(
                     // 🟢 Any successful playback state resets consecutive failure streak to 0!
                     consecutiveSegmentErrors = 0
                     isSyncingLive = false
-                    if (!hasInitialLiveSynced) {
-                        hasInitialLiveSynced = true
-                        val liveOff = newPlayer.currentLiveOffset
-                        if (liveOff != androidx.media3.common.C.TIME_UNSET && liveOff > 14_000L) {
-                            val dur = newPlayer.duration
-                            if (dur > 6000L) {
-                                newPlayer.seekTo(dur - 6000L)
-                            }
-                        }
-                    }
                 }
                 activity?.let {
                     val playing = newPlayer.isPlaying

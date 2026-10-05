@@ -140,9 +140,7 @@ fun VideoPlayerScreen(
         if (effectiveUrl.isNotEmpty() && exoPlayer != null) {
             val mediaItem = if (isLive) {
                 val liveConfig = MediaItem.LiveConfiguration.Builder()
-                    .setTargetOffsetMs(6000L)
-                    .setMinOffsetMs(4000L)
-                    .setMaxOffsetMs(14000L)
+                    .setTargetOffsetMs(12000L)
                     .build()
                 MediaItem.Builder()
                     .setUri(effectiveUrl)
@@ -166,9 +164,11 @@ fun VideoPlayerScreen(
 
     var resumePos by remember { mutableStateOf(0L) }
     var hasResumed by remember { mutableStateOf(false) }
+    var hasInitialLiveSynced by remember { mutableStateOf(false) }
 
     LaunchedEffect(slug, effectiveUrl) {
         hasResumed = false
+        hasInitialLiveSynced = false
         resumePos = 0L
         if (isLocalFile && effectiveUrl.isNotEmpty()) {
             val fileProgress = firebaseRepository.getLocalFileProgress(effectiveUrl, title)
@@ -192,6 +192,20 @@ fun VideoPlayerScreen(
 
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                if (isLive && !timeline.isEmpty && !hasInitialLiveSynced) {
+                    val window = androidx.media3.common.Timeline.Window()
+                    timeline.getWindow(0, window)
+                    if (window.isLive()) {
+                        hasInitialLiveSynced = true
+                        val dur = window.durationMs
+                        if (dur > 12_000L) {
+                            exoPlayer?.seekTo(dur - 12_000L)
+                        }
+                    }
+                }
+            }
+
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY && resumePos > 0 && !hasResumed) {
                     hasResumed = true
