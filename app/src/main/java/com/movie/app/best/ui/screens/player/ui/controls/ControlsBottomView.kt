@@ -261,9 +261,10 @@ private fun CustomSeekbar(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val trackHeight = 2.dp
-    val hasDvr = isLive && duration > 15_000f
+    val hasDvr = isLive && duration > 20_000f
+    val isPureLive = isLive && !hasDvr
     val canSeek = !isLive || hasDvr
-    val thumbRadius = if (canSeek) 6.dp else 0.dp
+    val thumbRadius = if (canSeek && !isPureLive) 6.dp else 0.dp
     val maxSafePosition = if (isLive && duration > 6000f) (duration - 6000f) else duration
     
     var sliderWidth by rememberSaveable { mutableStateOf(0f) }
@@ -307,19 +308,25 @@ private fun CustomSeekbar(
             val radius = thumbRadius.toPx()
             
             // Calculate the position of the circle center
-            val fraction = if (duration > 0f) (currentPosition / duration).coerceIn(0f, 1f) else if (isLive) 1f else 0f
+            val fraction = when {
+                isPureLive -> 1f // Always Full Solid Red Bar for pure live streams!
+                duration > 0f -> (currentPosition / duration).coerceIn(0f, 1f)
+                else -> 1f
+            }
             val circleCenterX = radius + (size.width - 2 * radius) * fraction
             
-            // Draw grey track from circle center to end
-            drawLine(
-                color = Color(0xFF333333),
-                start = Offset(circleCenterX, centerY),
-                end = Offset(size.width - radius, centerY),
-                strokeWidth = trackStrokeWidth,
-                cap = androidx.compose.ui.graphics.StrokeCap.Round
-            )
+            if (!isPureLive) {
+                // Draw grey track from circle center to end
+                drawLine(
+                    color = Color(0xFF333333),
+                    start = Offset(circleCenterX, centerY),
+                    end = Offset(size.width - radius, centerY),
+                    strokeWidth = trackStrokeWidth,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            }
             
-            // Draw red track from start to circle center
+            // Draw red track from start to circle center (or full width if pure live)
             drawLine(
                 color = primaryColor,
                 start = Offset(radius, centerY),
@@ -328,7 +335,7 @@ private fun CustomSeekbar(
                 cap = androidx.compose.ui.graphics.StrokeCap.Round
             )
             
-            if (canSeek) {
+            if (canSeek && !isPureLive) {
                 // Draw filled circle thumb at the boundary
                 drawCircle(
                     color = primaryColor,

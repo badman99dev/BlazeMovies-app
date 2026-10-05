@@ -70,6 +70,8 @@ fun SportsWatchScreen(
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isPlayerBuffering by remember { mutableStateOf(true) }
     var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
+    var consecutiveSegmentErrors by remember { mutableIntStateOf(0) }
+    var isSyncingLive by remember { mutableStateOf(false) }
 
     val animatedAspect by animateFloatAsState(
         targetValue = videoAspect,
@@ -139,6 +141,8 @@ fun SportsWatchScreen(
         exoPlayer?.release()
         isPlayerBuffering = true
         videoAspect = 16f / 9f
+        consecutiveSegmentErrors = 0
+        isSyncingLive = false
         activity?.let { ImmersiveMode.keepScreenOn(it, false) }
 
         val newPlayer = PlayerFactory.build(
@@ -152,6 +156,9 @@ fun SportsWatchScreen(
                 isPlayerBuffering = playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) {
                     viewModel.onPlaybackReady()
+                    // 🟢 Any successful playback state resets consecutive failure streak to 0!
+                    consecutiveSegmentErrors = 0
+                    isSyncingLive = false
                 }
                 activity?.let {
                     val playing = newPlayer.isPlaying
@@ -160,6 +167,11 @@ fun SportsWatchScreen(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    // 🟢 Playing successfully resets consecutive failure streak to 0!
+                    consecutiveSegmentErrors = 0
+                    isSyncingLive = false
+                }
                 activity?.let {
                     val pState = newPlayer.playbackState
                     ImmersiveMode.keepScreenOn(it, isPlaying || pState == Player.STATE_BUFFERING)
@@ -167,9 +179,41 @@ fun SportsWatchScreen(
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                isPlayerBuffering = false
-                // Auto-failover to the next available server (mirrors Movie/Series players)
-                viewModel.onPlaybackError()
+                // 1. Check if user fell behind the sliding buffer window (e.g. while paused):
+                if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+                    isSyncingLive = true
+                    newPlayer.seekToDefaultPosition()
+                    newPlayer.prepare()
+                    newPlayer.play()
+                    return
+                }
+
+                // 2. Initial dead manifest (manifest could not be loaded at all):
+                val isInitialDeadManifest = newPlayer.currentPosition == 0L && newPlayer.playbackState == Player.STATE_IDLE
+                if (isInitialDeadManifest) {
+                    isPlayerBuffering = false
+                    consecutiveSegmentErrors = 0
+                    isSyncingLive = false
+                    viewModel.onPlaybackError()
+                    return
+                }
+
+                // 3. Segment / chunk failure on ongoing stream:
+                consecutiveSegmentErrors++
+                if (consecutiveSegmentErrors < 3) {
+                    // Strike 1 or 2: Attempt auto-resync to live edge
+                    isSyncingLive = true
+                    isPlayerBuffering = true
+                    newPlayer.seekToDefaultPosition()
+                    newPlayer.prepare()
+                    newPlayer.play()
+                } else {
+                    // 🔴 Strike 3: 3 CONSECUTIVE FAILURES -> Zombie Server declared!
+                    consecutiveSegmentErrors = 0
+                    isSyncingLive = false
+                    isPlayerBuffering = false
+                    viewModel.onPlaybackError()
+                }
             }
 
             override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -298,6 +342,16 @@ fun SportsWatchScreen(
                         onFullscreenClick = { exitFullscreen() },
                         onPlayInBackgroundClick = {},
                         onBackClick = { exitFullscreen() }
+                    )
+
+                    ServerSwitchingBanner(
+                        visible = state.isSwitchingServer && isLive && !state.isLoading,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+
+                    LiveSyncingBanner(
+                        visible = isSyncingLive && !state.isSwitchingServer && isLive && !state.isLoading,
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)
                     )
                 } else if (isUpcoming) {
                     UpcomingMatchPlayerOverlay(
@@ -451,6 +505,11 @@ fun SportsWatchScreen(
                     ServerSwitchingBanner(
                         visible = state.isSwitchingServer && isLive && !state.isLoading,
                         modifier = Modifier.align(Alignment.Center)
+                    )
+
+                    LiveSyncingBanner(
+                        visible = isSyncingLive && !state.isSwitchingServer && isLive && !state.isLoading,
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp)
                     )
                 }
 
@@ -1015,6 +1074,40 @@ private fun ServerSwitchingBanner(
                 text = "Switching server...",
                 color = Color.White,
                 fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveSyncingBanner(
+    visible: Boolean,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(50))
+                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
+            CircularProgressIndicator(
+                color = Color.White,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Syncing with live stream...",
+                color = Color.White,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
         }
