@@ -439,8 +439,6 @@ fun SportsWatchScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                    }
-                }
 
                 Column(
                     modifier = Modifier
