@@ -109,6 +109,7 @@ fun SportsWatchScreen(
             FullscreenPlayerState.isActive = false
             activity?.let { act ->
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                ImmersiveMode.keepScreenOn(act, false)
                 ImmersiveMode.exit(act)
             }
             exoPlayer?.release()
@@ -131,12 +132,14 @@ fun SportsWatchScreen(
         if (stream == null || stream.url.isBlank()) {
             exoPlayer?.release()
             exoPlayer = null
+            activity?.let { ImmersiveMode.keepScreenOn(it, false) }
             return@LaunchedEffect
         }
 
         exoPlayer?.release()
         isPlayerBuffering = true
         videoAspect = 16f / 9f
+        activity?.let { ImmersiveMode.keepScreenOn(it, false) }
 
         val newPlayer = PlayerFactory.build(
             context = context,
@@ -149,6 +152,17 @@ fun SportsWatchScreen(
                 isPlayerBuffering = playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) {
                     viewModel.onPlaybackReady()
+                }
+                activity?.let {
+                    val playing = newPlayer.isPlaying
+                    ImmersiveMode.keepScreenOn(it, playing || playbackState == Player.STATE_BUFFERING)
+                }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                activity?.let {
+                    val pState = newPlayer.playbackState
+                    ImmersiveMode.keepScreenOn(it, isPlaying || pState == Player.STATE_BUFFERING)
                 }
             }
 
