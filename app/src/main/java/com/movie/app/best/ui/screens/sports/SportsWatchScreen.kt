@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
@@ -68,6 +70,13 @@ fun SportsWatchScreen(
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isPlayerBuffering by remember { mutableStateOf(true) }
     var playerErrorMsg by remember { mutableStateOf<String?>(null) }
+    var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
+
+    val animatedAspect by animateFloatAsState(
+        targetValue = videoAspect,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+        label = "sports_player_aspect"
+    )
 
     val trackSelector = remember {
         PlayerFactory.trackSelector(context, disableSubtitles = false)
@@ -129,6 +138,7 @@ fun SportsWatchScreen(
         exoPlayer?.release()
         isPlayerBuffering = true
         playerErrorMsg = null
+        videoAspect = 16f / 9f
 
         val newPlayer = PlayerFactory.build(
             context = context,
@@ -145,7 +155,19 @@ fun SportsWatchScreen(
                 isPlayerBuffering = false
                 playerErrorMsg = "Playback error: ${error.message ?: "Failed to play this server stream"}"
             }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                if (videoSize.width > 0 && videoSize.height > 0) {
+                    val ratio = videoSize.width.toFloat() / videoSize.height.toFloat()
+                    videoAspect = ratio.coerceIn(1.33f, 2.45f)
+                }
+            }
         })
+
+        if (newPlayer.videoSize.width > 0 && newPlayer.videoSize.height > 0) {
+            val ratio = newPlayer.videoSize.width.toFloat() / newPlayer.videoSize.height.toFloat()
+            videoAspect = ratio.coerceIn(1.33f, 2.45f)
+        }
 
         val mediaSource = ClearKeyHelper.createMediaSource(
             url = stream.url,
@@ -282,7 +304,7 @@ fun SportsWatchScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
+                        .aspectRatio(animatedAspect)
                         .background(Color.Black)
                 ) {
                     when {
