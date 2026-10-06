@@ -49,6 +49,13 @@ class CollapsibleBarsState(
         if (newHeightPx > 0f && _headerHeightPx.floatValue != newHeightPx) {
             _headerHeightPx.floatValue = newHeightPx
             _headerOffset.floatValue = _headerOffset.floatValue.coerceIn(-newHeightPx, 0f)
+            // Keep the visibility flag in sync with the re-clamped offset so screens
+            // observing isHeaderVisible never end up with a stale state (e.g. offset
+            // forced to 0 = visible while the flag still reports hidden).
+            val isVisibleNow = _headerOffset.floatValue > -newHeightPx * 0.5f
+            if (_isHeaderVisible.value != isVisibleNow) {
+                _isHeaderVisible.value = isVisibleNow
+            }
         }
     }
 
