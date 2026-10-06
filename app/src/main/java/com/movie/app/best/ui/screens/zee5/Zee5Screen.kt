@@ -206,7 +206,6 @@ fun Zee5Screen(
                     }
                 }
             }
-        }
 
         // ── Unified Single Composite Header (Zee5Header + Zee5TabBar) ─────
         // Merged into one layout node: CPU/GPU treats the entire header as 1 object with 0 re-measure lag
