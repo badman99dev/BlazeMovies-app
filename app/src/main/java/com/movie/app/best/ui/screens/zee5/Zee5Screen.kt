@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -96,74 +97,48 @@ fun Zee5Screen(
         }
     }
 
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val zee5HeaderClearance = statusBarTop + 90.dp
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBlack)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Header with ZEE5 branding
-            AnimatedVisibility(
-                visible = isBarsVisible,
-                enter = slideInVertically(
-                    initialOffsetY = { -it },
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMedium,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                ),
-                exit = slideOutVertically(
-                    targetOffsetY = { -it },
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMedium,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                )
-            ) {
-                Zee5Header(
-                    onSearchClick = onSearchClick,
-                    onBackClick = { }
-                )
+        // ── Main Content Area ───────────────────────────────────────
+        when (val state = uiState) {
+            is Zee5UiState.Loading -> {
+                Zee5ShimmerContent(modifier = Modifier.padding(top = zee5HeaderClearance))
             }
-
-            // Tab bar
-            Zee5TabBar(
-                currentTab = currentTab,
-                onTabClick = { viewModel.switchTab(it) }
-            )
-
-            // Content
-            when (val state = uiState) {
-                is Zee5UiState.Loading -> {
-                    Zee5ShimmerContent()
-                }
-                is Zee5UiState.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = state.message,
-                                color = SecondaryText,
-                                fontSize = 14.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = { viewModel.loadTab(currentTab) },
-                                colors = ButtonDefaults.buttonColors(containerColor = AppRed)
-                            ) {
-                                Text("Retry")
-                            }
+            is Zee5UiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = zee5HeaderClearance),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = state.message,
+                            color = SecondaryText,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.loadTab(currentTab) },
+                            colors = ButtonDefaults.buttonColors(containerColor = AppRed)
+                        ) {
+                            Text("Retry")
                         }
                     }
                 }
-                is Zee5UiState.Success -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp)
-                    ) {
+            }
+            is Zee5UiState.Success -> {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = zee5HeaderClearance, bottom = 80.dp)
+                ) {
                         // Hero carousel for ALL tab (first bucket items)
                         if (currentTab == Zee5Tab.ALL && state.buckets.isNotEmpty()) {
                             val heroItems = state.buckets.firstOrNull()?.items?.take(5) ?: emptyList()
@@ -231,6 +206,30 @@ fun Zee5Screen(
                     }
                 }
             }
+        }
+
+        // ── Unified Single Composite Header (Zee5Header + Zee5TabBar) ─────
+        // Merged into one layout node: CPU/GPU treats the entire header as 1 object with 0 re-measure lag
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .background(AppBlack)
+                .onGloballyPositioned { coordinates ->
+                    barsState?.updateHeaderHeight(coordinates.size.height.toFloat())
+                }
+                .graphicsLayer {
+                    translationY = barsState?.headerOffset ?: 0f
+                }
+        ) {
+            Zee5Header(
+                onSearchClick = onSearchClick,
+                onBackClick = { }
+            )
+            Zee5TabBar(
+                currentTab = currentTab,
+                onTabClick = { viewModel.switchTab(it) }
+            )
         }
     }
 }
@@ -670,9 +669,9 @@ fun Zee5Card(
 }
 
 @Composable
-private fun Zee5ShimmerContent() {
+private fun Zee5ShimmerContent(modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(AppBlack)
     ) {

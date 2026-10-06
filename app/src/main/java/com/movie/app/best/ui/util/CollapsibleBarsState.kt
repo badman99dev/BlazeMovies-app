@@ -36,14 +36,25 @@ import kotlin.math.abs
  */
 @Stable
 class CollapsibleBarsState(
-    val headerHeightPx: Float,
+    initialHeaderHeightPx: Float,
     val twoInchesScrollPx: Float,
     private val scope: CoroutineScope,
     initialVisible: Boolean = true
 ) {
+    // Current active maximum collapse height (can be updated dynamically by screens with larger headers)
+    private val _headerHeightPx = mutableFloatStateOf(initialHeaderHeightPx)
+    val headerHeightPx: Float get() = _headerHeightPx.floatValue
+
+    fun updateHeaderHeight(newHeightPx: Float) {
+        if (newHeightPx > 0f && _headerHeightPx.floatValue != newHeightPx) {
+            _headerHeightPx.floatValue = newHeightPx
+            _headerOffset.floatValue = _headerOffset.floatValue.coerceIn(-newHeightPx, 0f)
+        }
+    }
+
     // Synchronous direct header offset: 0f (fully expanded) to -headerHeightPx (fully collapsed)
     // Updated instantaneously on the UI thread without coroutine scheduling delay!
-    private val _headerOffset = mutableFloatStateOf(if (initialVisible) 0f else -headerHeightPx)
+    private val _headerOffset = mutableFloatStateOf(if (initialVisible) 0f else -initialHeaderHeightPx)
     val headerOffset: Float get() = _headerOffset.floatValue
 
     // Header visibility flag
@@ -102,16 +113,18 @@ class CollapsibleBarsState(
             // Cancel any ongoing settle animation so drag is 100% responsive
             animJob?.cancel()
 
+            val maxCollapse = headerHeightPx
+
             if (dy < 0f) {
                 // ── SCROLLING DOWN (Finger moving up, content moving up) ──
                 accumulatedUpScroll = 0f
                 accumulatedDownScroll += -dy
 
                 // Direct 1:1 synchronous header translation (0 coroutine lag)
-                val newHeaderOffset = (_headerOffset.floatValue + dy).coerceIn(-headerHeightPx, 0f)
+                val newHeaderOffset = (_headerOffset.floatValue + dy).coerceIn(-maxCollapse, 0f)
                 _headerOffset.floatValue = newHeaderOffset
 
-                if (newHeaderOffset <= -headerHeightPx * 0.5f && _isHeaderVisible.value) {
+                if (newHeaderOffset <= -maxCollapse * 0.5f && _isHeaderVisible.value) {
                     _isHeaderVisible.value = false
                 }
 
@@ -125,10 +138,10 @@ class CollapsibleBarsState(
                 accumulatedUpScroll += dy
 
                 // Direct 1:1 synchronous header translation
-                val newHeaderOffset = (_headerOffset.floatValue + dy).coerceIn(-headerHeightPx, 0f)
+                val newHeaderOffset = (_headerOffset.floatValue + dy).coerceIn(-maxCollapse, 0f)
                 _headerOffset.floatValue = newHeaderOffset
 
-                if (newHeaderOffset > -headerHeightPx * 0.5f && !_isHeaderVisible.value) {
+                if (newHeaderOffset > -maxCollapse * 0.5f && !_isHeaderVisible.value) {
                     _isHeaderVisible.value = true
                 }
 
@@ -143,12 +156,13 @@ class CollapsibleBarsState(
 
         override suspend fun onPreFling(available: Velocity): Velocity {
             val vy = available.y
+            val maxCollapse = headerHeightPx
 
             if (vy < -1200f) {
                 // Fast flick downwards into content -> snap header and bottom bar away
                 _isBottomBarVisible.value = false
                 _isHeaderVisible.value = false
-                animateHeaderTo(-headerHeightPx)
+                animateHeaderTo(-maxCollapse)
             } else if (vy > 600f) {
                 // Upward flick -> snap header and bottom bar back into view
                 _isBottomBarVisible.value = true
@@ -156,7 +170,7 @@ class CollapsibleBarsState(
                 animateHeaderTo(0f)
             } else {
                 // Settle header to nearest boundary if partially collapsed
-                if (_headerOffset.floatValue > -headerHeightPx * 0.5f) {
+                if (_headerOffset.floatValue > -maxCollapse * 0.5f) {
                     show()
                 } else {
                     hide()

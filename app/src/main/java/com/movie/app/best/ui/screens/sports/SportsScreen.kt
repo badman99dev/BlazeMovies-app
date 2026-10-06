@@ -43,8 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -95,144 +97,138 @@ fun SportsScreen(
         }
     }
 
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    // AppHeader ~48dp + CategoryRow 72dp + FilterTabs ~44dp = 164dp
+    val sportsHeaderClearance = statusBarTop + 164.dp
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AnimatedVisibility(
-                visible = isBarsVisible,
-                enter = slideInVertically(
-                    initialOffsetY = { -it },
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMedium,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                ),
-                exit = slideOutVertically(
-                    targetOffsetY = { -it },
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMedium,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
+        // ── Pull-To-Refresh wrapping the whole screen content ──
+        SwipeRefresh(
+            state = rememberSwipeRefreshState(isRefreshing),
+            onRefresh = { viewModel.loadData(forceRefresh = true) },
+            indicator = { state, trigger ->
+                SwipeRefreshIndicator(
+                    state = state,
+                    refreshTriggerDistance = trigger,
+                    scale = true,
+                    backgroundColor = Color.White,
+                    contentColor = Color.Black
                 )
-            ) {
-                AppHeader(
-                    onMenuClick = onMenuClick,
-                    onSearchClick = onSearchClick,
-                    onNotificationClick = onNotificationClick,
-                    onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
-                    hasNotification = false
-                )
-            }
-
-            // ── Pull-To-Refresh wrapping the whole screen content ──
-            SwipeRefresh(
-                state = rememberSwipeRefreshState(isRefreshing),
-                onRefresh = { viewModel.loadData(forceRefresh = true) },
-                indicator = { state, trigger ->
-                    SwipeRefreshIndicator(
-                        state = state,
-                        refreshTriggerDistance = trigger,
-                        scale = true,
-                        backgroundColor = Color.White,
-                        contentColor = Color.Black
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // ── Category Icons Row (Fixed height container: Zero layout shift) ──
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when {
+                uiState.isLoading && uiState.events.isEmpty() -> {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(72.dp)
+                            .fillMaxSize()
+                            .padding(top = sportsHeaderClearance),
+                        contentAlignment = Alignment.Center
                     ) {
-                        if (uiState.categories.isNotEmpty()) {
-                            SportsCategoryRow(
-                                categories = uiState.categories,
-                                selectedCategory = uiState.selectedCategory,
-                                counts = uiState.categoryCounts,
-                                onSelect = { viewModel.selectCategory(it) }
+                        CircularProgressIndicator(
+                            color = AppRed,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+                uiState.filteredEvents.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = sportsHeaderClearance)
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "No matches found",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
-                        } else {
-                            SportsCategoryRowSkeleton()
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                "Try selecting a different sport or filter tab",
+                                color = Color.White.copy(alpha = 0.4f),
+                                fontSize = 13.sp
+                            )
                         }
                     }
-
-                    // ── Status Filter Tabs (All, Live, Recent, Upcoming) ──
-                    StatusFilterTabs(
-                        selected = uiState.selectedStatus,
-                        allCount = uiState.allCount,
-                        liveCount = uiState.liveCount,
-                        recentCount = uiState.recentCount,
-                        upcomingCount = uiState.upcomingCount,
-                        onSelect = { viewModel.selectStatus(it) }
-                    )
-
-                    // ── Events List ──────────────────────────────────────
-                    if (uiState.isLoading && uiState.events.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                color = AppRed,
-                                strokeWidth = 3.dp,
-                                modifier = Modifier.size(36.dp)
+                }
+                else -> {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = sportsHeaderClearance + 6.dp, bottom = 96.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.filteredEvents, key = { it.id + it.slug }) { event ->
+                            SportMatchCard(
+                                event = event,
+                                timeTick = uiState.timeTick,
+                                onClick = {
+                                    viewModel.onMatchCardClick(event.slug)
+                                    navController.navigate(Screen.SportsWatch.createRoute(event.slug))
+                                }
                             )
-                        }
-                    } else if (uiState.filteredEvents.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    "No matches found",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    "Try selecting a different sport or filter tab",
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 13.sp
-                                )
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(uiState.filteredEvents, key = { it.id + it.slug }) { event ->
-                                SportMatchCard(
-                                    event = event,
-                                    timeTick = uiState.timeTick,
-                                    onClick = {
-                                        viewModel.onMatchCardClick(event.slug)
-                                        navController.navigate(Screen.SportsWatch.createRoute(event.slug))
-                                    }
-                                )
-                            }
                         }
                     }
                 }
             }
+        }
+
+        // ── Unified Single Composite Header (AppHeader + CategoryRow + StatusFilterTabs) ─────
+        // Merged into one layout node: CPU/GPU treats the entire 3 tiers as 1 object with 0 re-measure lag
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .background(Color.Black)
+                .onGloballyPositioned { coordinates ->
+                    barsState?.updateHeaderHeight(coordinates.size.height.toFloat())
+                }
+                .graphicsLayer {
+                    translationY = barsState?.headerOffset ?: 0f
+                }
+        ) {
+            AppHeader(
+                onMenuClick = onMenuClick,
+                onSearchClick = onSearchClick,
+                onNotificationClick = onNotificationClick,
+                onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
+                hasNotification = false
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+            ) {
+                if (uiState.categories.isNotEmpty()) {
+                    SportsCategoryRow(
+                        categories = uiState.categories,
+                        selectedCategory = uiState.selectedCategory,
+                        counts = uiState.categoryCounts,
+                        onSelect = { viewModel.selectCategory(it) }
+                    )
+                } else {
+                    SportsCategoryRowSkeleton()
+                }
+            }
+
+            StatusFilterTabs(
+                selected = uiState.selectedStatus,
+                allCount = uiState.allCount,
+                liveCount = uiState.liveCount,
+                recentCount = uiState.recentCount,
+                upcomingCount = uiState.upcomingCount,
+                onSelect = { viewModel.selectStatus(it) }
+            )
         }
     }
 }
