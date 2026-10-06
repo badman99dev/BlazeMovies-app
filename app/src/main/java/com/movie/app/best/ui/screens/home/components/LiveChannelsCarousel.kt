@@ -39,7 +39,8 @@ fun LiveChannelsCarousel(
     onMoreClick: (() -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
-    val headerClearance = 40.dp   // = 36dp AppHeader row + 4dp gap (status bar handled by MainActivity)
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val headerClearance = statusBarTop + 48.dp
 
     Column(
         modifier = Modifier
@@ -75,7 +76,8 @@ fun LiveChannelsCarousel(
     isLoading: Boolean = false,
 ) {
     val listState = rememberLazyListState()
-    val headerClearance = 40.dp
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val headerClearance = statusBarTop + 48.dp
     val topPadding = if (applyTopPadding) headerClearance else 8.dp
 
     Column(

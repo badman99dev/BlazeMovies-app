@@ -108,24 +108,14 @@ fun Zee5Screen(
                 enter = slideInVertically(
                     initialOffsetY = { -it },
                     animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                ) + expandVertically(
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
+                        stiffness = Spring.StiffnessMedium,
                         dampingRatio = Spring.DampingRatioNoBouncy
                     )
                 ),
                 exit = slideOutVertically(
                     targetOffsetY = { -it },
                     animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                ) + shrinkVertically(
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
+                        stiffness = Spring.StiffnessMedium,
                         dampingRatio = Spring.DampingRatioNoBouncy
                     )
                 )
@@ -253,7 +243,8 @@ fun Zee5Header(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

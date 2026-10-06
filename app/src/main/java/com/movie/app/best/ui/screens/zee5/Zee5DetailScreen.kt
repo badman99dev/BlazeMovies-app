@@ -352,6 +352,7 @@ fun Zee5DetailHero(
         IconButton(
             onClick = onBackClick,
             modifier = Modifier
+                .statusBarsPadding()
                 .padding(16.dp)
                 .size(40.dp)
                 .clip(CircleShape)

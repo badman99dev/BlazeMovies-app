@@ -114,24 +114,14 @@ fun TVShowsScreen(
                 enter = slideInVertically(
                     initialOffsetY = { -it },
                     animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                ) + expandVertically(
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
+                        stiffness = Spring.StiffnessMedium,
                         dampingRatio = Spring.DampingRatioNoBouncy
                     )
                 ),
                 exit = slideOutVertically(
                     targetOffsetY = { -it },
                     animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                ) + shrinkVertically(
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
+                        stiffness = Spring.StiffnessMedium,
                         dampingRatio = Spring.DampingRatioNoBouncy
                     )
                 )

@@ -33,6 +33,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.ui.zIndex
+import com.movie.app.best.util.FullscreenPlayerState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -447,6 +451,20 @@ fun MainContent(
                     isOnline = isConnected,
                     onMenuClick = { scope.launch { drawerState.open() } }
                 )
+
+                // ── Status Bar Scrim (YouTube / Netflix Edge-to-Edge Scrim) ────────
+                // Extends behind the system status bar icons (clock, battery, Wi-Fi)
+                // so scrolling content passes cleanly beneath without visual clash.
+                if (!FullscreenPlayerState.isActive) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .windowInsetsTopHeight(WindowInsets.statusBars)
+                            .background(Color.Black.copy(alpha = 0.95f))
+                            .align(Alignment.TopCenter)
+                            .zIndex(50f)
+                    )
+                }
 
                 // Overlay Floating BottomNavigationBar (YouTube / Netflix style edge-to-edge overlay)
                 AnimatedVisibility(

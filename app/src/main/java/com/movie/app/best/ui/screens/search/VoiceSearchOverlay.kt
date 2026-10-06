@@ -241,7 +241,8 @@ fun VoiceSearchOverlay(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .statusBarsPadding()
+                .height(52.dp)
                 .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

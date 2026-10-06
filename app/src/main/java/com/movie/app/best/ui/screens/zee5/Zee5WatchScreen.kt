@@ -270,6 +270,12 @@ fun Zee5WatchScreen(
             .fillMaxSize()
             .background(AppBlack)
     ) {
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars)
+                .background(Color.Black)
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()

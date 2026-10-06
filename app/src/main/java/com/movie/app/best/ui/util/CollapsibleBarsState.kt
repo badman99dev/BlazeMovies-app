@@ -3,10 +3,14 @@ package com.movie.app.best.ui.util
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -18,12 +22,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /**
  * Manages coordinated auto-hide / auto-show states for:
- * 1. Top Header: Directly synchronized 1:1 with content scroll offset and velocity.
+ * 1. Top Header: Directly synchronized 1:1 with content scroll offset and velocity without coroutine dispatch lag.
  * 2. Bottom Navigation Bar:
  *    - Hides after content scrolls down ~2 inches (distance threshold, ~280dp).
  *    - Hides immediately if user flings/scrolls fast (~4 inches/sec velocity, < -1500 px/s).
@@ -36,11 +41,12 @@ class CollapsibleBarsState(
     private val scope: CoroutineScope,
     initialVisible: Boolean = true
 ) {
-    // Header offset: 0f (fully expanded) to -headerHeightPx (fully collapsed)
-    private val _headerOffsetAnim = Animatable(if (initialVisible) 0f else -headerHeightPx)
-    val headerOffset: Float get() = _headerOffsetAnim.value
+    // Synchronous direct header offset: 0f (fully expanded) to -headerHeightPx (fully collapsed)
+    // Updated instantaneously on the UI thread without coroutine scheduling delay!
+    private val _headerOffset = mutableFloatStateOf(if (initialVisible) 0f else -headerHeightPx)
+    val headerOffset: Float get() = _headerOffset.floatValue
 
-    // Header visibility flag (used by AnimatedVisibility on screens with collapsing columns)
+    // Header visibility flag
     private val _isHeaderVisible = mutableStateOf(initialVisible)
     val isHeaderVisible: State<Boolean> = _isHeaderVisible
 
@@ -55,20 +61,29 @@ class CollapsibleBarsState(
     private var accumulatedDownScroll = 0f
     private var accumulatedUpScroll = 0f
 
+    private var animJob: Job? = null
+
+    private fun animateHeaderTo(target: Float) {
+        animJob?.cancel()
+        animJob = scope.launch {
+            Animatable(_headerOffset.floatValue).animateTo(
+                targetValue = target,
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMedium,
+                    dampingRatio = Spring.DampingRatioNoBouncy
+                )
+            ) {
+                _headerOffset.floatValue = value
+            }
+        }
+    }
+
     fun show() {
         accumulatedDownScroll = 0f
         accumulatedUpScroll = 0f
         _isHeaderVisible.value = true
         _isBottomBarVisible.value = true
-        scope.launch {
-            _headerOffsetAnim.animateTo(
-                0f,
-                spring(
-                    stiffness = Spring.StiffnessMediumLow,
-                    dampingRatio = Spring.DampingRatioNoBouncy
-                )
-            )
-        }
+        animateHeaderTo(0f)
     }
 
     fun hide() {
@@ -76,15 +91,7 @@ class CollapsibleBarsState(
         accumulatedUpScroll = 0f
         _isHeaderVisible.value = false
         _isBottomBarVisible.value = false
-        scope.launch {
-            _headerOffsetAnim.animateTo(
-                -headerHeightPx,
-                spring(
-                    stiffness = Spring.StiffnessMediumLow,
-                    dampingRatio = Spring.DampingRatioNoBouncy
-                )
-            )
-        }
+        animateHeaderTo(-headerHeightPx)
     }
 
     val nestedScrollConnection = object : NestedScrollConnection {
@@ -92,23 +99,23 @@ class CollapsibleBarsState(
             val dy = available.y
             if (abs(dy) < 0.5f) return Offset.Zero
 
+            // Cancel any ongoing settle animation so drag is 100% responsive
+            animJob?.cancel()
+
             if (dy < 0f) {
                 // ── SCROLLING DOWN (Finger moving up, content moving up) ──
                 accumulatedUpScroll = 0f
                 accumulatedDownScroll += -dy
 
-                // 1. Direct 1:1 Header Sync: Translate header upwards with scroll delta
-                val newHeaderOffset = (headerOffset + dy).coerceIn(-headerHeightPx, 0f)
-                scope.launch {
-                    _headerOffsetAnim.snapTo(newHeaderOffset)
-                }
+                // Direct 1:1 synchronous header translation (0 coroutine lag)
+                val newHeaderOffset = (_headerOffset.floatValue + dy).coerceIn(-headerHeightPx, 0f)
+                _headerOffset.floatValue = newHeaderOffset
 
-                // If header moved more than half its height, consider it visually hidden
                 if (newHeaderOffset <= -headerHeightPx * 0.5f && _isHeaderVisible.value) {
                     _isHeaderVisible.value = false
                 }
 
-                // 2. Bottom Navigation Bar: Only hide after user has scrolled ~2 inches of content
+                // Bottom Navigation Bar: Only hide after user has scrolled ~2 inches of content
                 if (accumulatedDownScroll >= twoInchesScrollPx && _isBottomBarVisible.value) {
                     _isBottomBarVisible.value = false
                 }
@@ -117,17 +124,15 @@ class CollapsibleBarsState(
                 accumulatedDownScroll = 0f
                 accumulatedUpScroll += dy
 
-                // 1. Direct 1:1 Header Sync: Translate header downwards with scroll delta
-                val newHeaderOffset = (headerOffset + dy).coerceIn(-headerHeightPx, 0f)
-                scope.launch {
-                    _headerOffsetAnim.snapTo(newHeaderOffset)
-                }
+                // Direct 1:1 synchronous header translation
+                val newHeaderOffset = (_headerOffset.floatValue + dy).coerceIn(-headerHeightPx, 0f)
+                _headerOffset.floatValue = newHeaderOffset
 
                 if (newHeaderOffset > -headerHeightPx * 0.5f && !_isHeaderVisible.value) {
                     _isHeaderVisible.value = true
                 }
 
-                // 2. Bottom Navigation Bar: Re-show quickly as soon as user scrolls up
+                // Bottom Navigation Bar: Re-show quickly as soon as user scrolls up
                 if (accumulatedUpScroll > 24f && !_isBottomBarVisible.value) {
                     _isBottomBarVisible.value = true
                 }
@@ -139,36 +144,22 @@ class CollapsibleBarsState(
         override suspend fun onPreFling(available: Velocity): Velocity {
             val vy = available.y
 
-            // Fast flick downwards into content (> 4 inches/sec, i.e. velocity < -1500 px/sec)
-            if (vy < -1500f) {
+            if (vy < -1200f) {
+                // Fast flick downwards into content -> snap header and bottom bar away
                 _isBottomBarVisible.value = false
                 _isHeaderVisible.value = false
-                _headerOffsetAnim.animateTo(
-                    -headerHeightPx,
-                    spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                )
-            } else if (vy > 800f) {
+                animateHeaderTo(-headerHeightPx)
+            } else if (vy > 600f) {
                 // Upward flick -> snap header and bottom bar back into view
                 _isBottomBarVisible.value = true
                 _isHeaderVisible.value = true
-                _headerOffsetAnim.animateTo(
-                    0f,
-                    spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                )
+                animateHeaderTo(0f)
             } else {
                 // Settle header to nearest boundary if partially collapsed
-                if (headerOffset > -headerHeightPx * 0.5f) {
-                    _headerOffsetAnim.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-                    _isHeaderVisible.value = true
+                if (_headerOffset.floatValue > -headerHeightPx * 0.5f) {
+                    show()
                 } else {
-                    _headerOffsetAnim.animateTo(-headerHeightPx, spring(stiffness = Spring.StiffnessMediumLow))
-                    _isHeaderVisible.value = false
+                    hide()
                 }
             }
 
@@ -181,13 +172,15 @@ val LocalCollapsibleBarsState = compositionLocalOf<CollapsibleBarsState?> { null
 
 @Composable
 fun rememberCollapsibleBarsState(
-    headerHeight: Dp = 64.dp,
+    headerContentHeight: Dp = 48.dp,
     twoInchesScroll: Dp = 280.dp,
     initialVisible: Boolean = true
 ): CollapsibleBarsState {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
-    val headerHeightPx = with(density) { headerHeight.toPx() }
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val totalHeaderHeight = statusBarTop + headerContentHeight
+    val headerHeightPx = with(density) { totalHeaderHeight.toPx() }
     val twoInchesScrollPx = with(density) { twoInchesScroll.toPx() }
 
     return remember(headerHeightPx, twoInchesScrollPx) {

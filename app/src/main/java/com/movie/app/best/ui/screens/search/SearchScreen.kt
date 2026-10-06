@@ -133,12 +133,14 @@ fun SearchScreen(
             topBar = {
                 Surface(
                     color = Color.Black,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(52.dp)
                             .padding(start = 6.dp, end = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

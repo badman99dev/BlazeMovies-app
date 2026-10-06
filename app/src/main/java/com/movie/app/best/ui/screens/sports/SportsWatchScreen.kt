@@ -464,6 +464,12 @@ fun SportsWatchScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsTopHeight(WindowInsets.statusBars)
+                        .background(Color.Black)
+                )
                 // ── 16:9 Player / Custom Overlay Container ─────────────────────────
                 Box(
                     modifier = Modifier
