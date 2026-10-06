@@ -100,8 +100,13 @@ fun Zee5Screen(
 
     val density = LocalDensity.current
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    // Fallback clearance used until the real composite header is measured.
     val zee5HeaderClearance = statusBarTop + 90.dp
     val zee5HeaderHeightPx = with(density) { zee5HeaderClearance.toPx() }
+
+    // Real measured height of the composite header (statusBar + Zee5Header + Zee5TabBar).
+    // Prevents the hardcoded-estimate gap between the header and the first content rail.
+    var measuredHeaderHeightDp by remember { mutableStateOf(0.dp) }
 
     DisposableEffect(zee5HeaderHeightPx) {
         barsState?.updateHeaderHeight(zee5HeaderHeightPx)
@@ -150,7 +155,7 @@ fun Zee5Screen(
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
                     item(key = "zee5_header_spacer") {
-                        Spacer(modifier = Modifier.height(zee5HeaderClearance))
+                        Spacer(modifier = Modifier.height(if (measuredHeaderHeightDp > 0.dp) measuredHeaderHeightDp else zee5HeaderClearance))
                     }
 
                     // Hero carousel for ALL tab (first bucket items)
@@ -227,16 +232,22 @@ fun Zee5Screen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .background(AppBlack)
                 .onGloballyPositioned { coordinates ->
-                    val measured = coordinates.size.height.toFloat()
-                    if (measured > 0f) {
-                        barsState?.updateHeaderHeight(measured)
+                    val measuredPx = coordinates.size.height.toFloat()
+                    if (measuredPx > 0f) {
+                        barsState?.updateHeaderHeight(measuredPx)
+                        val measuredDp = with(density) { measuredPx.toDp() }
+                        if (measuredDp != measuredHeaderHeightDp) {
+                            measuredHeaderHeightDp = measuredDp
+                        }
                     }
                 }
+                // graphicsLayer MUST wrap the background so the solid black backdrop
+                // collapses with the header instead of leaving a pinned black patti.
                 .graphicsLayer {
                     translationY = barsState?.headerOffset ?: 0f
                 }
+                .background(AppBlack)
         ) {
             Zee5Header(
                 onSearchClick = onSearchClick,

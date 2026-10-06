@@ -100,9 +100,15 @@ fun SportsScreen(
 
     val density = LocalDensity.current
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    // Fallback clearance used until the real composite header is measured:
     // AppHeader ~48dp + CategoryRow 72dp + FilterTabs ~44dp = 164dp
     val sportsHeaderClearance = statusBarTop + 164.dp
     val sportsHeaderHeightPx = with(density) { sportsHeaderClearance.toPx() }
+
+    // Real measured height of the composite header (statusBar + AppHeader + category row + filter tabs).
+    // Using this as the content spacer keeps the list perfectly aligned with the actual header instead
+    // of a hardcoded estimate (which drifted and left a gap/patti).
+    var measuredHeaderHeightDp by remember { mutableStateOf(0.dp) }
 
     DisposableEffect(sportsHeaderHeightPx) {
         barsState?.updateHeaderHeight(sportsHeaderHeightPx)
@@ -178,7 +184,7 @@ fun SportsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         item(key = "sports_header_spacer") {
-                            Spacer(modifier = Modifier.height(sportsHeaderClearance + 6.dp))
+                            Spacer(modifier = Modifier.height(if (measuredHeaderHeightDp > 0.dp) measuredHeaderHeightDp + 6.dp else sportsHeaderClearance + 6.dp))
                         }
                         items(uiState.filteredEvents, key = { it.id + it.slug }) { event ->
                             SportMatchCard(
@@ -201,16 +207,24 @@ fun SportsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .background(Color.Black)
                 .onGloballyPositioned { coordinates ->
-                    val measured = coordinates.size.height.toFloat()
-                    if (measured > 0f) {
-                        barsState?.updateHeaderHeight(measured)
+                    val measuredPx = coordinates.size.height.toFloat()
+                    if (measuredPx > 0f) {
+                        barsState?.updateHeaderHeight(measuredPx)
+                        val measuredDp = with(density) { measuredPx.toDp() }
+                        if (measuredDp != measuredHeaderHeightDp) {
+                            measuredHeaderHeightDp = measuredDp
+                        }
                     }
                 }
+                // graphicsLayer MUST wrap the background so the solid black backdrop
+                // travels together with the header. If .background() sits outside the
+                // layer it stays pinned at the top and leaves a black "patti" behind
+                // when the header collapses.
                 .graphicsLayer {
                     translationY = barsState?.headerOffset ?: 0f
                 }
+                .background(Color.Black)
         ) {
             AppHeader(
                 onMenuClick = onMenuClick,
