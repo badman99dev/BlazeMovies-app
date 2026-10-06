@@ -36,13 +36,13 @@ import kotlin.math.abs
  */
 @Stable
 class CollapsibleBarsState(
-    initialHeaderHeightPx: Float,
+    headerHeightPx: Float,
     val twoInchesScrollPx: Float,
     private val scope: CoroutineScope,
     initialVisible: Boolean = true
 ) {
     // Current active maximum collapse height (can be updated dynamically by screens with larger headers)
-    private val _headerHeightPx = mutableFloatStateOf(initialHeaderHeightPx)
+    private val _headerHeightPx = mutableFloatStateOf(headerHeightPx)
     val headerHeightPx: Float get() = _headerHeightPx.floatValue
 
     fun updateHeaderHeight(newHeightPx: Float) {
@@ -54,7 +54,7 @@ class CollapsibleBarsState(
 
     // Synchronous direct header offset: 0f (fully expanded) to -headerHeightPx (fully collapsed)
     // Updated instantaneously on the UI thread without coroutine scheduling delay!
-    private val _headerOffset = mutableFloatStateOf(if (initialVisible) 0f else -initialHeaderHeightPx)
+    private val _headerOffset = mutableFloatStateOf(if (initialVisible) 0f else -headerHeightPx)
     val headerOffset: Float get() = _headerOffset.floatValue
 
     // Header visibility flag
