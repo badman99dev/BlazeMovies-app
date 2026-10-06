@@ -126,6 +126,7 @@ fun SportsWatchScreen(
         }
     }
 
+    val mainHandler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
     val connectivityManager = remember {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
     }
@@ -133,10 +134,16 @@ fun SportsWatchScreen(
         val cm = connectivityManager ?: return@DisposableEffect onDispose {}
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                exoPlayer?.let { player ->
-                    if (player.playbackState == Player.STATE_IDLE) {
-                        player.prepare()
-                        player.play()
+                mainHandler.post {
+                    exoPlayer?.let { player ->
+                        if (player.playbackState == Player.STATE_IDLE) {
+                            try {
+                                val dur = player.duration
+                                if (dur > 6000L) player.seekTo(dur - 6000L) else player.seekToDefaultPosition()
+                                player.prepare()
+                                player.play()
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
             }
@@ -187,15 +194,15 @@ fun SportsWatchScreen(
 
         newPlayer.addListener(object : Player.Listener {
             override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
-                // 🚀 Pre-download intercept: Direct -12s start before ExoPlayer requests -30s segment!
+                // 🚀 Pre-download intercept: Direct -8s start before ExoPlayer requests -30s segment!
                 if (!timeline.isEmpty && !hasInitialLiveSynced) {
                     val window = androidx.media3.common.Timeline.Window()
                     timeline.getWindow(0, window)
                     if (window.isLive()) {
                         hasInitialLiveSynced = true
                         val dur = window.durationMs
-                        if (dur > 12_000L) {
-                            newPlayer.seekTo(dur - 12_000L)
+                        if (dur > 8000L) {
+                            newPlayer.seekTo(dur - 8000L)
                         }
                     }
                 }

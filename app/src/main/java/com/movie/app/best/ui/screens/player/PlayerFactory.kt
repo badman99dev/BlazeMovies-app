@@ -10,8 +10,10 @@ import com.movie.app.best.data.settings.VideoQualitySettings
 
 object PlayerFactory {
 
-    const val BUFFER_MIN_MS = 5000
-    const val BUFFER_MAX_MS = 30000
+    const val BUFFER_MIN_MS = 15_000
+    const val BUFFER_MAX_MS = 30_000
+    const val BUFFER_FOR_PLAYBACK_MS = 1_500
+    const val BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 2_000
     const val BACK_BUFFER_MS = 300_000
     const val SPORTS_BACK_BUFFER_MS = 30_000
     const val SEEK_INCREMENT_MS = 30_000
@@ -30,8 +32,8 @@ object PlayerFactory {
             .setBufferDurationsMs(
                 BUFFER_MIN_MS,
                 BUFFER_MAX_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+                BUFFER_FOR_PLAYBACK_MS,
+                BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
             )
             .setBackBuffer(backBufferMs, true)
             .build()

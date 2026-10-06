@@ -486,7 +486,18 @@ fun ControlsMiddleView(modifier: Modifier = Modifier, player: Player, isPlaying:
         }
         PlayerButton(
             modifier = Modifier.size(64.dp),
-            onClick = { if (isPlaying) player.pause() else player.play() },
+            onClick = {
+                try {
+                    if (isPlaying) {
+                        player.pause()
+                    } else {
+                        if (player.playbackState == Player.STATE_IDLE) {
+                            player.prepare()
+                        }
+                        player.play()
+                    }
+                } catch (_: Exception) {}
+            },
         ) {
             PlayPauseMorphIcon(
                 isPlaying = isPlaying,

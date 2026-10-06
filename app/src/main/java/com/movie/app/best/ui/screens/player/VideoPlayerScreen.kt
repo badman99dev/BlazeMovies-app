@@ -140,7 +140,7 @@ fun VideoPlayerScreen(
         if (effectiveUrl.isNotEmpty() && exoPlayer != null) {
             val mediaItem = if (isLive) {
                 val liveConfig = MediaItem.LiveConfiguration.Builder()
-                    .setTargetOffsetMs(12000L)
+                    .setTargetOffsetMs(8000L)
                     .build()
                 MediaItem.Builder()
                     .setUri(effectiveUrl)
@@ -199,8 +199,8 @@ fun VideoPlayerScreen(
                     if (window.isLive()) {
                         hasInitialLiveSynced = true
                         val dur = window.durationMs
-                        if (dur > 12_000L) {
-                            exoPlayer?.seekTo(dur - 12_000L)
+                        if (dur > 8000L) {
+                            exoPlayer?.seekTo(dur - 8000L)
                         }
                     }
                 }

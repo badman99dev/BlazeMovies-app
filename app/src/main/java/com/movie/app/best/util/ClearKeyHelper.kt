@@ -101,7 +101,7 @@ object ClearKeyHelper {
     ): MediaSource {
         val dataSourceFactory = buildHttpDataSourceFactory(headers)
         val liveConfig = MediaItem.LiveConfiguration.Builder()
-            .setTargetOffsetMs(12000L)
+            .setTargetOffsetMs(8000L)
             .build()
         val mediaItem = MediaItem.Builder()
             .setUri(url)

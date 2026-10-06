@@ -187,6 +187,7 @@ fun MovieWatchScreen(
     var consecutiveErrors by remember { mutableStateOf(0) }
     var hasResumed by remember { mutableStateOf(false) }
 
+    val mainHandler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
     val connectivityManager = remember {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
     }
@@ -194,11 +195,15 @@ fun MovieWatchScreen(
         val cm = connectivityManager ?: return@DisposableEffect onDispose {}
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                exoPlayer?.let { player ->
-                    if (player.playbackState == Player.STATE_IDLE) {
-                        if (serverFailoverSeek > 0L) player.seekTo(serverFailoverSeek)
-                        player.prepare()
-                        player.play()
+                mainHandler.post {
+                    exoPlayer?.let { player ->
+                        if (player.playbackState == Player.STATE_IDLE) {
+                            try {
+                                if (serverFailoverSeek > 0L) player.seekTo(serverFailoverSeek)
+                                player.prepare()
+                                player.play()
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
             }
