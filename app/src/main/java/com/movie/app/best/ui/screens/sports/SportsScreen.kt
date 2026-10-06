@@ -75,6 +75,7 @@ import com.movie.app.best.ui.theme.AppSurface
 import com.movie.app.best.ui.theme.InfoBlue
 import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.ui.util.LocalCollapsibleBarsState
+import androidx.compose.ui.platform.LocalDensity
 
 @Composable
 fun SportsScreen(
@@ -97,9 +98,18 @@ fun SportsScreen(
         }
     }
 
+    val density = LocalDensity.current
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     // AppHeader ~48dp + CategoryRow 72dp + FilterTabs ~44dp = 164dp
     val sportsHeaderClearance = statusBarTop + 164.dp
+    val sportsHeaderHeightPx = with(density) { sportsHeaderClearance.toPx() }
+
+    DisposableEffect(sportsHeaderHeightPx) {
+        barsState?.updateHeaderHeight(sportsHeaderHeightPx)
+        onDispose {
+            barsState?.resetToDefaultHeaderHeight()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -164,9 +174,12 @@ fun SportsScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = sportsHeaderClearance + 6.dp, bottom = 96.dp),
+                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        item(key = "sports_header_spacer") {
+                            Spacer(modifier = Modifier.height(sportsHeaderClearance + 6.dp))
+                        }
                         items(uiState.filteredEvents, key = { it.id + it.slug }) { event ->
                             SportMatchCard(
                                 event = event,
@@ -190,7 +203,10 @@ fun SportsScreen(
                 .align(Alignment.TopCenter)
                 .background(Color.Black)
                 .onGloballyPositioned { coordinates ->
-                    barsState?.updateHeaderHeight(coordinates.size.height.toFloat())
+                    val measured = coordinates.size.height.toFloat()
+                    if (measured > 0f) {
+                        barsState?.updateHeaderHeight(measured)
+                    }
                 }
                 .graphicsLayer {
                     translationY = barsState?.headerOffset ?: 0f

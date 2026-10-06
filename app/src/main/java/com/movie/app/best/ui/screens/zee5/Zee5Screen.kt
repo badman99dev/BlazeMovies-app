@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -97,8 +98,17 @@ fun Zee5Screen(
         }
     }
 
+    val density = LocalDensity.current
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val zee5HeaderClearance = statusBarTop + 90.dp
+    val zee5HeaderHeightPx = with(density) { zee5HeaderClearance.toPx() }
+
+    DisposableEffect(zee5HeaderHeightPx) {
+        barsState?.updateHeaderHeight(zee5HeaderHeightPx)
+        onDispose {
+            barsState?.resetToDefaultHeaderHeight()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -137,9 +147,13 @@ fun Zee5Screen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = zee5HeaderClearance, bottom = 80.dp)
+                    contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
-                        // Hero carousel for ALL tab (first bucket items)
+                    item(key = "zee5_header_spacer") {
+                        Spacer(modifier = Modifier.height(zee5HeaderClearance))
+                    }
+
+                    // Hero carousel for ALL tab (first bucket items)
                         if (currentTab == Zee5Tab.ALL && state.buckets.isNotEmpty()) {
                             val heroItems = state.buckets.firstOrNull()?.items?.take(5) ?: emptyList()
                             if (heroItems.isNotEmpty()) {
@@ -215,7 +229,10 @@ fun Zee5Screen(
                 .align(Alignment.TopCenter)
                 .background(AppBlack)
                 .onGloballyPositioned { coordinates ->
-                    barsState?.updateHeaderHeight(coordinates.size.height.toFloat())
+                    val measured = coordinates.size.height.toFloat()
+                    if (measured > 0f) {
+                        barsState?.updateHeaderHeight(measured)
+                    }
                 }
                 .graphicsLayer {
                     translationY = barsState?.headerOffset ?: 0f

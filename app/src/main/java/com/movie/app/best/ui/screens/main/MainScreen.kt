@@ -239,6 +239,9 @@ fun MainContent(
 
     LaunchedEffect(currentRoute) {
         collapsibleBarsState.show()
+        if (currentRoute != Screen.Sports.route && currentRoute != Screen.Zee5.route) {
+            collapsibleBarsState.resetToDefaultHeaderHeight()
+        }
     }
 
     var prevLoggedIn by remember { mutableStateOf(authState.isLoggedIn) }
