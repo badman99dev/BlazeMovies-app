@@ -417,10 +417,15 @@ private fun OverBlockCard(overItem: CrexLastOver) {
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF131822)),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-        modifier = Modifier.width(IntrinsicSize.Min)
+        modifier = Modifier
+            .height(64.dp)
+            .widthIn(min = 160.dp)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -431,18 +436,20 @@ private fun OverBlockCard(overItem: CrexLastOver) {
                     text = overItem.over ?: "Over",
                     color = Color.White.copy(alpha = 0.85f),
                     fontSize = 11.5.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "= ${overItem.total}",
                     color = Color(0xFF00B4D8),
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
