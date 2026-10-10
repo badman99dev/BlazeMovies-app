@@ -610,26 +610,6 @@ fun SportsWatchScreen(
                                 info?.eventName?.takeIf { it.isNotBlank() }
                             ).joinToString(" | ").uppercase()
 
-                            if (catText.isNotBlank()) {
-                                Text(
-                                    text = catText,
-                                    color = AppRed,
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.5.sp
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                            }
-
-                            if (displayTitle.isNotBlank()) {
-                                Text(
-                                    text = displayTitle,
-                                    color = Color.White,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-                            }
 
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -668,27 +648,16 @@ fun SportsWatchScreen(
                                     ) {
                                         when {
                                             isLive -> {
-                                                val pulse = rememberInfiniteTransition(label = "pulse")
-                                                val alpha by pulse.animateFloat(
-                                                    initialValue = 0.5f,
-                                                    targetValue = 1f,
-                                                    animationSpec = infiniteRepeatable(
-                                                        animation = tween(600, easing = FastOutSlowInEasing),
-                                                        repeatMode = RepeatMode.Reverse
-                                                    ),
-                                                    label = "pulseAlpha"
-                                                )
-
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     modifier = Modifier
                                                         .background(AppRed.copy(alpha = 0.15f), RoundedCornerShape(50))
-                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                        .padding(horizontal = 10.dp, vertical = 4.dp)
                                                 ) {
                                                     Box(
                                                         modifier = Modifier
                                                             .size(7.dp)
-                                                            .background(AppRed.copy(alpha = alpha), CircleShape)
+                                                            .background(AppRed, CircleShape)
                                                     )
                                                     Spacer(modifier = Modifier.width(5.dp))
                                                     Text(
@@ -767,9 +736,7 @@ fun SportsWatchScreen(
                                 if (state.isCricket) {
                                     CricketScoreSection(
                                         scoreData = state.cricketScore,
-                                        isLoading = state.isCricketLoading,
-                                        syncWithStream = state.syncWithStream,
-                                        onToggleStreamSync = { viewModel.toggleStreamSync(it) }
+                                        isLoading = state.isCricketLoading
                                     )
                                 }
                             }

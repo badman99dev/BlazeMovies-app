@@ -134,3 +134,53 @@ data class CrexRecentBall(
     @SerializedName("over") val over: String? = null,
     @SerializedName("ball") val ball: String? = null
 )
+
+// Squads
+data class CrexSquadResponse(
+    @SerializedName("success") val success: Boolean = false,
+    @SerializedName("squad") val squad: CrexSquadData? = null
+)
+
+data class CrexSquadData(
+    @SerializedName("id") val id: String = "",
+    @SerializedName("kind") val kind: String = "",
+    @SerializedName("teams") val teams: CrexSquadTeams? = null
+)
+
+data class CrexSquadTeams(
+    @SerializedName("team1") val team1: CrexTeamSquad? = null,
+    @SerializedName("team2") val team2: CrexTeamSquad? = null
+)
+
+data class CrexTeamSquad(
+    @SerializedName("code") val code: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("shortName") val shortName: String? = null,
+    @SerializedName("flag") val flag: String? = null,
+    @SerializedName("players") val players: List<CrexSquadPlayer> = emptyList()
+)
+
+data class CrexSquadPlayer(
+    @SerializedName("fkey") val fkey: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("role") val role: String? = null,
+    @SerializedName("captain") val captain: Boolean = false,
+    @SerializedName("keeper") val keeper: Boolean = false,
+    @SerializedName("head") val head: String? = null
+)
+
+// Commentary
+data class CrexCommentaryResponse(
+    @SerializedName("success") val success: Boolean = false,
+    @SerializedName("recentBalls") val recentBalls: List<CrexCommentaryBall> = emptyList()
+)
+
+data class CrexCommentaryBall(
+    @SerializedName("over") val over: String? = null,
+    @SerializedName("ball") val ball: String? = null,
+    @SerializedName("text") val text: String? = null,
+    @SerializedName("score") val score: String? = null,
+    @SerializedName("isBoundary") val isBoundary: Boolean = false,
+    @SerializedName("isWicket") val isWicket: Boolean = false,
+    @SerializedName("isExtra") val isExtra: Boolean = false
+)

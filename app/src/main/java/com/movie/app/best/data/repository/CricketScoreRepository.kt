@@ -1,10 +1,7 @@
 package com.movie.app.best.data.repository
 
 import com.google.gson.GsonBuilder
-import com.movie.app.best.data.model.CrexBowlerStats
-import com.movie.app.best.data.model.CrexLastOver
-import com.movie.app.best.data.model.CrexMatchDetail
-import com.movie.app.best.data.model.CrexPlayerStats
+import com.movie.app.best.data.model.*
 import com.movie.app.best.data.remote.CricketApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -38,6 +35,9 @@ data class CricketScoreUiData(
     val bowler: CrexBowlerStats? = null,
     val recentBalls: List<String> = emptyList(),
     val lastOvers: List<CrexLastOver> = emptyList(),
+    val team1Squad: CrexTeamSquad? = null,
+    val team2Squad: CrexTeamSquad? = null,
+    val commentaryBalls: List<CrexCommentaryBall> = emptyList(),
     val isDelayedByStreamSync: Boolean = true
 )
 
@@ -62,17 +62,23 @@ class CricketScoreRepository @Inject constructor() {
             .create(CricketApiService::class.java)
     }
 
-    // Circular snapshot buffer for 30s stream sync
+    // Circular snapshot buffer for 45s stream sync
     private val snapshotBuffer = Collections.synchronizedList(mutableListOf<Pair<Long, CrexMatchDetail>>())
 
     // Stationary batsman tracking
     private var anchoredSlot1: CrexPlayerStats? = null
     private var anchoredSlot2: CrexPlayerStats? = null
 
+    // Cached squad data
+    private var cachedSquadTeams: CrexSquadTeams? = null
+    private var cachedSquadMatchId: String = ""
+
     fun resetBuffer() {
         snapshotBuffer.clear()
         anchoredSlot1 = null
         anchoredSlot2 = null
+        cachedSquadTeams = null
+        cachedSquadMatchId = ""
     }
 
     suspend fun resolveMatchId(
@@ -159,19 +165,38 @@ class CricketScoreRepository @Inject constructor() {
             val response = api.getMatchDetail(id = matchId, json = true)
             val match = response.match ?: return@withContext null
 
+            // Lazy fetch squad if not yet cached for this match
+            if (cachedSquadTeams == null || cachedSquadMatchId != matchId) {
+                try {
+                    val sqRes = api.getMatchSquad(id = matchId, json = true)
+                    if (sqRes.success && sqRes.squad?.teams != null) {
+                        cachedSquadTeams = sqRes.squad.teams
+                        cachedSquadMatchId = matchId
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // Fetch latest commentary
+            val commBalls = try {
+                val commRes = api.getMatchCommentary(id = matchId, json = true)
+                commRes.recentBalls.take(20)
+            } catch (_: Exception) {
+                emptyList()
+            }
+
             val now = System.currentTimeMillis()
             snapshotBuffer.add(Pair(now, match))
 
-            // Prune snapshots older than 2 minutes
-            val cutOff = now - 120_000L
+            // Prune snapshots older than 3 minutes
+            val cutOff = now - 180_000L
             snapshotBuffer.removeAll { it.first < cutOff }
 
-            // Select snapshot based on syncWithStream toggle
+            // Select snapshot based on 45s stream sync
             val selectedDetail: CrexMatchDetail
             val isDelayed: Boolean
 
             if (syncWithStream) {
-                val targetTime = now - 30_000L
+                val targetTime = now - 45_000L // 45s buffer
                 val olderSnapshots = snapshotBuffer.filter { it.first <= targetTime }
                 selectedDetail = if (olderSnapshots.isNotEmpty()) {
                     olderSnapshots.maxByOrNull { it.first }?.second ?: match
@@ -184,13 +209,23 @@ class CricketScoreRepository @Inject constructor() {
                 isDelayed = false
             }
 
-            mapToUiData(selectedDetail, isDelayed)
+            mapToUiData(
+                detail = selectedDetail,
+                isDelayed = isDelayed,
+                squadTeams = cachedSquadTeams,
+                commentaryBalls = commBalls
+            )
         } catch (e: Exception) {
             null
         }
     }
 
-    private fun mapToUiData(detail: CrexMatchDetail, isDelayed: Boolean): CricketScoreUiData {
+    private fun mapToUiData(
+        detail: CrexMatchDetail,
+        isDelayed: Boolean,
+        squadTeams: CrexSquadTeams?,
+        commentaryBalls: List<CrexCommentaryBall>
+    ): CricketScoreUiData {
         val rich = detail.rich
         val teams = detail.teams
 
@@ -243,7 +278,7 @@ class CricketScoreRepository @Inject constructor() {
         // Clean equation: don't show bare numbers without context
         val eqRaw = rich?.equation?.trim().orEmpty()
         val eqClean = when {
-            eqRaw.matches(Regex("""^[\d.]+$""")) -> null // Ignore bare numbers like "57.0"
+            eqRaw.matches(Regex("""^[\d.]+$""")) -> null
             eqRaw.isNotBlank() -> eqRaw
             !rich?.comment.isNullOrBlank() && !rich.comment.matches(Regex("""^[\d.]+$""")) -> rich.comment
             else -> null
@@ -273,6 +308,9 @@ class CricketScoreRepository @Inject constructor() {
             bowler = rich?.bowler,
             recentBalls = ballList,
             lastOvers = lastOversList,
+            team1Squad = squadTeams?.team1,
+            team2Squad = squadTeams?.team2,
+            commentaryBalls = commentaryBalls,
             isDelayedByStreamSync = isDelayed
         )
     }
@@ -302,7 +340,6 @@ class CricketScoreRepository @Inject constructor() {
     }
 
     private fun extractSingleScore(s: String, fallbackOvers: Float?): Pair<String, String?> {
-        // Regex matches "305/8(107.0" or "305/8(107.0)" or "305/8"
         val regex = Regex("""^(\d+(?:\s*[/-]\s*\d+)?)\s*(?:\(([\d.]+)\)?)?""")
         val match = regex.find(s)
         if (match != null) {

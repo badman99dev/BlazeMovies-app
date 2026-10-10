@@ -1,6 +1,8 @@
 package com.movie.app.best.data.remote
 
+import com.movie.app.best.data.model.CrexCommentaryResponse
 import com.movie.app.best.data.model.CrexMatchDetailResponse
+import com.movie.app.best.data.model.CrexSquadResponse
 import com.movie.app.best.data.model.FindMatchResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -32,4 +34,16 @@ interface CricketApiService {
         @Path("id") id: String,
         @Query("json") json: Boolean = true
     ): CrexMatchDetailResponse
+
+    @GET("matches/{id}/squad")
+    suspend fun getMatchSquad(
+        @Path("id") id: String,
+        @Query("json") json: Boolean = true
+    ): CrexSquadResponse
+
+    @GET("matches/{id}/commentary")
+    suspend fun getMatchCommentary(
+        @Path("id") id: String,
+        @Query("json") json: Boolean = true
+    ): CrexCommentaryResponse
 }
