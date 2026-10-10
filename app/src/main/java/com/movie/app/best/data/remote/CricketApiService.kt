@@ -21,6 +21,12 @@ interface CricketApiService {
         @Query("team2") team2: String
     ): FindMatchResponse
 
+    @GET("find-match")
+    suspend fun findMatchBySeries(
+        @Query("series") series: String,
+        @Query("startTime") startTime: String? = null
+    ): FindMatchResponse
+
     @GET("matches/{id}")
     suspend fun getMatchDetail(
         @Path("id") id: String,

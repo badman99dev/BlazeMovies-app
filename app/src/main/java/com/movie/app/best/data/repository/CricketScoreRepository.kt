@@ -72,9 +72,44 @@ class CricketScoreRepository @Inject constructor() {
         anchoredSlot2 = null
     }
 
-    suspend fun resolveMatchId(teamA: String, teamB: String, startTime: String?): String? = withContext(Dispatchers.IO) {
+    suspend fun resolveMatchId(
+        teamA: String,
+        teamB: String,
+        seriesName: String? = null,
+        startTime: String? = null
+    ): String? = withContext(Dispatchers.IO) {
         val tA = cleanTeamName(teamA)
         val tB = cleanTeamName(teamB)
+        val sName = seriesName?.trim().orEmpty()
+
+        // Case 1: If teamA and teamB are the same (or one is blank), treat as Series mode
+        val areTeamsIdentical = tA.isNotBlank() && tA.equals(tB, ignoreCase = true)
+        if (areTeamsIdentical || (tA.isNotBlank() && tB.isBlank()) || (tB.isNotBlank() && tA.isBlank())) {
+            val seriesCandidate = when {
+                tA.isNotBlank() -> tA
+                tB.isNotBlank() -> tB
+                else -> sName
+            }
+            if (seriesCandidate.isNotBlank()) {
+                try {
+                    val res = api.findMatchBySeries(series = seriesCandidate, startTime = startTime)
+                    if (res.matched && !res.match?.id.isNullOrBlank()) {
+                        return@withContext res.match?.id
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
+        if (tA.isBlank() && tB.isBlank() && sName.isNotBlank()) {
+            try {
+                val res = api.findMatchBySeries(series = sName, startTime = startTime)
+                if (res.matched && !res.match?.id.isNullOrBlank()) {
+                    return@withContext res.match?.id
+                }
+            } catch (_: Exception) {}
+            return@withContext null
+        }
+
         if (tA.isBlank() || tB.isBlank()) return@withContext null
 
         // 1. Try find-match with startTime if provided
@@ -102,6 +137,16 @@ class CricketScoreRepository @Inject constructor() {
                 return@withContext res3.match?.id
             }
         } catch (_: Exception) {}
+
+        // 4. Fallback: If seriesName is available, probe series fixtures
+        if (sName.isNotBlank()) {
+            try {
+                val resSeries = api.findMatchBySeries(series = sName, startTime = startTime)
+                if (resSeries.matched && !resSeries.match?.id.isNullOrBlank()) {
+                    return@withContext resSeries.match?.id
+                }
+            } catch (_: Exception) {}
+        }
 
         null
     }

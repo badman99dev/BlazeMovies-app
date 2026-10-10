@@ -218,9 +218,15 @@ class SportsWatchViewModel @Inject constructor(
 
             val teamA = event.eventInfo?.teamA?.trim().orEmpty()
             val teamB = event.eventInfo?.teamB?.trim().orEmpty()
+            val seriesName = event.eventInfo?.eventName?.trim()?.ifBlank { event.title.trim() } ?: event.title.trim()
             val startTime = event.eventInfo?.startTime?.trim().orEmpty()
 
-            val matchId = cricketRepository.resolveMatchId(teamA, teamB, startTime)
+            val matchId = cricketRepository.resolveMatchId(
+                teamA = teamA,
+                teamB = teamB,
+                seriesName = seriesName,
+                startTime = startTime
+            )
             if (matchId.isNullOrBlank()) {
                 _uiState.update { it.copy(isCricketLoading = false) }
                 return@launch
