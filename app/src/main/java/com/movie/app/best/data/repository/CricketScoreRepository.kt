@@ -2,6 +2,7 @@ package com.movie.app.best.data.repository
 
 import com.google.gson.GsonBuilder
 import com.movie.app.best.data.model.CrexBowlerStats
+import com.movie.app.best.data.model.CrexLastOver
 import com.movie.app.best.data.model.CrexMatchDetail
 import com.movie.app.best.data.model.CrexPlayerStats
 import com.movie.app.best.data.remote.CricketApiService
@@ -23,7 +24,8 @@ data class CricketScoreUiData(
     val statusText: String = "",
     val battingTeamName: String = "",
     val battingTeamShort: String = "",
-    val scoreRaw: String = "",
+    val scoreMain: String = "", // Clean "305/8" or "210 & 140/3"
+    val oversFormatted: String? = null, // Clean "107.0 ov"
     val runs: Int? = null,
     val wickets: Int? = null,
     val overs: Float? = null,
@@ -35,6 +37,7 @@ data class CricketScoreUiData(
     val slot2Batsman: CrexPlayerStats? = null,
     val bowler: CrexBowlerStats? = null,
     val recentBalls: List<String> = emptyList(),
+    val lastOvers: List<CrexLastOver> = emptyList(),
     val isDelayedByStreamSync: Boolean = true
 )
 
@@ -171,10 +174,8 @@ class CricketScoreRepository @Inject constructor() {
                 val targetTime = now - 30_000L
                 val olderSnapshots = snapshotBuffer.filter { it.first <= targetTime }
                 selectedDetail = if (olderSnapshots.isNotEmpty()) {
-                    // Pick the snapshot closest to targetTime
                     olderSnapshots.maxByOrNull { it.first }?.second ?: match
                 } else {
-                    // Buffer is still filling up; use the earliest available snapshot
                     snapshotBuffer.firstOrNull()?.second ?: match
                 }
                 isDelayed = true
@@ -193,7 +194,6 @@ class CricketScoreRepository @Inject constructor() {
         val rich = detail.rich
         val teams = detail.teams
 
-        // Identify batting team
         val team1 = teams?.team1
         val team2 = teams?.team2
 
@@ -212,7 +212,15 @@ class CricketScoreRepository @Inject constructor() {
         val battingShort = rich?.battingTeamShort ?: battingTeam?.shortName ?: battingTeam?.code ?: ""
 
         val scoreObj = battingTeam?.score
-        val scoreRaw = battingTeam?.scoreRaw ?: if (scoreObj?.runs != null) "${scoreObj.runs}/${scoreObj.wickets ?: 0}" else ""
+        val rawScoreStr = battingTeam?.scoreRaw
+
+        // CREX regex parser to separate main score from overs cleanly (removes unclosed brackets)
+        val (scoreMain, oversFormatted) = parseScoreParts(
+            raw = rawScoreStr,
+            fallbackRuns = scoreObj?.runs,
+            fallbackWkts = scoreObj?.wickets,
+            fallbackOvers = scoreObj?.overs
+        )
 
         // Preserve stationary slots for batsmen
         val striker = rich?.striker?.copy(strike = true)
@@ -232,6 +240,17 @@ class CricketScoreRepository @Inject constructor() {
             lastOver?.balls?.let { ballList.addAll(it) }
         }
 
+        // Clean equation: don't show bare numbers without context
+        val eqRaw = rich?.equation?.trim().orEmpty()
+        val eqClean = when {
+            eqRaw.matches(Regex("""^[\d.]+$""")) -> null // Ignore bare numbers like "57.0"
+            eqRaw.isNotBlank() -> eqRaw
+            !rich?.comment.isNullOrBlank() && !rich.comment.matches(Regex("""^[\d.]+$""")) -> rich.comment
+            else -> null
+        }
+
+        val lastOversList = rich?.lastOvers?.takeLast(4) ?: emptyList()
+
         return CricketScoreUiData(
             matchId = detail.id,
             seriesName = detail.series ?: rich?.series ?: "",
@@ -240,20 +259,61 @@ class CricketScoreRepository @Inject constructor() {
             statusText = detail.statusText ?: detail.result ?: "",
             battingTeamName = battingName,
             battingTeamShort = battingShort,
-            scoreRaw = scoreRaw,
+            scoreMain = scoreMain,
+            oversFormatted = oversFormatted,
             runs = scoreObj?.runs,
             wickets = scoreObj?.wickets,
             overs = scoreObj?.overs,
             crr = rich?.crr,
             rrr = rich?.rrr,
             target = rich?.target,
-            equation = rich?.equation ?: rich?.comment,
+            equation = eqClean,
             slot1Batsman = anchoredSlot1,
             slot2Batsman = anchoredSlot2,
             bowler = rich?.bowler,
             recentBalls = ballList,
+            lastOvers = lastOversList,
             isDelayedByStreamSync = isDelayed
         )
+    }
+
+    private fun parseScoreParts(
+        raw: String?,
+        fallbackRuns: Int?,
+        fallbackWkts: Int?,
+        fallbackOvers: Float?
+    ): Pair<String, String?> {
+        if (raw.isNullOrBlank()) {
+            val s = if (fallbackRuns != null) "$fallbackRuns/${fallbackWkts ?: 0}" else "0/0"
+            val ov = fallbackOvers?.let { "$it ov" }
+            return Pair(s, ov)
+        }
+
+        val s = raw.trim()
+        val andIdx = s.indexOf(" & ")
+        if (andIdx != -1) {
+            val firstRaw = s.substring(0, andIdx).replace(Regex("""\([^)]*"""), "").trim()
+            val secondPart = s.substring(andIdx + 3).trim()
+            val (secondMain, secondOvers) = extractSingleScore(secondPart, fallbackOvers)
+            return Pair("$firstRaw & $secondMain", secondOvers)
+        }
+
+        return extractSingleScore(s, fallbackOvers)
+    }
+
+    private fun extractSingleScore(s: String, fallbackOvers: Float?): Pair<String, String?> {
+        // Regex matches "305/8(107.0" or "305/8(107.0)" or "305/8"
+        val regex = Regex("""^(\d+(?:\s*[/-]\s*\d+)?)\s*(?:\(([\d.]+)\)?)?""")
+        val match = regex.find(s)
+        if (match != null) {
+            val main = match.groupValues[1].replace(Regex("""\s+"""), "")
+            val oversStr = match.groupValues.getOrNull(2)?.ifBlank { null } ?: fallbackOvers?.toString()
+            val ovFormatted = oversStr?.let { "$it ov" }
+            return Pair(main, ovFormatted)
+        }
+        val cleaned = s.replace("(", "").replace(")", "").trim()
+        val ovFallback = fallbackOvers?.let { "$it ov" }
+        return Pair(cleaned, ovFallback)
     }
 
     private fun updateAnchoredBatsmen(striker: CrexPlayerStats?, nonStriker: CrexPlayerStats?) {
@@ -293,7 +353,6 @@ class CricketScoreRepository @Inject constructor() {
             anchoredSlot2 = ns.copy(strike = false)
             anchoredSlot1 = s.copy(strike = true)
         } else {
-            // New pair of batsmen
             anchoredSlot1 = s.copy(strike = true)
             anchoredSlot2 = ns?.copy(strike = false)
         }

@@ -1,8 +1,6 @@
 package com.movie.app.best.ui.screens.sports.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,9 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.movie.app.best.R
 import com.movie.app.best.data.model.CrexBowlerStats
+import com.movie.app.best.data.model.CrexLastOver
 import com.movie.app.best.data.model.CrexPlayerStats
 import com.movie.app.best.data.repository.CricketScoreUiData
 import com.movie.app.best.ui.theme.AppRed
@@ -42,349 +40,453 @@ import com.movie.app.best.ui.theme.InfoBlue
 import com.movie.app.best.ui.theme.SuccessGreen
 
 @Composable
-fun CricketScoreCard(
+fun CricketScoreSection(
     scoreData: CricketScoreUiData?,
     isLoading: Boolean,
     syncWithStream: Boolean,
     onToggleStreamSync: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardDark),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+            .padding(top = 10.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
+        // Divider separating Team Flags from Score Section
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = Color.White.copy(alpha = 0.08f),
+            modifier = Modifier.padding(bottom = 10.dp)
+        )
+
+        // ── Top Header: Status & Stream-Sync Toggle ───────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // ── Top Header: Match Status & Stream-Sync Toggle ─────────────────
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.weight(1f, fill = false)
+            ) {
+                val isFinished = scoreData?.status?.equals("finished", ignoreCase = true) == true
+                Box(
+                    modifier = Modifier
+                        .background(
+                            if (isFinished) Color.White.copy(alpha = 0.12f) else AppRed.copy(alpha = 0.18f),
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                ) {
+                    Text(
+                        text = if (isFinished) "FINISHED" else "LIVE SCORE",
+                        color = if (isFinished) Color.White.copy(alpha = 0.7f) else AppRed,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                if (!scoreData?.matchDesc.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = scoreData!!.matchDesc,
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // ── Stream Sync Switch (Proper sizing, non-clipped) ───────────────
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(start = 10.dp, end = 6.dp, top = 2.dp, bottom = 2.dp)
+            ) {
+                Text(
+                    text = if (syncWithStream) "Sync (30s)" else "Instant",
+                    color = if (syncWithStream) Color(0xFFFFB74D) else InfoBlue,
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Switch(
+                    checked = syncWithStream,
+                    onCheckedChange = onToggleStreamSync,
+                    modifier = Modifier.height(24.dp),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFFFFB74D),
+                        uncheckedThumbColor = Color.White.copy(alpha = 0.8f),
+                        uncheckedTrackColor = Color.White.copy(alpha = 0.2f)
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (isLoading && scoreData == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .background(AppRed.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (scoreData?.status?.equals("finished", ignoreCase = true) == true) "COMPLETED" else "LIVE SCORE",
-                            color = if (scoreData?.status?.equals("finished", ignoreCase = true) == true) Color.White.copy(alpha = 0.7f) else AppRed,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-
-                    if (scoreData?.matchDesc?.isNotBlank() == true) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = scoreData.matchDesc,
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 10.5.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // ── Stream Sync Switch (30s delay toggle) ─────────────────────
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White.copy(alpha = 0.05f))
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = if (syncWithStream) "Sync (30s)" else "Instant",
-                        color = if (syncWithStream) Color(0xFFFFB74D) else InfoBlue,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
+                    CircularProgressIndicator(
+                        color = AppRed,
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Switch(
-                        checked = syncWithStream,
-                        onCheckedChange = onToggleStreamSync,
-                        modifier = Modifier.size(width = 34.dp, height = 20.dp),
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = Color(0xFFFFB74D),
-                            uncheckedThumbColor = Color.White.copy(alpha = 0.8f),
-                            uncheckedTrackColor = Color.White.copy(alpha = 0.2f)
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            if (isLoading && scoreData == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(
-                            color = AppRed,
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Syncing live cricket score...",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-                return@Column
-            }
-
-            if (scoreData == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Scorecard will be updated once play commences",
-                        color = Color.White.copy(alpha = 0.5f),
+                        text = "Loading live score...",
+                        color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
                 }
-                return@Column
             }
+            return@Column
+        }
 
-            // ── Primary Score Display ─────────────────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+        if (scoreData == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column {
+                Text(
+                    text = "Live scorecard connecting...",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+            }
+            return@Column
+        }
+
+        // ── Primary Score & Clean Overs Display ───────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column {
+                Text(
+                    text = scoreData.battingTeamName.ifBlank { "Batting Team" },
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = scoreData.battingTeamName.ifBlank { "Batting Team" },
+                        text = scoreData.scoreMain.ifBlank { "0/0" },
                         color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black
                     )
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = scoreData.scoreRaw.ifBlank { "0/0" },
-                            color = Color.White,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        if (scoreData.overs != null) {
-                            Spacer(modifier = Modifier.width(6.dp))
+                    if (!scoreData.oversFormatted.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White.copy(alpha = 0.08f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
                             Text(
-                                text = "(${scoreData.overs} ov)",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
+                                text = scoreData.oversFormatted,
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
                 }
-
-                // Run Rates & Target
-                Column(horizontalAlignment = Alignment.End) {
-                    if (scoreData.crr != null && scoreData.crr > 0.0) {
-                        Text(
-                            text = "CRR: ${String.format("%.2f", scoreData.crr)}",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    if (scoreData.target != null && scoreData.target > 0) {
-                        Text(
-                            text = "Target: ${scoreData.target}" + if (scoreData.rrr != null) " (RRR: ${String.format("%.2f", scoreData.rrr)})" else "",
-                            color = Color(0xFFFFD54F),
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
             }
 
-            // Equation / Result Banner
-            if (scoreData.equation?.isNotBlank() == true || scoreData.statusText.isNotBlank()) {
-                val bannerText = scoreData.equation?.takeIf { it.isNotBlank() } ?: scoreData.statusText
-                Spacer(modifier = Modifier.height(4.dp))
+            // Run Rates & Target
+            Column(horizontalAlignment = Alignment.End) {
+                if (scoreData.crr != null && scoreData.crr > 0.0) {
+                    Text(
+                        text = "CRR: ${String.format("%.2f", scoreData.crr)}",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                if (scoreData.target != null && scoreData.target > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Target: ${scoreData.target}" + if (scoreData.rrr != null) " (RRR: ${String.format("%.2f", scoreData.rrr)})" else "",
+                        color = Color(0xFFFFD54F),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        // Equation / Result Note (Only if meaningful text)
+        if (!scoreData.equation.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = scoreData.equation,
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 11.5.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+            )
+        } else if (scoreData.statusText.isNotBlank() && scoreData.statusText.lowercase().contains("won")) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = scoreData.statusText,
+                color = SuccessGreen,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        // ── Over-by-Over Breakdown Cards Strip ────────────────────────────────
+        if (scoreData.lastOvers.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Recent Overs",
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(scoreData.lastOvers) { overItem ->
+                    OverBlockCard(overItem = overItem)
+                }
+            }
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 10.dp),
+            thickness = 0.5.dp,
+            color = Color.White.copy(alpha = 0.08f)
+        )
+
+        // ── Stationary Batsmen Rows with Authentic Bat Indicator ──────────────
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Table Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = bannerText,
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 11.5.sp,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    text = "Batter",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 28.dp)
+                )
+                Text(
+                    text = "R (B)",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(52.dp),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "4s",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(28.dp),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "6s",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(28.dp),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "SR",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(44.dp),
+                    textAlign = TextAlign.End
                 )
             }
 
-            // ── Recent Balls Strip ────────────────────────────────────────────
-            if (scoreData.recentBalls.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Recent: ",
-                        color = Color.White.copy(alpha = 0.45f),
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        items(scoreData.recentBalls) { ball ->
-                            RecentBallChip(ball = ball)
-                        }
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(4.dp))
 
+            // Slot 1 Batsman (Stationary position)
+            BatsmanRow(batsman = scoreData.slot1Batsman)
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Slot 2 Batsman (Stationary position)
+            BatsmanRow(batsman = scoreData.slot2Batsman)
+        }
+
+        // ── Active Bowler Row ─────────────────────────────────────────────────
+        if (scoreData.bowler != null) {
             HorizontalDivider(
-                modifier = Modifier.padding(vertical = 10.dp),
+                modifier = Modifier.padding(vertical = 8.dp),
                 thickness = 0.5.dp,
                 color = Color.White.copy(alpha = 0.08f)
             )
 
-            // ── Stationary Batsmen Rows with Animated Sliding Bat Indicator ───
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Table Header
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Batter",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f).padding(start = 28.dp)
-                    )
-                    Text(
-                        text = "R (B)",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(44.dp),
-                        textAlign = TextAlign.End
-                    )
-                    Text(
-                        text = "4s",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(28.dp),
-                        textAlign = TextAlign.End
-                    )
-                    Text(
-                        text = "6s",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(28.dp),
-                        textAlign = TextAlign.End
-                    )
-                    Text(
-                        text = "SR",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(44.dp),
-                        textAlign = TextAlign.End
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Slot 1 Batsman (Stationary position)
-                BatsmanRow(batsman = scoreData.slot1Batsman)
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Slot 2 Batsman (Stationary position)
-                BatsmanRow(batsman = scoreData.slot2Batsman)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Bowler",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 28.dp)
+                )
+                Text(
+                    text = "O",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(36.dp),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "M",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(26.dp),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "R",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(28.dp),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "W",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(28.dp),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "ECO",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(42.dp),
+                    textAlign = TextAlign.End
+                )
             }
 
-            // ── Active Bowler Row ─────────────────────────────────────────────
-            if (scoreData.bowler != null) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    thickness = 0.5.dp,
-                    color = Color.White.copy(alpha = 0.08f)
+            Spacer(modifier = Modifier.height(4.dp))
+            BowlerRow(bowler = scoreData.bowler)
+        }
+    }
+}
+
+@Composable
+private fun OverBlockCard(overItem: CrexLastOver) {
+    Card(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF131822)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        modifier = Modifier.width(IntrinsicSize.Min)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = overItem.over ?: "Over",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "= ${overItem.total}",
+                    color = Color(0xFF00B4D8),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Bowler",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f).padding(start = 28.dp)
-                    )
-                    Text(
-                        text = "O",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(36.dp),
-                        textAlign = TextAlign.End
-                    )
-                    Text(
-                        text = "M",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(26.dp),
-                        textAlign = TextAlign.End
-                    )
-                    Text(
-                        text = "R",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(28.dp),
-                        textAlign = TextAlign.End
-                    )
-                    Text(
-                        text = "W",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(28.dp),
-                        textAlign = TextAlign.End
-                    )
-                    Text(
-                        text = "ECO",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.width(42.dp),
-                        textAlign = TextAlign.End
-                    )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                overItem.balls.forEach { ball ->
+                    BallCircle(ball = ball)
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                BowlerRow(bowler = scoreData.bowler)
             }
         }
+    }
+}
+
+@Composable
+private fun BallCircle(ball: String) {
+    val b = ball.trim().lowercase()
+    val isWicket = b.contains("w") && !b.contains("wd")
+    val isFour = b == "4"
+    val isSix = b == "6"
+    val isExtra = b.contains("wd") || b.contains("nb") || b.contains("lb") || b.contains("b")
+
+    val bgColor = when {
+        isWicket -> AppRed
+        isFour || isSix -> Color(0xFF0096C7) // Vibrant Cyan / Teal like user screenshot
+        isExtra -> Color(0xFFFF9800)
+        else -> Color(0xFF1E293B) // Dark pill for 0, 1, 2, 3
+    }
+
+    val textColor = Color.White
+
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(bgColor)
+            .border(0.5.dp, Color.White.copy(alpha = 0.15f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = ball,
+            color = textColor,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -402,21 +504,21 @@ private fun BatsmanRow(batsman: CrexPlayerStats?) {
             .padding(vertical = 4.dp, horizontal = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Animated Bat Indicator Slot (Bat slides/appears smoothly for striker)
+        // Authentic Cricket Bat Icon Slot
         Box(
             modifier = Modifier.size(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = isStriker,
-                enter = fadeIn(animationSpec = tween(250)),
-                exit = fadeOut(animationSpec = tween(200))
+                enter = fadeIn(animationSpec = tween(200)),
+                exit = fadeOut(animationSpec = tween(150))
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_cricket_bat),
                     contentDescription = "Striker",
                     tint = Color(0xFFFFD54F),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
         }
@@ -437,13 +539,13 @@ private fun BatsmanRow(batsman: CrexPlayerStats?) {
             modifier = Modifier.weight(1f)
         )
 
-        // R (B)
+        // Runs (Balls)
         Text(
             text = "${batsman.runs} (${batsman.balls})",
             color = Color.White,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.width(44.dp),
+            modifier = Modifier.width(52.dp),
             textAlign = TextAlign.End
         )
 
@@ -571,43 +673,5 @@ private fun CircularAvatarBadge(imageUrl: String?) {
                 modifier = Modifier.size(14.dp)
             )
         }
-    }
-}
-
-@Composable
-private fun RecentBallChip(ball: String) {
-    val b = ball.trim().lowercase()
-    val isWicket = b.contains("w") && !b.contains("wd")
-    val isBoundary4 = b == "4"
-    val isBoundary6 = b == "6"
-    val isExtra = b.contains("wd") || b.contains("nb")
-
-    val bgColor = when {
-        isWicket -> AppRed
-        isBoundary6 -> Color(0xFFFFD54F)
-        isBoundary4 -> SuccessGreen
-        isExtra -> Color(0xFFFF9800)
-        else -> Color.White.copy(alpha = 0.12f)
-    }
-
-    val textColor = when {
-        isBoundary6 -> Color.Black
-        isWicket || isBoundary4 || isExtra -> Color.White
-        else -> Color.White.copy(alpha = 0.85f)
-    }
-
-    Box(
-        modifier = Modifier
-            .size(20.dp)
-            .clip(CircleShape)
-            .background(bgColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = ball,
-            color = textColor,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }

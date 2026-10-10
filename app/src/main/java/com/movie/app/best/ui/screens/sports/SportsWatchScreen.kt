@@ -62,7 +62,7 @@ import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.util.ClearKeyHelper
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
-import com.movie.app.best.ui.screens.sports.components.CricketScoreCard
+import com.movie.app.best.ui.screens.sports.components.CricketScoreSection
 
 @Composable
 fun SportsWatchScreen(
@@ -631,28 +631,21 @@ fun SportsWatchScreen(
                                 Spacer(modifier = Modifier.height(14.dp))
                             }
 
-                            if (state.isCricket) {
-                                CricketScoreCard(
-                                    scoreData = state.cricketScore,
-                                    isLoading = state.isCricketLoading,
-                                    syncWithStream = state.syncWithStream,
-                                    onToggleStreamSync = { viewModel.toggleStreamSync(it) }
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-                            }
-
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(containerColor = CardDark),
                                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
                             ) {
-                                Row(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(14.dp)
                                 ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                     Column(
                                         modifier = Modifier.weight(1f),
                                         horizontalAlignment = Alignment.CenterHorizontally
@@ -770,7 +763,17 @@ fun SportsWatchScreen(
                                         )
                                     }
                                 }
+
+                                if (state.isCricket) {
+                                    CricketScoreSection(
+                                        scoreData = state.cricketScore,
+                                        isLoading = state.isCricketLoading,
+                                        syncWithStream = state.syncWithStream,
+                                        onToggleStreamSync = { viewModel.toggleStreamSync(it) }
+                                    )
+                                }
                             }
+                        }
 
                             if (isUpcoming && event != null) {
                                 Spacer(modifier = Modifier.height(14.dp))
