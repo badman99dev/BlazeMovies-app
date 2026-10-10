@@ -428,7 +428,7 @@ private fun LiveScoreboardPage(scoreData: CricketScoreUiData) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 2: PLAYING XI & SQUADS (Split with Vertical Divider)
+// TAB 2: PLAYING XI & SQUADS (Split with Vertical Divider & Country Flags)
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun PlayingXiPage(scoreData: CricketScoreUiData) {
@@ -454,6 +454,7 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -461,9 +462,9 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(end = 6.dp)
+                .padding(end = 8.dp)
         ) {
-            // Team Header
+            // Team Header with Country Flag
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -487,20 +488,19 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
         }
 
         // Center Vertical Divider
-        Box(
-            modifier = Modifier
-                .width(0.8.dp)
-                .height(IntrinsicSize.Max)
-                .background(Color.White.copy(alpha = 0.12f))
+        VerticalDivider(
+            thickness = 0.8.dp,
+            color = Color.White.copy(alpha = 0.15f),
+            modifier = Modifier.fillMaxHeight()
         )
 
         // Right Column: Team 2
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 6.dp)
+                .padding(start = 8.dp)
         ) {
-            // Team Header
+            // Team Header with Country Flag
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -575,7 +575,7 @@ private fun SquadPlayerRow(player: CrexSquadPlayer) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 3: BALL FEED & COMMENTARY
+// TAB 3: BALL FEED & COMMENTARY (Full Sentence Stream)
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun CommentaryPage(scoreData: CricketScoreUiData) {
@@ -605,46 +605,64 @@ private fun CommentaryPage(scoreData: CricketScoreUiData) {
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         balls.forEach { ball ->
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color.White.copy(alpha = 0.03f))
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.035f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 9.dp, vertical = 7.dp)
             ) {
-                // Over tag: e.g. "14.2"
-                Text(
-                    text = ball.over ?: "-",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.width(36.dp)
-                )
-
-                // Ball chip
-                BallCircle(ball = ball.ball ?: "0")
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Text: "Bowler to Batter"
-                Text(
-                    text = ball.text ?: "-",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 11.5.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Score tag: "52/6"
-                if (!ball.score.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Over tag: e.g. "14.2"
                     Text(
-                        text = ball.score,
-                        color = Color(0xFF00B4D8),
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold
+                        text = ball.over ?: "-",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.width(36.dp)
+                    )
+
+                    // Ball chip
+                    BallCircle(ball = ball.ball ?: "0")
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Text: "Bowler to Batter"
+                    Text(
+                        text = ball.text ?: "-",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Score tag: "376/9"
+                    if (!ball.score.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = ball.score,
+                            color = Color(0xFF00B4D8),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Full descriptive commentary sentence if available
+                if (!ball.commentary.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = ball.commentary,
+                        color = Color.White.copy(alpha = 0.68f),
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        modifier = Modifier.padding(start = 44.dp)
                     )
                 }
             }

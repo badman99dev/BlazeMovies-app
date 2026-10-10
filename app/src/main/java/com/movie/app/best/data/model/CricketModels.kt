@@ -132,7 +132,15 @@ data class CrexLastOver(
 
 data class CrexRecentBall(
     @SerializedName("over") val over: String? = null,
-    @SerializedName("ball") val ball: String? = null
+    @SerializedName("ball") val ball: String? = null,
+    @SerializedName("text") val text: String? = null,
+    @SerializedName("score") val score: String? = null,
+    @SerializedName("commentary") val commentary: String? = null,
+    @SerializedName("shot") val shot: String? = null,
+    @SerializedName("wagon") val wagon: String? = null,
+    @SerializedName("isBoundary") val isBoundary: Boolean = false,
+    @SerializedName("isWicket") val isWicket: Boolean = false,
+    @SerializedName("isExtra") val isExtra: Boolean = false
 )
 
 // Squads
@@ -180,7 +188,11 @@ data class CrexCommentaryBall(
     @SerializedName("ball") val ball: String? = null,
     @SerializedName("text") val text: String? = null,
     @SerializedName("score") val score: String? = null,
+    @SerializedName("commentary") val commentary: String? = null,
+    @SerializedName("shot") val shot: String? = null,
+    @SerializedName("wagon") val wagon: String? = null,
     @SerializedName("isBoundary") val isBoundary: Boolean = false,
     @SerializedName("isWicket") val isWicket: Boolean = false,
     @SerializedName("isExtra") val isExtra: Boolean = false
 )
+

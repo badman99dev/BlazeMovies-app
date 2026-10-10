@@ -605,12 +605,6 @@ fun SportsWatchScreen(
                                 .verticalScroll(rememberScrollState())
                                 .padding(16.dp)
                         ) {
-                            val catText = listOfNotNull(
-                                info?.eventCat?.takeIf { it.isNotBlank() },
-                                info?.eventName?.takeIf { it.isNotBlank() }
-                            ).joinToString(" | ").uppercase()
-
-
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),

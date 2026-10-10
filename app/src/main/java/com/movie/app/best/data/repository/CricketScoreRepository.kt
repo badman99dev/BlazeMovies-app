@@ -160,9 +160,10 @@ class CricketScoreRepository @Inject constructor() {
         null
     }
 
-    suspend fun fetchMatchDetail(matchId: String, syncWithStream: Boolean): CricketScoreUiData? = withContext(Dispatchers.IO) {
+    suspend fun fetchMatchDetail(matchId: String, syncWithStream: Boolean = true): CricketScoreUiData? = withContext(Dispatchers.IO) {
         try {
-            val response = api.getMatchDetail(id = matchId, json = true)
+            val delayParam = if (syncWithStream) 45 else 0
+            val response = api.getMatchDetail(id = matchId, delay = delayParam, json = true)
             val match = response.match ?: return@withContext null
 
             // Lazy fetch squad if not yet cached for this match
@@ -174,14 +175,6 @@ class CricketScoreRepository @Inject constructor() {
                         cachedSquadMatchId = matchId
                     }
                 } catch (_: Exception) {}
-            }
-
-            // Fetch latest commentary
-            val commBalls = try {
-                val commRes = api.getMatchCommentary(id = matchId, json = true)
-                commRes.recentBalls.take(20)
-            } catch (_: Exception) {
-                emptyList()
             }
 
             val now = System.currentTimeMillis()
@@ -207,6 +200,40 @@ class CricketScoreRepository @Inject constructor() {
             } else {
                 selectedDetail = match
                 isDelayed = false
+            }
+
+            // Fetch latest commentary (with fallback to rich.recentBalls)
+            val commBalls = try {
+                val commRes = api.getMatchCommentary(id = matchId, json = true)
+                if (commRes.recentBalls.isNotEmpty()) {
+                    commRes.recentBalls.take(30)
+                } else {
+                    selectedDetail.rich?.recentBalls?.map { b ->
+                        CrexCommentaryBall(
+                            over = b.over,
+                            ball = b.ball,
+                            text = b.text,
+                            score = b.score,
+                            commentary = b.commentary,
+                            isBoundary = b.isBoundary,
+                            isWicket = b.isWicket,
+                            isExtra = b.isExtra
+                        )
+                    } ?: emptyList()
+                }
+            } catch (_: Exception) {
+                selectedDetail.rich?.recentBalls?.map { b ->
+                    CrexCommentaryBall(
+                        over = b.over,
+                        ball = b.ball,
+                        text = b.text,
+                        score = b.score,
+                        commentary = b.commentary,
+                        isBoundary = b.isBoundary,
+                        isWicket = b.isWicket,
+                        isExtra = b.isExtra
+                    )
+                } ?: emptyList()
             }
 
             mapToUiData(

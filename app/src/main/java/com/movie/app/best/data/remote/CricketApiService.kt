@@ -32,6 +32,7 @@ interface CricketApiService {
     @GET("matches/{id}")
     suspend fun getMatchDetail(
         @Path("id") id: String,
+        @Query("delay") delay: Int? = 45,
         @Query("json") json: Boolean = true
     ): CrexMatchDetailResponse
 
