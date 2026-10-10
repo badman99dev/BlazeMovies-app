@@ -7,6 +7,8 @@ import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.data.model.SportEvent
 import com.movie.app.best.data.model.SportStream
+import com.movie.app.best.data.repository.CricketScoreRepository
+import com.movie.app.best.data.repository.CricketScoreUiData
 import com.movie.app.best.data.repository.EventWatchResult
 import com.movie.app.best.data.repository.SportsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +34,12 @@ data class SportsWatchUiState(
     val currentStream: SportStream? = null,
     val isSwitchingServer: Boolean = false,
     val playToken: Long = 0,
-    val timeTick: Long = System.currentTimeMillis()
+    val timeTick: Long = System.currentTimeMillis(),
+    val isCricket: Boolean = false,
+    val cricketMatchId: String? = null,
+    val isCricketLoading: Boolean = false,
+    val cricketScore: CricketScoreUiData? = null,
+    val syncWithStream: Boolean = true
 ) {
     val displayTitle: String
         get() {
@@ -40,7 +47,6 @@ data class SportsWatchUiState(
             val teamB = event?.eventInfo?.teamB?.trim().orEmpty()
             val eventTitle = event?.title?.trim().orEmpty()
             val eventName = event?.eventInfo?.eventName?.trim().orEmpty()
-
             return when {
                 teamA.isNotBlank() && teamB.isNotBlank() -> "$teamA vs $teamB"
                 teamA.isNotBlank() -> teamA
@@ -58,7 +64,8 @@ data class SportsWatchUiState(
 @HiltViewModel
 class SportsWatchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val repository: SportsRepository
+    private val repository: SportsRepository,
+    private val cricketRepository: CricketScoreRepository
 ) : ViewModel() {
 
     val slug: String = savedStateHandle.get<String>("slug") ?: ""
@@ -67,10 +74,24 @@ class SportsWatchViewModel @Inject constructor(
     val uiState: StateFlow<SportsWatchUiState> = _uiState.asStateFlow()
 
     private var countdownJob: Job? = null
+    private var cricketPollingJob: Job? = null
 
     init {
         loadMatchAndStreams()
         startTicker()
+    }
+
+    private fun checkIsCricket(event: SportEvent?): Boolean {
+        if (event == null) return false
+        val cat = event.cat?.lowercase().orEmpty()
+        val eventCat = event.eventInfo?.eventCat?.lowercase().orEmpty()
+        val eventName = event.eventInfo?.eventName?.lowercase().orEmpty()
+        val title = event.title.lowercase()
+        return cat.contains("cricket") ||
+                eventCat.contains("cricket") ||
+                eventName.contains("cricket") ||
+                title.contains("cricket") ||
+                cat == "2" || eventCat == "2"
     }
 
     private fun buildOptions(streams: List<SportStream>): List<PlaybackOption> =
@@ -95,9 +116,7 @@ class SportsWatchViewModel @Inject constructor(
                 val now = System.currentTimeMillis()
                 val s = _uiState.value
                 val event = s.event
-
                 if (event != null && s.currentStream == null && s.error == null && event.isLive && s.streams.isNotEmpty()) {
-                    // Match transitioned from UPCOMING to LIVE in real time!
                     val options = buildOptions(s.streams)
                     val firstOpt = options.firstOrNull()
                     val firstStream = s.streams.firstOrNull()
@@ -139,7 +158,6 @@ class SportsWatchViewModel @Inject constructor(
                 )
             }
 
-            // Single unified call to /api/event?slug=... (contains both event details and streams)
             when (val result = repository.getWatchEvent(slug)) {
                 is EventWatchResult.NotFound -> {
                     _uiState.update {
@@ -162,13 +180,12 @@ class SportsWatchViewModel @Inject constructor(
                     val event = result.event
                     val streamList = result.streams
                     val isLive = event.isLive
-
+                    val isCricketEvent = checkIsCricket(event)
                     val options = if (isLive && streamList.isNotEmpty()) {
                         buildOptions(streamList)
                     } else {
                         emptyList()
                     }
-
                     val firstOpt = options.firstOrNull()
                     val firstStream = if (isLive) streamList.firstOrNull() else null
 
@@ -176,6 +193,7 @@ class SportsWatchViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             event = event,
+                            isCricket = isCricketEvent,
                             streams = streamList,
                             playbackOptions = options,
                             selectedOptionId = firstOpt?.id,
@@ -184,7 +202,60 @@ class SportsWatchViewModel @Inject constructor(
                             error = if (isLive && streamList.isEmpty()) "No stream servers available at the moment." else null
                         )
                     }
+
+                    if (isCricketEvent) {
+                        startCricketScoreTracking(event)
+                    }
                 }
+            }
+        }
+    }
+
+    private fun startCricketScoreTracking(event: SportEvent) {
+        cricketPollingJob?.cancel()
+        cricketPollingJob = viewModelScope.launch {
+            _uiState.update { it.copy(isCricketLoading = true) }
+
+            val teamA = event.eventInfo?.teamA?.trim().orEmpty()
+            val teamB = event.eventInfo?.teamB?.trim().orEmpty()
+            val startTime = event.eventInfo?.startTime?.trim().orEmpty()
+
+            val matchId = cricketRepository.resolveMatchId(teamA, teamB, startTime)
+            if (matchId.isNullOrBlank()) {
+                _uiState.update { it.copy(isCricketLoading = false) }
+                return@launch
+            }
+
+            _uiState.update { it.copy(cricketMatchId = matchId) }
+
+            while (isActive) {
+                val sync = _uiState.value.syncWithStream
+                val scoreData = cricketRepository.fetchMatchDetail(matchId, syncWithStream = sync)
+                if (scoreData != null) {
+                    _uiState.update {
+                        it.copy(
+                            cricketScore = scoreData,
+                            isCricketLoading = false
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isCricketLoading = false) }
+                }
+
+                // Poll every 10s when syncWithStream is on (to build buffer), or 5s when real-time
+                val interval = if (sync) 10_000L else 5_000L
+                delay(interval)
+            }
+        }
+    }
+
+    fun toggleStreamSync(enabled: Boolean) {
+        _uiState.update { it.copy(syncWithStream = enabled) }
+        val matchId = _uiState.value.cricketMatchId ?: return
+        viewModelScope.launch {
+            val scoreData = cricketRepository.fetchMatchDetail(matchId, syncWithStream = enabled)
+            if (scoreData != null) {
+                _uiState.update { it.copy(cricketScore = scoreData) }
             }
         }
     }
@@ -205,17 +276,12 @@ class SportsWatchViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Auto-failover: current server failed -> move to the next one in the list.
-     * Mirrors MovieWatchViewModel.advanceFrom / onPlaybackError.
-     */
     private fun advanceFrom(failedId: String?): Boolean {
         val s = _uiState.value
         val idx = failedId?.let { id -> s.playbackOptions.indexOfFirst { it.id == id } } ?: -1
         val nextIdx = idx + 1
         val nextStream = s.streams.getOrNull(nextIdx)
         if (nextStream == null) {
-            // No more servers left
             _uiState.update {
                 it.copy(
                     currentStream = null,
@@ -251,5 +317,7 @@ class SportsWatchViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         countdownJob?.cancel()
+        cricketPollingJob?.cancel()
+        cricketRepository.resetBuffer()
     }
 }

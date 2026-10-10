@@ -62,6 +62,7 @@ import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.util.ClearKeyHelper
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
+import com.movie.app.best.ui.screens.sports.components.CricketScoreCard
 
 @Composable
 fun SportsWatchScreen(
@@ -626,6 +627,16 @@ fun SportsWatchScreen(
                                     color = Color.White,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                            }
+
+                            if (state.isCricket) {
+                                CricketScoreCard(
+                                    scoreData = state.cricketScore,
+                                    isLoading = state.isCricketLoading,
+                                    syncWithStream = state.syncWithStream,
+                                    onToggleStreamSync = { viewModel.toggleStreamSync(it) }
                                 )
                                 Spacer(modifier = Modifier.height(14.dp))
                             }
