@@ -509,11 +509,7 @@ private fun BatsmanRow(batsman: CrexPlayerStats?) {
             modifier = Modifier.size(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            AnimatedVisibility(
-                visible = isStriker,
-                enter = fadeIn(animationSpec = tween(200)),
-                exit = fadeOut(animationSpec = tween(150))
-            ) {
+            if (isStriker) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_cricket_bat),
                     contentDescription = "Striker",
