@@ -179,7 +179,7 @@ fun CricketScoreCard(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Row(verticalAlignment = Alignment.Baseline) {
+                    Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = scoreData.scoreRaw.ifBlank { "0/0" },
                             color = Color.White,
