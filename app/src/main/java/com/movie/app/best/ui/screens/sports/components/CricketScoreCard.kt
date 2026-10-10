@@ -6,6 +6,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -137,10 +139,12 @@ fun CricketScoreSection(
             return@Column
         }
 
-        // ── Swipeable Multi-Page Container ────────────────────────────────────
+        // ── Swipeable Multi-Page Container (Fixed 330dp Height to eliminate tab jitter) ──
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(330.dp)
         ) { page ->
             when (page) {
                 0 -> LiveScoreboardPage(scoreData = scoreData)
@@ -156,7 +160,11 @@ fun CricketScoreSection(
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun LiveScoreboardPage(scoreData: CricketScoreUiData) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
         // Status row: e.g. "Only-TEST" or "1st-TEST"
         if (scoreData.matchDesc.isNotBlank() || scoreData.status.isNotBlank()) {
             Row(
@@ -283,11 +291,13 @@ private fun LiveScoreboardPage(scoreData: CricketScoreUiData) {
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(5.dp))
-            LazyRow(
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
             ) {
-                items(scoreData.lastOvers) { overItem ->
+                scoreData.lastOvers.forEach { overItem ->
                     OverBlockCard(overItem = overItem)
                 }
             }
@@ -438,7 +448,7 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
     if (team1 == null && team2 == null) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(vertical = 24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -451,10 +461,12 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
         return
     }
 
+    val team1ScrollState = rememberScrollState()
+    val team2ScrollState = rememberScrollState()
+
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
+            .fillMaxSize()
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -462,12 +474,13 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
         Column(
             modifier = Modifier
                 .weight(1f)
+                .fillMaxHeight()
                 .padding(end = 8.dp)
         ) {
             // Team Header with Country Flag
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 6.dp)
             ) {
                 TeamFlagBadge(flagUrl = team1?.flag, size = 26.dp, borderWidth = 1.dp)
                 Spacer(modifier = Modifier.width(6.dp))
@@ -481,9 +494,21 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
                 )
             }
 
-            team1?.players?.forEach { player ->
-                SquadPlayerRow(player = player)
-                Spacer(modifier = Modifier.height(5.dp))
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = Color.White.copy(alpha = 0.08f),
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(team1ScrollState)
+            ) {
+                team1?.players?.forEach { player ->
+                    SquadPlayerRow(player = player)
+                    Spacer(modifier = Modifier.height(5.dp))
+                }
             }
         }
 
@@ -498,12 +523,13 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
         Column(
             modifier = Modifier
                 .weight(1f)
+                .fillMaxHeight()
                 .padding(start = 8.dp)
         ) {
             // Team Header with Country Flag
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 6.dp)
             ) {
                 TeamFlagBadge(flagUrl = team2?.flag, size = 26.dp, borderWidth = 1.dp)
                 Spacer(modifier = Modifier.width(6.dp))
@@ -517,9 +543,21 @@ private fun PlayingXiPage(scoreData: CricketScoreUiData) {
                 )
             }
 
-            team2?.players?.forEach { player ->
-                SquadPlayerRow(player = player)
-                Spacer(modifier = Modifier.height(5.dp))
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = Color.White.copy(alpha = 0.08f),
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(team2ScrollState)
+            ) {
+                team2?.players?.forEach { player ->
+                    SquadPlayerRow(player = player)
+                    Spacer(modifier = Modifier.height(5.dp))
+                }
             }
         }
     }
@@ -584,7 +622,7 @@ private fun CommentaryPage(scoreData: CricketScoreUiData) {
     if (balls.isEmpty()) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(vertical = 24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -600,7 +638,8 @@ private fun CommentaryPage(scoreData: CricketScoreUiData) {
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -720,7 +759,7 @@ private fun OverBlockCard(overItem: CrexLastOver) {
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
         modifier = Modifier
             .height(64.dp)
-            .widthIn(min = 160.dp)
+            .width(168.dp)
     ) {
         Column(
             modifier = Modifier
