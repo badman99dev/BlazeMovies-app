@@ -39,6 +39,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -64,6 +65,7 @@ import com.movie.app.best.ui.screens.player.model.DoubleTapGesture
 import com.movie.app.best.ui.screens.player.model.VideoContentScale
 import com.movie.app.best.ui.screens.player.state.ControlsVisibilityState
 import com.movie.app.best.ui.screens.player.state.VerticalGesture
+import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
 import com.movie.app.best.ui.screens.player.state.rememberBrightnessState
 import com.movie.app.best.ui.screens.player.state.rememberControlsVisibilityState
 import com.movie.app.best.ui.screens.player.state.rememberMediaPresentationState
@@ -125,6 +127,11 @@ fun MediaPlayerScreen(
         }
     }
 
+    // Never leak the brightness override outside the fullscreen player.
+    DisposableEffect(Unit) {
+        onDispose { activity?.resetScreenBrightness() }
+    }
+
     val volumeState = rememberVolumeState(player = player)
     player ?: return
     val mediaPresentationState = rememberMediaPresentationState(player = player, isLive = isLive)
@@ -153,7 +160,7 @@ fun MediaPlayerScreen(
         enableZoomGesture = !isInline,
         enablePanGesture = !isInline,
     )
-    val brightnessState = rememberBrightnessState()
+    val brightnessState = rememberBrightnessState(enabled = !isInline)
     val volumeAndBrightnessGestureState = rememberVolumeAndBrightnessGestureState(
         volumeState = volumeState,
         brightnessState = brightnessState,
