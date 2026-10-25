@@ -32,7 +32,8 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PictureInPicture
-import androidx.compose.material.icons.filled.ScreenRotation
+import com.movie.app.best.ui.screens.player.icons.MobileRotate
+import com.movie.app.best.ui.screens.player.icons.MobileRotateLock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,7 +81,7 @@ fun ControlsBottomView(
     isPipSupported: Boolean,
     isInline: Boolean = false,
     isLive: Boolean = false,
-    isRotationLocked: Boolean,
+    isAutoRotate: Boolean,
     onVideoContentScaleClick: () -> Unit,
     onVideoContentScaleLongClick: () -> Unit,
     onLockControlsClick: () -> Unit,
@@ -227,9 +228,9 @@ fun ControlsBottomView(
                 }
                 PlayerButton(onClick = onRotateClick) {
                     Icon(
-                        imageVector = Icons.Default.ScreenRotation,
-                        contentDescription = null,
-                        tint = if (isRotationLocked) MaterialTheme.colorScheme.primary else Color.White,
+                        imageVector = if (isAutoRotate) MobileRotate else MobileRotateLock,
+                        contentDescription = if (isAutoRotate) "Auto-rotate on" else "Rotation locked",
+                        tint = if (isAutoRotate) Color.White else MaterialTheme.colorScheme.primary,
                     )
                 }
                 PlayerButton(

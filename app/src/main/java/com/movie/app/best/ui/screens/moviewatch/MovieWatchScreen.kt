@@ -6,6 +6,8 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import com.movie.app.best.data.settings.PlayerRotationSettings
+import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
 import com.movie.app.best.util.NetworkUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -420,6 +422,7 @@ fun MovieWatchScreen(
             }
             exoPlayer?.release()
             exoPlayer = null
+            activity?.resetScreenBrightness()
             activity?.let { ImmersiveMode.exit(it) }
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
@@ -433,7 +436,11 @@ fun MovieWatchScreen(
 
     val enterFullscreen = {
         isFullscreen = true
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        activity?.requestedOrientation = if (PlayerRotationSettings.isAutoRotate(context)) {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
         activity?.let { ImmersiveMode.enter(it) }
     }
 

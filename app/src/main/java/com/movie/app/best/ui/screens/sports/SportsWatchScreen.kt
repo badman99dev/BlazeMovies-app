@@ -50,6 +50,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
+import com.movie.app.best.data.settings.PlayerRotationSettings
+import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
 import com.movie.app.best.ui.screens.player.PlayerFactory
@@ -99,7 +101,11 @@ fun SportsWatchScreen(
 
     val enterFullscreen = {
         isFullscreen = true
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        activity?.requestedOrientation = if (PlayerRotationSettings.isAutoRotate(context)) {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
         activity?.let { ImmersiveMode.enter(it) }
     }
 
@@ -119,6 +125,7 @@ fun SportsWatchScreen(
             FullscreenPlayerState.isActive = false
             activity?.let { act ->
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                act.resetScreenBrightness()
                 ImmersiveMode.keepScreenOn(act, false)
                 ImmersiveMode.exit(act)
             }

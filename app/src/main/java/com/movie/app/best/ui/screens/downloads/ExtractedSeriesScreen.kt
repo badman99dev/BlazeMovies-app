@@ -55,6 +55,8 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import coil.compose.AsyncImage
+import com.movie.app.best.data.settings.PlayerRotationSettings
+import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
 import com.movie.app.best.ui.screens.player.PlayerFactory
 import com.movie.app.best.ui.theme.AppBlack
@@ -115,7 +117,10 @@ fun ExtractedSeriesScreen(
         }
     }
     DisposableEffect(Unit) {
-        onDispose { FullscreenPlayerState.isActive = false }
+        onDispose {
+            FullscreenPlayerState.isActive = false
+            activity?.resetScreenBrightness()
+        }
     }
 
     LaunchedEffect(currentEpisode) {
@@ -180,7 +185,11 @@ fun ExtractedSeriesScreen(
 
     val enterFullscreen = {
         isFullscreen = true
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        activity?.requestedOrientation = if (PlayerRotationSettings.isAutoRotate(context)) {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
         activity?.let { ImmersiveMode.enter(it) }
     }
 

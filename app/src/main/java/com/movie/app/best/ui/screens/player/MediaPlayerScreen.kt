@@ -85,6 +85,7 @@ import com.movie.app.best.ui.screens.player.ui.PlayerGestures
 import com.movie.app.best.ui.screens.player.ui.QualitySelectorView
 import com.movie.app.best.ui.screens.player.ui.ServerSourceSelectorView
 import com.movie.app.best.ui.screens.player.ui.ShutterView
+import com.movie.app.best.data.settings.PlayerRotationSettings
 import com.movie.app.best.ui.screens.player.ui.VerticalProgressView
 import com.movie.app.best.ui.screens.player.ui.VideoContentScaleSelectorView
 import com.movie.app.best.ui.screens.player.ui.controls.ControlsBottomView
@@ -113,7 +114,16 @@ fun MediaPlayerScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? android.app.Activity
-    var isRotationLocked by remember { mutableStateOf(false) }
+    var isAutoRotate by remember { mutableStateOf(PlayerRotationSettings.isAutoRotate(context)) }
+
+    // Restore the saved rotation mode when the expanded (fullscreen) player opens.
+    // Fullscreen is always landscape: auto mode follows the device between both
+    // landscape sides, locked mode freezes the current side.
+    LaunchedEffect(Unit) {
+        if (!isInline && isAutoRotate) {
+            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+    }
 
     val volumeState = rememberVolumeState(player = player)
     player ?: return
@@ -304,13 +314,14 @@ fun MediaPlayerScreen(
                                     isLive = isLive,
                                     onSeek = seekGestureState::onSeek,
                                     onSeekEnd = seekGestureState::onSeekEnd,
-                                    isRotationLocked = isRotationLocked,
+                                    isAutoRotate = isAutoRotate,
                                     onRotateClick = {
-                                        isRotationLocked = !isRotationLocked
-                                        if (isRotationLocked) {
-                                            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                        isAutoRotate = !isAutoRotate
+                                        PlayerRotationSettings.setAutoRotate(context, isAutoRotate)
+                                        activity?.requestedOrientation = if (isAutoRotate) {
+                                            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                                         } else {
-                                            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+                                            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED
                                         }
                                     },
                                     onFullscreenClick = {

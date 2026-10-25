@@ -27,3 +27,9 @@ val Activity.currentBrightness: Float
 
 val Activity.brightnessPercentage: Int
     get() = (currentBrightness / WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL * 100).toInt()
+
+fun Activity.resetScreenBrightness() {
+    val attrs = window.attributes
+    attrs.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+    window.attributes = attrs
+}

@@ -50,6 +50,8 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.movie.app.best.data.settings.PlayerRotationSettings
+import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
 import com.movie.app.best.data.debug.DebugInterceptor
 import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.data.model.Zee5Item
@@ -225,7 +227,11 @@ fun Zee5WatchScreen(
 
     val enterFullscreen = {
         isFullscreen = true
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        activity?.requestedOrientation = if (PlayerRotationSettings.isAutoRotate(context)) {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
         activity?.let { ImmersiveMode.enter(it) }
     }
 
@@ -241,6 +247,7 @@ fun Zee5WatchScreen(
 
     DisposableEffect(Unit) {
         onDispose {
+            activity?.resetScreenBrightness()
             activity?.let { ImmersiveMode.exit(it) }
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
