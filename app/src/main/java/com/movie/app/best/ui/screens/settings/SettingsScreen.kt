@@ -26,7 +26,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -250,13 +252,14 @@ fun SettingsScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
-            windowInsets = WindowInsets(0, 0, 0, 0)
+            windowInsets = WindowInsets.statusBars
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(10.dp))
@@ -914,7 +917,7 @@ private fun LogViewerScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
-            windowInsets = WindowInsets(0, 0, 0, 0)
+            windowInsets = WindowInsets.statusBars
         )
 
         if (uploadedLink.isNotEmpty()) {
