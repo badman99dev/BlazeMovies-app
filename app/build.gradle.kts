@@ -53,7 +53,7 @@ android {
             buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://jemsa431ilk.com\"")
             buildConfigField("String", "SPARKLE_BASE_URL", "\"https://sparkling-breeze-1ad6.badman993944.workers.dev/\"")
             buildConfigField("String", "SOURCE_HUB_BASE_URL", "\"https://source-hub-41xg.vercel.app/\"")
-            buildConfigField("String", "SPORTS_BASE_URL", "\"https://cr-blush.vercel.app/\"")
+            buildConfigField("String", "SPORTS_BASE_URL", "\"https://cric.badman993944.workers.dev/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
@@ -68,7 +68,7 @@ android {
             buildConfigField("String", "GEMMA_PLAYLIST_HOST", "\"https://jemsa431ilk.com\"")
             buildConfigField("String", "SPARKLE_BASE_URL", "\"https://sparkling-breeze-1ad6.badman993944.workers.dev/\"")
             buildConfigField("String", "SOURCE_HUB_BASE_URL", "\"https://source-hub-41xg.vercel.app/\"")
-            buildConfigField("String", "SPORTS_BASE_URL", "\"https://cr-blush.vercel.app/\"")
+            buildConfigField("String", "SPORTS_BASE_URL", "\"https://cric.badman993944.workers.dev/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
     }
