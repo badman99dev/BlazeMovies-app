@@ -145,7 +145,7 @@ object NetworkModule {
     @Named("imdb")
     fun provideImdbRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.IMDB1_BASE_URL)
+            .baseUrl(com.movie.app.best.data.config.RemoteConfig.imdbPrimary())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -156,7 +156,7 @@ object NetworkModule {
     @Named("imdx")
     fun provideImdxRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.IMDB2_BASE_URL)
+            .baseUrl(com.movie.app.best.data.config.RemoteConfig.imdbBackup())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -237,7 +237,7 @@ object NetworkModule {
     @Named("sports")
     fun provideSportsRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.SPORTS_BASE_URL)
+            .baseUrl(com.movie.app.best.data.config.RemoteConfig.sports())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

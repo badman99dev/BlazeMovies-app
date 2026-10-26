@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
  *  1. [init] loads the cached blob from SharedPreferences — instant, works offline
  *  2. [startRefresh] always fetches `<base>/config` in the background and re-caches
  *     it (cache stays in use meanwhile — no startup latency)
- *  3. every getter falls back to its hardcoded BuildConfig value
+ *  3. every getter falls back to a bundled default (only BASE_URL lives in gradle)
  *
  * The endpoint, the cache and the bundled defaults are three independent sources,
  * so the app keeps working even if one (or two) of them is unavailable.
@@ -43,6 +43,18 @@ object RemoteConfig {
     private const val FIREBASE_PARAM = "cfg"
     private const val FIREBASE_MIN_FETCH_SECONDS = 1800L
 
+    // ── bundled defaults (used only when neither cache, worker nor Firebase works) ──
+    private const val IMDB_PRIMARY_DEFAULT = "https://api.tiffara.com/"
+    private const val IMDB_BACKUP_DEFAULT = "https://imdxapi.badman993944.workers.dev/"
+    private const val SEARCH_KEY_DEFAULT = "https://meilisearch.badman993944.workers.dev/"
+    private const val SEARCH_API_DEFAULT = "https://meilisearch-rs25.onrender.com/indexes/movies/search"
+    private const val SEARCH_PING_DEFAULT = "https://meilisearch-rs25.onrender.com/"
+    private const val DOWNLOAD_AGENT_DEFAULT = "https://dl-agent.badman993944.workers.dev/"
+    private const val EXTRACTOR_DEFAULT = "https://slast430did.com/"
+    private const val EXTRACTOR_PLAYLIST_DEFAULT = "https://jemsa431ilk.com"
+    private const val PLAYER_ALT_DEFAULT = "https://sparkling-breeze-1ad6.badman993944.workers.dev/"
+    private const val SOURCE_HUB_DEFAULT = "https://source-hub-41xg.vercel.app/"
+    private const val SPORTS_DEFAULT = "https://cric.badman993944.workers.dev/"
     private const val ZEE5_API_DEFAULT = "https://zee5-no-ads.onrender.com/"
     private const val ZEE5_TOKEN_DEFAULT = "https://artemis.zee5.com/"
     private const val CRICKET_DEFAULT = "https://lscorexapi.onrender.com/"
@@ -177,18 +189,18 @@ object RemoteConfig {
     fun apiBase(): String = bases.firstOrNull() ?: BuildConfig.BASE_URL
     fun apiMirrors(): List<String> = bases
     fun apiOrigin(): String = apiBase().removeSuffix("v1/").trimEnd('/')
-    fun imdbPrimary(): String = raw("imdb_primary", BuildConfig.IMDB1_BASE_URL)
-    fun imdbBackup(): String = raw("imdb_backup", BuildConfig.IMDB2_BASE_URL)
-    fun searchKey(): String = raw("search_key", BuildConfig.MEILI_KEY_URL)
-    fun searchApi(): String = raw("search_api", BuildConfig.MEILI_SEARCH_URL)
-    fun searchPing(): String = raw("search_ping", BuildConfig.MEILI_PING_URL)
-    fun downloadAgent(): String = raw("download_agent", BuildConfig.DL_AGENT_BASE_URL)
-    fun extractor(): String = raw("extractor", BuildConfig.GEMMA_BASE_URL)
+    fun imdbPrimary(): String = raw("imdb_primary", IMDB_PRIMARY_DEFAULT)
+    fun imdbBackup(): String = raw("imdb_backup", IMDB_BACKUP_DEFAULT)
+    fun searchKey(): String = raw("search_key", SEARCH_KEY_DEFAULT)
+    fun searchApi(): String = raw("search_api", SEARCH_API_DEFAULT)
+    fun searchPing(): String = raw("search_ping", SEARCH_PING_DEFAULT)
+    fun downloadAgent(): String = raw("download_agent", DOWNLOAD_AGENT_DEFAULT)
+    fun extractor(): String = raw("extractor", EXTRACTOR_DEFAULT)
     fun extractorPlaylistHost(): String =
-        raw("extractor_playlist_host", BuildConfig.GEMMA_PLAYLIST_HOST)
-    fun playerAlt(): String = raw("player_alt", BuildConfig.SPARKLE_BASE_URL)
-    fun sourceHub(): String = raw("source_hub", BuildConfig.SOURCE_HUB_BASE_URL)
-    fun sports(): String = raw("sports", BuildConfig.SPORTS_BASE_URL)
+        raw("extractor_playlist_host", EXTRACTOR_PLAYLIST_DEFAULT)
+    fun playerAlt(): String = raw("player_alt", PLAYER_ALT_DEFAULT)
+    fun sourceHub(): String = raw("source_hub", SOURCE_HUB_DEFAULT)
+    fun sports(): String = raw("sports", SPORTS_DEFAULT)
     fun zee5Api(): String = raw("zee5_api", ZEE5_API_DEFAULT)
     fun zee5Token(): String = raw("zee5_token", ZEE5_TOKEN_DEFAULT)
     fun cricketScores(): String = raw("cricket_scores", CRICKET_DEFAULT)

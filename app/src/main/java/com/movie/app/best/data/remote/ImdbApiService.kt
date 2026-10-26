@@ -1,6 +1,5 @@
 package com.movie.app.best.data.remote
 
-import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.ImdbCertificatesResponse
 import com.movie.app.best.data.model.ImdbCreditsResponse
 import com.movie.app.best.data.model.ImdbEpisodeResponse
@@ -23,7 +22,7 @@ interface ImdbApiService {
         @Query("season") season: Int? = null
     ): ImdbEpisodeResponse
 
-    @GET(BuildConfig.IMDB2_BASE_URL + "titles/{titleId}")
+    @GET("titles/{titleId}")
     suspend fun getTitleDetails(
         @Path("titleId") titleId: String
     ): ImdbTitleDetails
@@ -33,7 +32,7 @@ interface ImdbApiService {
         @Path("titleId") titleId: String
     ): ImdbCertificatesResponse
 
-    @GET(BuildConfig.IMDB2_BASE_URL + "titles/{titleId}/credits")
+    @GET("titles/{titleId}/credits")
     suspend fun getCredits(
         @Path("titleId") titleId: String,
         @Query("pageSize") pageSize: Int = 20
