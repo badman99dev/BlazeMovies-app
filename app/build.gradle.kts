@@ -1,3 +1,6 @@
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -11,7 +14,7 @@ plugins {
 
 // ── Bundled base URLs: kept plain in gradle/urls.properties, but injected into
 // the build as XOR+base64 so the APK carries no plain-text host. ──
-val bundledUrls = java.util.Properties().apply {
+val bundledUrls = Properties().apply {
     val f = rootProject.file("gradle/urls.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
@@ -23,7 +26,7 @@ fun encodeUrl(value: String): String {
     for (i in bytes.indices) {
         out[i] = (bytes[i].toInt() xor key[i % key.length].code).toByte()
     }
-    return java.util.Base64.getEncoder().encodeToString(out)
+    return Base64.getEncoder().encodeToString(out)
 }
 
 fun encodeUrlChecked(key: String): String {
