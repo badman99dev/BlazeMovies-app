@@ -97,6 +97,10 @@ object RemoteConfig {
     @Volatile private var minAppVersion: Int = 0
     @Volatile private var ready = false
 
+    /** Bumped whenever the applied config changes — lets consumers cache. */
+    @Volatile var configVersion: Int = 0
+        private set
+
     /** Where the config currently in memory came from ("worker" / "firebase"). */
     @Volatile var source: String = "builtin"
         private set
@@ -221,6 +225,7 @@ object RemoteConfig {
         if (list.isNotEmpty()) bases = list
         refreshSeconds = json.optLong("refresh_seconds", refreshSeconds)
         minAppVersion = json.optInt("min_app_version", 0)
+        configVersion++
         if (source == "builtin") source = "cache"
         ready = true
         true

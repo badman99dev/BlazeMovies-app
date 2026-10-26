@@ -22,7 +22,7 @@ class ConfigHostInterceptor : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val target = map[request.url.host] ?: return chain.proceed(request)
+        val target = hostMap()[request.url.host] ?: return chain.proceed(request)
 
         val isMainApi = request.url.host == hostOf(RemoteConfig.apiBootstrap())
         val secondary = if (isMainApi) {
@@ -68,8 +68,17 @@ class ConfigHostInterceptor : Interceptor {
             .build()
     }
 
-    private val map: Map<String, String>
-        get() = buildMap {
+    @Volatile private var cachedVersion = -1
+    @Volatile private var cachedMap: Map<String, String> = emptyMap()
+
+    /**
+     * Host table, rebuilt only when the runtime config changes — so the normal
+     * request path is a single map lookup with no allocation.
+     */
+    private fun hostMap(): Map<String, String> {
+        val version = RemoteConfig.configVersion
+        cachedMap.takeIf { version == cachedVersion }?.let { return it }
+        val built = buildMap {
             put(hostOf(RemoteConfig.apiBootstrap()), RemoteConfig.apiBase())
             RemoteConfig.apiSecondary()?.let { put(hostOf(it), RemoteConfig.apiBase()) }
             put("imdb-primary.invalid", RemoteConfig.imdbPrimary())
@@ -87,6 +96,10 @@ class ConfigHostInterceptor : Interceptor {
             put("zee5-token.invalid", RemoteConfig.zee5Token())
             put("cricket.invalid", RemoteConfig.cricketScores())
         }
+        cachedMap = built
+        cachedVersion = version
+        return built
+    }
 
     private companion object {
         fun hostOf(url: String): String =
