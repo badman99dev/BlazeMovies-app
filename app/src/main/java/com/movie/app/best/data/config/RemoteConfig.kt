@@ -13,7 +13,8 @@ import java.util.concurrent.TimeUnit
  *
  * Flow:
  *  1. [init] loads the cached blob from SharedPreferences — instant, works offline
- *  2. [startRefresh] fetches `<base>/config` in the background and re-caches it
+ *  2. [startRefresh] always fetches `<base>/config` in the background and re-caches
+ *     it (cache stays in use meanwhile — no startup latency)
  *  3. every getter falls back to its hardcoded BuildConfig value
  *
  * The endpoint, the cache and the bundled defaults are three independent sources,
@@ -26,6 +27,9 @@ object RemoteConfig {
     private const val KEY_TS = "fetched_at"
     private const val XOR_KEY = "k9X!rT2z"
     private const val CONFIG_PATH = "config"
+
+    /** Minimum gap between two background refreshes (avoids hammering). */
+    private const val REFRESH_FLOOR_MS = 60_000L
 
     private const val ZEE5_API_DEFAULT = "https://zee5-no-ads.onrender.com/"
     private const val ZEE5_TOKEN_DEFAULT = "https://artemis.zee5.com/"
@@ -56,9 +60,15 @@ object RemoteConfig {
         prefs.getString(KEY_BLOB, null)?.let { apply(it) }
     }
 
+    /**
+     * Called on every startup.
+     *
+     * The cached config is already in memory (see [init]) and is used as-is, so
+     * startup latency is unaffected. This only kicks off a background fetch that
+     * replaces the cache for later launches / later requests in this session.
+     */
     fun startRefresh(context: Context) {
-        val age = System.currentTimeMillis() - fetchedAt
-        if (ready && age < (refreshSeconds * 1000L) / 4L) return
+        if (System.currentTimeMillis() - fetchedAt < REFRESH_FLOOR_MS) return
         Thread {
             runCatching { fetch(context) }
         }.apply { isDaemon = true }.start()
