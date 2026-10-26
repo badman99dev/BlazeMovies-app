@@ -36,6 +36,9 @@ object RemoteConfig {
         String(Base64.decode(b64, Base64.DEFAULT), Charsets.UTF_8)
     private const val CONFIG_PATH = "config"
 
+    /** Secondary front used when the primary base fails to answer. */
+    private const val SECONDARY_BASE_DEFAULT = "https://blazemovies.bkstudy8565.workers.dev/v1/"
+
 
     /** Minimum gap between two background refreshes (avoids hammering). */
     private const val REFRESH_FLOOR_MS = 60_000L
@@ -124,7 +127,7 @@ object RemoteConfig {
 
     private fun fetch(context: Context) {
         // 1) worker endpoint(s) — authoritative and instant
-        val candidates = (bases + listOf(BuildConfig.BASE_URL)).distinct()
+        val candidates = (mirrors() + BuildConfig.BASE_URL).distinct()
         for (base in candidates) {
             val body = httpGet(base.trimEnd('/') + "/" + CONFIG_PATH) ?: continue
             val blob = runCatching { JSONObject(body).optString("d") }.getOrNull()
@@ -206,7 +209,13 @@ object RemoteConfig {
 
     // ── API surfaces ─────────────────────────────────────────────
     fun apiBase(): String = bases.firstOrNull() ?: BuildConfig.BASE_URL
-    fun apiMirrors(): List<String> = bases
+
+    /** All known fronts — primary first, secondary second. */
+    fun mirrors(): List<String> =
+        (bases.ifEmpty { listOf(BuildConfig.BASE_URL, SECONDARY_BASE_DEFAULT) }).distinct()
+
+    /** Secondary front, used by the interceptor when the primary fails. */
+    fun apiSecondary(): String? = mirrors().getOrNull(1)
     fun apiOrigin(): String = apiBase().removeSuffix("v1/").trimEnd('/')
     fun imdbPrimary(): String = raw("imdb_primary", IMDB_PRIMARY_DEFAULT)
     fun imdbBackup(): String = raw("imdb_backup", IMDB_BACKUP_DEFAULT)
