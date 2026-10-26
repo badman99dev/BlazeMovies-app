@@ -25,11 +25,23 @@ object RemoteConfig {
     private const val PREFS = "bm_runtime_config"
     private const val KEY_BLOB = "blob"
     private const val KEY_TS = "fetched_at"
+    private const val KEY_SOURCE = "source"
+
+    private const val SOURCE_WORKER = "worker"
+    private const val SOURCE_FIREBASE = "firebase"
     private const val XOR_KEY = "k9X!rT2z"
     private const val CONFIG_PATH = "config"
 
     /** Minimum gap between two background refreshes (avoids hammering). */
     private const val REFRESH_FLOOR_MS = 60_000L
+
+    /**
+     * Firebase Remote Config parameter that carries the very same blob.
+     * It is only used when the worker endpoint is unreachable (e.g. an ISP
+     * blocks *.workers.dev), so we never depend on a single transport.
+     */
+    private const val FIREBASE_PARAM = "cfg"
+    private const val FIREBASE_MIN_FETCH_SECONDS = 1800L
 
     private const val ZEE5_API_DEFAULT = "https://zee5-no-ads.onrender.com/"
     private const val ZEE5_TOKEN_DEFAULT = "https://artemis.zee5.com/"
@@ -42,6 +54,10 @@ object RemoteConfig {
     @Volatile private var refreshSeconds: Long = 21600L
     @Volatile private var minAppVersion: Int = 0
     @Volatile private var ready = false
+
+    /** Where the config currently in memory came from ("worker" / "firebase"). */
+    @Volatile var source: String = "builtin"
+        private set
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -57,6 +73,7 @@ object RemoteConfig {
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         fetchedAt = prefs.getLong(KEY_TS, 0L)
+        source = prefs.getString(KEY_SOURCE, null) ?: "builtin"
         prefs.getString(KEY_BLOB, null)?.let { apply(it) }
     }
 
@@ -75,18 +92,40 @@ object RemoteConfig {
     }
 
     private fun fetch(context: Context) {
+        // 1) worker endpoint(s) — authoritative and instant
         val candidates = (bases + listOf(BuildConfig.BASE_URL)).distinct()
         for (base in candidates) {
             val body = httpGet(base.trimEnd('/') + "/" + CONFIG_PATH) ?: continue
             val blob = runCatching { JSONObject(body).optString("d") }.getOrNull()
             if (!blob.isNullOrEmpty() && apply(blob)) {
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                    .putString(KEY_BLOB, blob)
-                    .putLong(KEY_TS, System.currentTimeMillis())
-                    .apply()
+                cache(context, blob, SOURCE_WORKER)
                 return
             }
         }
+        // 2) Firebase Remote Config — reliable fallback transport
+        val fbBlob = fetchFromFirebase()
+        if (!fbBlob.isNullOrEmpty() && apply(fbBlob)) {
+            cache(context, fbBlob, SOURCE_FIREBASE)
+        }
+    }
+
+    private fun fetchFromFirebase(): String? = runCatching {
+        val rc = com.google.firebase.remoteconfig.FirebaseRemoteConfig.getInstance()
+        val settings = com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+            .Builder()
+            .setMinimumFetchIntervalInSeconds(FIREBASE_MIN_FETCH_SECONDS)
+            .build()
+        com.google.android.gms.tasks.Tasks.await(rc.setConfigSettingsAsync(settings), 3, TimeUnit.SECONDS)
+        com.google.android.gms.tasks.Tasks.await(rc.fetchAndActivate(), 5, TimeUnit.SECONDS)
+        rc.getString(FIREBASE_PARAM).takeIf { !it.isNullOrBlank() }
+    }.getOrNull()
+
+    private fun cache(context: Context, blob: String, source: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_BLOB, blob)
+            .putLong(KEY_TS, System.currentTimeMillis())
+            .putString(KEY_SOURCE, source)
+            .apply()
     }
 
     private fun httpGet(url: String): String? = runCatching {
@@ -117,6 +156,7 @@ object RemoteConfig {
         if (list.isNotEmpty()) bases = list
         refreshSeconds = json.optLong("refresh_seconds", refreshSeconds)
         minAppVersion = json.optInt("min_app_version", 0)
+        if (source == "builtin") source = "cache"
         ready = true
         true
     }.getOrDefault(false)
