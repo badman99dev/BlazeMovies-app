@@ -9,6 +9,26 @@ plugins {
     alias(libs.plugins.firebase.crashlytics)
 }
 
+// ── Bundled base URLs: kept plain in gradle/urls.properties, but injected into
+// the build as XOR+base64 so the APK carries no plain-text host. ──
+val bundledUrls = java.util.Properties().apply {
+    val f = rootProject.file("gradle/urls.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
+fun encodeUrl(value: String): String {
+    val key = "k9X!rT2z"
+    val bytes = value.toByteArray(Charsets.UTF_8)
+    val out = ByteArray(bytes.size)
+    for (i in bytes.indices) {
+        out[i] = (bytes[i].toInt() xor key[i % key.length].code).toByte()
+    }
+    return java.util.Base64.getEncoder().encodeToString(out)
+}
+
+val primaryBaseEnc = encodeUrl(bundledUrls.getProperty("primary.base", ""))
+val secondaryBaseEnc = encodeUrl(bundledUrls.getProperty("secondary.base", ""))
+
 android {
     namespace = "com.movie.app.best"
     compileSdk = 35
@@ -42,11 +62,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://blazemovies.badman993944.workers.dev/v1/\"")
+            buildConfigField("String", "BASE_URL_ENC", "\"$primaryBaseEnc\"")
+            buildConfigField("String", "SECONDARY_BASE_ENC", "\"$secondaryBaseEnc\"")
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://blazemovies.badman993944.workers.dev/v1/\"")
+            buildConfigField("String", "BASE_URL_ENC", "\"$primaryBaseEnc\"")
+            buildConfigField("String", "SECONDARY_BASE_ENC", "\"$secondaryBaseEnc\"")
             signingConfig = signingConfigs.getByName("debug")
         }
     }

@@ -128,7 +128,7 @@ object NetworkModule {
     @Named("main")
     fun provideRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.BASE_URL)
+            .baseUrl(com.movie.app.best.data.config.RemoteConfig.apiBootstrap())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

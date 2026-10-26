@@ -707,7 +707,10 @@ frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen
 referrerpolicy="strict-origin-when-cross-origin"></iframe>
 </body>
 </html>""".trimIndent()
-                loadDataWithBaseURL("https://blazemovies.badman993944.workers.dev/", html, "text/html", "UTF-8", null)
+                loadDataWithBaseURL(
+                    com.movie.app.best.data.config.RemoteConfig.apiOrigin() + "/",
+                    html, "text/html", "UTF-8", null
+                )
             }
         }
     )

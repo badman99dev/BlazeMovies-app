@@ -31,13 +31,25 @@ object RemoteConfig {
     private const val SOURCE_FIREBASE = "firebase"
     private const val XOR_KEY = "k9X!rT2z"
 
-    /** Keeps a couple of bundled defaults out of plain-text APK strings. */
-    private fun decode(b64: String): String =
+    /**
+     * Base64 + XOR decoder. Used for the bundled base URLs (which are encoded at
+     * build time by Gradle) and for the config blob itself.
+     */
+    /** Plain base64 helper for a couple of bundled defaults. */
+    private fun decodeB64(b64: String): String =
         String(Base64.decode(b64, Base64.DEFAULT), Charsets.UTF_8)
+
+    private fun decodeXor(b64: String): String = runCatching {
+        val raw = Base64.decode(b64, Base64.DEFAULT)
+        val out = ByteArray(raw.size)
+        for (i in raw.indices) out[i] = (raw[i].toInt() xor XOR_KEY[i % XOR_KEY.length].code).toByte()
+        String(out, Charsets.UTF_8)
+    }.getOrDefault("")
     private const val CONFIG_PATH = "config"
 
-    /** Secondary front used when the primary base fails to answer. */
-    private const val SECONDARY_BASE_DEFAULT = "https://blazemovies.bkstudy8565.workers.dev/v1/"
+    /** Decoded once from the build-time encoded BuildConfig values. */
+    private val bundledPrimary: String by lazy { decodeXor(BuildConfig.BASE_URL_ENC) }
+    private val bundledSecondary: String by lazy { decodeXor(BuildConfig.SECONDARY_BASE_ENC) }
 
 
     /** Minimum gap between two background refreshes (avoids hammering). */
@@ -61,12 +73,12 @@ object RemoteConfig {
     private const val EXTRACTOR_DEFAULT = "https://slast430did.com/"
     private const val EXTRACTOR_PLAYLIST_DEFAULT = "https://jemsa431ilk.com"
     private const val PLAYER_ALT_DEFAULT = "https://sparkling-breeze-1ad6.badman993944.workers.dev/"
-    private val SOURCE_HUB_DEFAULT = decode("aHR0cHM6Ly9zb3VyY2UtaHViLTQxeGcudmVyY2VsLmFwcC8=")
+    private val SOURCE_HUB_DEFAULT = decodeB64("aHR0cHM6Ly9zb3VyY2UtaHViLTQxeGcudmVyY2VsLmFwcC8=")
     private const val SPORTS_DEFAULT = "https://cric.badman993944.workers.dev/"
     private const val ZEE5_API_DEFAULT = "https://zee5-no-ads.onrender.com/"
     private const val ZEE5_TOKEN_DEFAULT = "https://artemis.zee5.com/"
     private const val CRICKET_DEFAULT = "https://lscorexapi.onrender.com/"
-    private val PLAYER_REFERER_DEFAULT = decode("aHR0cHM6Ly93YXNtZXItamhuczk3MGtvLWJhZGFscy1wcm9qZWN0cy0wM2ZhYjNkZi52ZXJjZWwuYXBwLw==")
+    private val PLAYER_REFERER_DEFAULT = decodeB64("aHR0cHM6Ly93YXNtZXItamhuczk3MGtvLWJhZGFscy1wcm9qZWN0cy0wM2ZhYjNkZi52ZXJjZWwuYXBwLw==")
 
     @Volatile private var endpoints: Map<String, String> = emptyMap()
     @Volatile private var bases: List<String> = emptyList()
@@ -127,7 +139,7 @@ object RemoteConfig {
 
     private fun fetch(context: Context) {
         // 1) worker endpoint(s) — authoritative and instant
-        val candidates = (mirrors() + BuildConfig.BASE_URL).distinct()
+        val candidates = (mirrors() + bundledPrimary).distinct()
         for (base in candidates) {
             val body = httpGet(base.trimEnd('/') + "/" + CONFIG_PATH) ?: continue
             val blob = runCatching { JSONObject(body).optString("d") }.getOrNull()
@@ -208,11 +220,14 @@ object RemoteConfig {
         endpoints[key]?.takeIf { it.isNotBlank() } ?: fallback
 
     // ── API surfaces ─────────────────────────────────────────────
-    fun apiBase(): String = bases.firstOrNull() ?: BuildConfig.BASE_URL
+    /** Bundled primary front (decoded from the build-time encoded value). */
+    fun apiBootstrap(): String = bundledPrimary
+
+    fun apiBase(): String = bases.firstOrNull() ?: bundledPrimary
 
     /** All known fronts — primary first, secondary second. */
     fun mirrors(): List<String> =
-        (bases.ifEmpty { listOf(BuildConfig.BASE_URL, SECONDARY_BASE_DEFAULT) }).distinct()
+        (bases.ifEmpty { listOf(bundledPrimary, bundledSecondary) }).distinct()
 
     /** Secondary front, used by the interceptor when the primary fails. */
     fun apiSecondary(): String? = mirrors().getOrNull(1)
