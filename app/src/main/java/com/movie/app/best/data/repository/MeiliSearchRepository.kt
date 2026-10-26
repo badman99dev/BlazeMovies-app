@@ -28,9 +28,9 @@ class MeiliSearchRepository @Inject constructor() {
         .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
-    private val KEY_URL = BuildConfig.MEILI_KEY_URL
-    private val SEARCH_URL = BuildConfig.MEILI_SEARCH_URL
-    private val PING_URL = BuildConfig.MEILI_PING_URL
+    private val KEY_URL get() = com.movie.app.best.data.config.RemoteConfig.searchKey()
+    private val SEARCH_URL get() = com.movie.app.best.data.config.RemoteConfig.searchApi()
+    private val PING_URL get() = com.movie.app.best.data.config.RemoteConfig.searchPing()
     private val JSON = "application/json".toMediaType()
 
     suspend fun pingAndPrefetchKey() {

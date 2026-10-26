@@ -44,6 +44,10 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
     override fun onCreate() {
         super.onCreate()
 
+        // Runtime config: cached copy first (instant), then a background refresh.
+        com.movie.app.best.data.config.RemoteConfig.init(this)
+        com.movie.app.best.data.config.RemoteConfig.startRefresh(this)
+
         VideoQualitySettings.initCache(this)
 
         createNotificationChannel()

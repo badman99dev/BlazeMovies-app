@@ -88,7 +88,7 @@ class BypassWsClient @Inject constructor(private val gson: Gson) {
     private val wsUrl: String
 
     init {
-        val base = BuildConfig.DL_AGENT_BASE_URL
+        val base = com.movie.app.best.data.config.RemoteConfig.downloadAgent()
         val ws = when {
             base.startsWith("https://") -> "wss://" + base.removePrefix("https://")
             base.startsWith("http://") -> "ws://" + base.removePrefix("http://")

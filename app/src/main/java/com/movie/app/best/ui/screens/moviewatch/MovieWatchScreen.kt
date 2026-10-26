@@ -250,8 +250,8 @@ fun MovieWatchScreen(
 
         val isSourceHub = state.activeSource == "sourcehub"
         val referer = when (state.activeSource) {
-            "gemma" -> BuildConfig.GEMMA_BASE_URL
-            else -> "https://wasmer-jhns970ko-badals-projects-03fab3df.vercel.app/"
+            "gemma" -> com.movie.app.best.data.config.RemoteConfig.extractor()
+            else -> com.movie.app.best.data.config.RemoteConfig.playerReferer()
         }
 
         val okClient = OkHttpClient.Builder()

@@ -111,6 +111,7 @@ object NetworkModule {
         @ApplicationContext context: Context
     ): OkHttpClient {
         return OkHttpClient.Builder()
+            .addInterceptor(com.movie.app.best.data.config.ConfigHostInterceptor())
             .addInterceptor(authInterceptor)
             .addInterceptor(userAgentInterceptor)
             .addInterceptor(loggingInterceptor)
@@ -190,7 +191,7 @@ object NetworkModule {
     @Named("zee5")
     fun provideZee5Retrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(com.movie.app.best.data.remote.Zee5ApiService.BASE_URL)
+            .baseUrl(com.movie.app.best.data.config.RemoteConfig.zee5Api())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -211,7 +212,7 @@ object NetworkModule {
             .readTimeout(10, TimeUnit.SECONDS)
             .build()
         return Retrofit.Builder()
-            .baseUrl("https://artemis.zee5.com/")
+            .baseUrl(com.movie.app.best.data.config.RemoteConfig.zee5Token())
             .client(plainClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

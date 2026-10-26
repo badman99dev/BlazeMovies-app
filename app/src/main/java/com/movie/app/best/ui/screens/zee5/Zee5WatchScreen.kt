@@ -130,7 +130,7 @@ fun Zee5WatchScreen(
         val okFactory = OkHttpDataSource.Factory(okClient)
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
             .setDefaultRequestProperties(mapOf(
-                "Referer" to "https://zee5-no-ads.onrender.com/",
+                "Referer" to com.movie.app.best.data.config.RemoteConfig.zee5Api(),
                 "Accept" to "*/*"
             ))
 

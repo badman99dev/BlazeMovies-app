@@ -1,5 +1,6 @@
 package com.movie.app.best.data.remote
 
+import com.movie.app.best.data.config.RemoteConfig
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.GemmaEpisodeInfo
 import com.movie.app.best.data.model.GemmaExtractionResult
@@ -25,8 +26,8 @@ class GemmaExtractorService @Inject constructor() {
         .build()
 
     private val ua = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36"
-    private val referer = BuildConfig.GEMMA_BASE_URL
-    private val playlistBase = BuildConfig.GEMMA_PLAYLIST_HOST + "/playlist/"
+    private val referer get() = RemoteConfig.extractor()
+    private val playlistBase get() = RemoteConfig.extractorPlaylistHost() + "/playlist/"
 
     private val abc = buildAbc()
     private val keyStr = abc + "0123456789+/="
@@ -38,7 +39,7 @@ class GemmaExtractorService @Inject constructor() {
 
     suspend fun extract(imdbId: String): GemmaExtractionResult = withContext(Dispatchers.IO) {
         try {
-            val url = BuildConfig.GEMMA_BASE_URL + "play/$imdbId"
+            val url = RemoteConfig.extractor() + "play/$imdbId"
             val html = httpGet(url, referer)
                 ?: return@withContext GemmaExtractionResult(emptyMap(), "", "Page fetch failed")
 
@@ -50,7 +51,7 @@ class GemmaExtractorService @Inject constructor() {
 
             if (file.isEmpty()) return@withContext GemmaExtractionResult(emptyMap(), csrfKey, "No file in config")
 
-            val resolvedFile = if (file.startsWith("/playlist/")) BuildConfig.GEMMA_PLAYLIST_HOST + file else file
+            val resolvedFile = if (file.startsWith("/playlist/")) RemoteConfig.extractorPlaylistHost() + file else file
             val resp = httpPost(resolvedFile, referer, csrfKey)
                 ?: return@withContext GemmaExtractionResult(emptyMap(), csrfKey, "Playlist POST failed")
 

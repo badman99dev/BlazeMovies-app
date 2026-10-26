@@ -214,7 +214,7 @@ fun SeriesWatchScreen(
         val isSourceHub = state.activeSource == "sourcehub"
         val requestProps = mutableMapOf<String, String>()
         if (!isSourceHub) {
-            requestProps["Referer"] = BuildConfig.GEMMA_BASE_URL
+            requestProps["Referer"] = com.movie.app.best.data.config.RemoteConfig.extractor()
             requestProps["Accept"] = "*/*"
         }
         state.currentHeaders.forEach { (k, v) ->

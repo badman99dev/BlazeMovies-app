@@ -86,7 +86,7 @@ class MovieWatchViewModel @Inject constructor(
 
     private fun nativeOption(): PlaybackOption? {
         if (hasStream || playerUrl.isNotEmpty()) {
-            val url = if (playerUrl.isNotEmpty()) playerUrl else BuildConfig.SPARKLE_BASE_URL + "?id=$movieId"
+            val url = if (playerUrl.isNotEmpty()) playerUrl else com.movie.app.best.data.config.RemoteConfig.playerAlt() + "?id=$movieId"
             return PlaybackOption(id = "native:main", label = "Native", kind = PlaybackKind.NATIVE, url = url)
         }
         return null

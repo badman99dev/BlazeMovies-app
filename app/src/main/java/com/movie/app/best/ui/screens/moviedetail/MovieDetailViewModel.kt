@@ -110,7 +110,7 @@ class MovieDetailViewModel @Inject constructor(
                             val movie = detailData.movie
                             if (movie.hasStream || movie.playerUrl.isNotEmpty()) {
                                 val streamUrl = if (movie.playerUrl.isNotEmpty()) movie.playerUrl
-                                    else BuildConfig.SPARKLE_BASE_URL + "?id=${movie.id}"
+                                    else com.movie.app.best.data.config.RemoteConfig.playerAlt() + "?id=${movie.id}"
                                 warmCdnCache(streamUrl)
                             }
                         }
@@ -135,7 +135,7 @@ class MovieDetailViewModel @Inject constructor(
                 val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
                 conn.requestMethod = "GET"
                 conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
-                conn.setRequestProperty("Referer", "https://wasmer-jhns970ko-badals-projects-03fab3df.vercel.app/")
+                conn.setRequestProperty("Referer", com.movie.app.best.data.config.RemoteConfig.playerReferer())
                 conn.connectTimeout = 15000
                 conn.readTimeout = 15000
                 conn.inputStream.bufferedReader().readText()

@@ -55,7 +55,7 @@ class CricketScoreRepository @Inject constructor() {
             .create()
 
         Retrofit.Builder()
-            .baseUrl("https://lscorexapi.onrender.com/")
+            .baseUrl(com.movie.app.best.data.config.RemoteConfig.cricketScores())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

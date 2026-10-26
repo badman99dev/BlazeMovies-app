@@ -120,7 +120,7 @@ fun VideoPlayerScreen(
         val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
             .setDefaultRequestProperties(mapOf(
-                "Referer" to "https://wasmer-jhns970ko-badals-projects-03fab3df.vercel.app/",
+                "Referer" to com.movie.app.best.data.config.RemoteConfig.playerReferer(),
                 "Accept" to "*/*"
             ))
 
