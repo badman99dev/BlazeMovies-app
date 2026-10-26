@@ -20,9 +20,17 @@ class SplashViewModel @Inject constructor(
 
     fun prefetch() {
         viewModelScope.launch {
-            try { meiliRepository.pingAndPrefetchKey() } catch (_: Exception) {}
+            // Config-dependent prefetches wait for the first config (max ~0.9s).
+            // Splash animation/UI keeps running; nothing is blocked on the main thread.
+            try {
+                com.movie.app.best.data.config.RemoteConfig.awaitReady(900L)
+            } catch (_: Exception) {}
+            launch { try { meiliRepository.pingAndPrefetchKey() } catch (_: Exception) {} }
         }
         viewModelScope.launch {
+            try {
+                com.movie.app.best.data.config.RemoteConfig.awaitReady(900L)
+            } catch (_: Exception) {}
             try { zee5TokenRepository.prefetchTokens() } catch (_: Exception) {}
         }
 

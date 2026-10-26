@@ -32,6 +32,10 @@ object RemoteConfig {
     private const val XOR_KEY = "k9X!rT2z"
     private const val CONFIG_PATH = "config"
 
+    /** Bundled mirror so a fresh install can still reach the config when the
+     *  primary worker is blocked and no Firebase value is available yet. */
+    private const val MIRROR_BASE_DEFAULT = "https://blazemovies.vercel.app/v1/"
+
     /** Minimum gap between two background refreshes (avoids hammering). */
     private const val REFRESH_FLOOR_MS = 60_000L
 
@@ -103,9 +107,23 @@ object RemoteConfig {
         }.apply { isDaemon = true }.start()
     }
 
+    /**
+     * Suspending wait for the first config (used before config-dependent
+     * prefetches). UI is never blocked — callers are already in a coroutine.
+     */
+    suspend fun awaitReady(timeoutMs: Long = 900L): Boolean {
+        if (ready) return true
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            kotlinx.coroutines.delay(60L)
+            if (ready) return true
+        }
+        return ready
+    }
+
     private fun fetch(context: Context) {
         // 1) worker endpoint(s) — authoritative and instant
-        val candidates = (bases + listOf(BuildConfig.BASE_URL)).distinct()
+        val candidates = (bases + listOf(BuildConfig.BASE_URL, MIRROR_BASE_DEFAULT)).distinct()
         for (base in candidates) {
             val body = httpGet(base.trimEnd('/') + "/" + CONFIG_PATH) ?: continue
             val blob = runCatching { JSONObject(body).optString("d") }.getOrNull()
