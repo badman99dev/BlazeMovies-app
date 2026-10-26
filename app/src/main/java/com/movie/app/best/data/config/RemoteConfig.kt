@@ -35,10 +35,6 @@ object RemoteConfig {
      * Base64 + XOR decoder. Used for the bundled base URLs (which are encoded at
      * build time by Gradle) and for the config blob itself.
      */
-    /** Plain base64 helper for a couple of bundled defaults. */
-    private fun decodeB64(b64: String): String =
-        String(Base64.decode(b64, Base64.DEFAULT), Charsets.UTF_8)
-
     private fun decodeXor(b64: String): String = runCatching {
         val raw = Base64.decode(b64, Base64.DEFAULT)
         val out = ByteArray(raw.size)
@@ -63,22 +59,13 @@ object RemoteConfig {
     private const val FIREBASE_PARAM = "cfg"
     private const val FIREBASE_MIN_FETCH_SECONDS = 1800L
 
-    // ── bundled defaults (used only when neither cache, worker nor Firebase works) ──
-    private const val IMDB_PRIMARY_DEFAULT = "https://api.tiffara.com/"
-    private const val IMDB_BACKUP_DEFAULT = "https://imdxapi.badman993944.workers.dev/"
-    private const val SEARCH_KEY_DEFAULT = "https://meilisearch.badman993944.workers.dev/"
-    private const val SEARCH_API_DEFAULT = "https://meilisearch-rs25.onrender.com/indexes/movies/search"
-    private const val SEARCH_PING_DEFAULT = "https://meilisearch-rs25.onrender.com/"
-    private const val DOWNLOAD_AGENT_DEFAULT = "https://dl-agent.badman993944.workers.dev/"
-    private const val EXTRACTOR_DEFAULT = "https://slast430did.com/"
-    private const val EXTRACTOR_PLAYLIST_DEFAULT = "https://jemsa431ilk.com"
-    private const val PLAYER_ALT_DEFAULT = "https://sparkling-breeze-1ad6.badman993944.workers.dev/"
-    private val SOURCE_HUB_DEFAULT = decodeB64("aHR0cHM6Ly9zb3VyY2UtaHViLTQxeGcudmVyY2VsLmFwcC8=")
-    private const val SPORTS_DEFAULT = "https://cric.badman993944.workers.dev/"
-    private const val ZEE5_API_DEFAULT = "https://zee5-no-ads.onrender.com/"
-    private const val ZEE5_TOKEN_DEFAULT = "https://artemis.zee5.com/"
-    private const val CRICKET_DEFAULT = "https://lscorexapi.onrender.com/"
-    private val PLAYER_REFERER_DEFAULT = decodeB64("aHR0cHM6Ly93YXNtZXItamhuczk3MGtvLWJhZGFscy1wcm9qZWN0cy0wM2ZhYjNkZi52ZXJjZWwuYXBwLw==")
+    /**
+     * Placeholder used until the runtime config supplies a value. It is a
+     * syntactically valid URL (so Retrofit can be built) but resolves nowhere —
+     * no real host of ours is baked into the app. Every endpoint below comes
+     * from the config (worker -> Firebase -> cache).
+     */
+    private const val UNRESOLVED = "https://unresolved.invalid/"
 
     @Volatile private var endpoints: Map<String, String> = emptyMap()
     @Volatile private var bases: List<String> = emptyList()
@@ -216,6 +203,9 @@ object RemoteConfig {
         true
     }.getOrDefault(false)
 
+    /** true when the runtime config actually supplied this key. */
+    fun has(key: String): Boolean = !endpoints[key].isNullOrBlank()
+
     fun raw(key: String, fallback: String): String =
         endpoints[key]?.takeIf { it.isNotBlank() } ?: fallback
 
@@ -232,20 +222,20 @@ object RemoteConfig {
     /** Secondary front, used by the interceptor when the primary fails. */
     fun apiSecondary(): String? = mirrors().getOrNull(1)
     fun apiOrigin(): String = apiBase().removeSuffix("v1/").trimEnd('/')
-    fun imdbPrimary(): String = raw("imdb_primary", IMDB_PRIMARY_DEFAULT)
-    fun imdbBackup(): String = raw("imdb_backup", IMDB_BACKUP_DEFAULT)
-    fun searchKey(): String = raw("search_key", SEARCH_KEY_DEFAULT)
-    fun searchApi(): String = raw("search_api", SEARCH_API_DEFAULT)
-    fun searchPing(): String = raw("search_ping", SEARCH_PING_DEFAULT)
-    fun downloadAgent(): String = raw("download_agent", DOWNLOAD_AGENT_DEFAULT)
-    fun extractor(): String = raw("extractor", EXTRACTOR_DEFAULT)
+    fun imdbPrimary(): String = raw("imdb_primary", UNRESOLVED)
+    fun imdbBackup(): String = raw("imdb_backup", UNRESOLVED)
+    fun searchKey(): String = raw("search_key", UNRESOLVED)
+    fun searchApi(): String = raw("search_api", UNRESOLVED)
+    fun searchPing(): String = raw("search_ping", UNRESOLVED)
+    fun downloadAgent(): String = raw("download_agent", UNRESOLVED)
+    fun extractor(): String = raw("extractor", UNRESOLVED)
     fun extractorPlaylistHost(): String =
-        raw("extractor_playlist_host", EXTRACTOR_PLAYLIST_DEFAULT)
-    fun playerAlt(): String = raw("player_alt", PLAYER_ALT_DEFAULT)
-    fun sourceHub(): String = raw("source_hub", SOURCE_HUB_DEFAULT)
-    fun sports(): String = raw("sports", SPORTS_DEFAULT)
-    fun zee5Api(): String = raw("zee5_api", ZEE5_API_DEFAULT)
-    fun zee5Token(): String = raw("zee5_token", ZEE5_TOKEN_DEFAULT)
-    fun cricketScores(): String = raw("cricket_scores", CRICKET_DEFAULT)
-    fun playerReferer(): String = raw("player_referer", PLAYER_REFERER_DEFAULT)
+        raw("extractor_playlist_host", UNRESOLVED.trimEnd('/'))
+    fun playerAlt(): String = raw("player_alt", UNRESOLVED)
+    fun sourceHub(): String = raw("source_hub", UNRESOLVED)
+    fun sports(): String = raw("sports", UNRESOLVED)
+    fun zee5Api(): String = raw("zee5_api", UNRESOLVED)
+    fun zee5Token(): String = raw("zee5_token", UNRESOLVED)
+    fun cricketScores(): String = raw("cricket_scores", UNRESOLVED)
+    fun playerReferer(): String = raw("player_referer", "")
 }

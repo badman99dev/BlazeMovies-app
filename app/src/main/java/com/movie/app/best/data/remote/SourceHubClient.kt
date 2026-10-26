@@ -50,15 +50,16 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
-    private val wsUrl: String = run {
-        val base = com.movie.app.best.data.config.RemoteConfig.sourceHub()
-        val ws = when {
-            base.startsWith("https://") -> "wss://" + base.removePrefix("https://")
-            base.startsWith("http://") -> "ws://" + base.removePrefix("http://")
-            else -> base
+    private val wsUrl: String
+        get() = run {
+            val base = com.movie.app.best.data.config.RemoteConfig.sourceHub()
+            val ws = when {
+                base.startsWith("https://") -> "wss://" + base.removePrefix("https://")
+                base.startsWith("http://") -> "ws://" + base.removePrefix("http://")
+                else -> base
+            }
+            ws.trimEnd('/') + "/ws"
         }
-        ws.trimEnd('/') + "/ws"
-    }
 
     suspend fun resolve(
         request: SourceHubRequest,
