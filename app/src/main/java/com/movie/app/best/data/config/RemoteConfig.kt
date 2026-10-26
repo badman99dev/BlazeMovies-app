@@ -117,7 +117,16 @@ object RemoteConfig {
             .build()
         com.google.android.gms.tasks.Tasks.await(rc.setConfigSettingsAsync(settings), 3, TimeUnit.SECONDS)
         com.google.android.gms.tasks.Tasks.await(rc.fetchAndActivate(), 5, TimeUnit.SECONDS)
-        rc.getString(FIREBASE_PARAM).takeIf { !it.isNullOrBlank() }
+
+        // Accepts both shapes: the plain blob (String parameter) or {"d":"<blob>"}
+        // (JSON parameter), so either setup in the console works.
+        val value = rc.getString(FIREBASE_PARAM)?.trim().orEmpty()
+        when {
+            value.isEmpty() -> null
+            value.startsWith("{") ->
+                runCatching { JSONObject(value).optString("d") }.getOrNull()?.takeIf { it.isNotBlank() }
+            else -> value
+        }
     }.getOrNull()
 
     private fun cache(context: Context, blob: String, source: String) {
