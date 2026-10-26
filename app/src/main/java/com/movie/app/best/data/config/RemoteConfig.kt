@@ -30,11 +30,12 @@ object RemoteConfig {
     private const val SOURCE_WORKER = "worker"
     private const val SOURCE_FIREBASE = "firebase"
     private const val XOR_KEY = "k9X!rT2z"
+
+    /** Keeps a couple of bundled defaults out of plain-text APK strings. */
+    private fun decode(b64: String): String =
+        String(Base64.decode(b64, Base64.DEFAULT), Charsets.UTF_8)
     private const val CONFIG_PATH = "config"
 
-    /** Bundled mirror so a fresh install can still reach the config when the
-     *  primary worker is blocked and no Firebase value is available yet. */
-    private const val MIRROR_BASE_DEFAULT = "https://blazemovies.vercel.app/v1/"
 
     /** Minimum gap between two background refreshes (avoids hammering). */
     private const val REFRESH_FLOOR_MS = 60_000L
@@ -57,12 +58,12 @@ object RemoteConfig {
     private const val EXTRACTOR_DEFAULT = "https://slast430did.com/"
     private const val EXTRACTOR_PLAYLIST_DEFAULT = "https://jemsa431ilk.com"
     private const val PLAYER_ALT_DEFAULT = "https://sparkling-breeze-1ad6.badman993944.workers.dev/"
-    private const val SOURCE_HUB_DEFAULT = "https://source-hub-41xg.vercel.app/"
+    private val SOURCE_HUB_DEFAULT = decode("aHR0cHM6Ly9zb3VyY2UtaHViLTQxeGcudmVyY2VsLmFwcC8=")
     private const val SPORTS_DEFAULT = "https://cric.badman993944.workers.dev/"
     private const val ZEE5_API_DEFAULT = "https://zee5-no-ads.onrender.com/"
     private const val ZEE5_TOKEN_DEFAULT = "https://artemis.zee5.com/"
     private const val CRICKET_DEFAULT = "https://lscorexapi.onrender.com/"
-    private const val PLAYER_REFERER_DEFAULT = "https://wasmer-jhns970ko-badals-projects-03fab3df.vercel.app/"
+    private val PLAYER_REFERER_DEFAULT = decode("aHR0cHM6Ly93YXNtZXItamhuczk3MGtvLWJhZGFscy1wcm9qZWN0cy0wM2ZhYjNkZi52ZXJjZWwuYXBwLw==")
 
     @Volatile private var endpoints: Map<String, String> = emptyMap()
     @Volatile private var bases: List<String> = emptyList()
@@ -123,7 +124,7 @@ object RemoteConfig {
 
     private fun fetch(context: Context) {
         // 1) worker endpoint(s) — authoritative and instant
-        val candidates = (bases + listOf(BuildConfig.BASE_URL, MIRROR_BASE_DEFAULT)).distinct()
+        val candidates = (bases + listOf(BuildConfig.BASE_URL)).distinct()
         for (base in candidates) {
             val body = httpGet(base.trimEnd('/') + "/" + CONFIG_PATH) ?: continue
             val blob = runCatching { JSONObject(body).optString("d") }.getOrNull()

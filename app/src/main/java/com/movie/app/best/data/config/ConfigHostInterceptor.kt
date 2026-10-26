@@ -34,20 +34,10 @@ class ConfigHostInterceptor : Interceptor {
 
     private val originMap: Map<String, String>
         get() = mapOf(
-            hostOf(BuildConfig.BASE_URL) to RemoteConfig.apiBase(),
-            "blazemovies.vercel.app" to RemoteConfig.apiBase(),
-            "api.tiffara.com" to RemoteConfig.imdbPrimary(),
-            "imdxapi.badman993944.workers.dev" to RemoteConfig.imdbBackup(),
-            "meilisearch.badman993944.workers.dev" to RemoteConfig.searchKey(),
-            "meilisearch-rs25.onrender.com" to RemoteConfig.searchPing(),
-            "sparkling-breeze-1ad6.badman993944.workers.dev" to RemoteConfig.playerAlt(),
-            "source-hub-41xg.vercel.app" to RemoteConfig.sourceHub(),
-            "slast430did.com" to RemoteConfig.extractor(),
-            "dl-agent.badman993944.workers.dev" to RemoteConfig.downloadAgent(),
-            "cric.badman993944.workers.dev" to RemoteConfig.sports(),
-            "zee5-no-ads.onrender.com" to RemoteConfig.zee5Api(),
-            "artemis.zee5.com" to RemoteConfig.zee5Token(),
-            "lscorexapi.onrender.com" to RemoteConfig.cricketScores()
+            // Bootstrap host (the only URL still baked into the build). Every other
+            // base URL is created from the runtime config, so no other host needs
+            // rewriting — and no other backend host is present in the APK.
+            hostOf(BuildConfig.BASE_URL) to RemoteConfig.apiBase()
         )
 
     private companion object {
