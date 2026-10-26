@@ -60,12 +60,35 @@ object RemoteConfig {
     private const val FIREBASE_MIN_FETCH_SECONDS = 1800L
 
     /**
-     * Placeholder used until the runtime config supplies a value. It is a
-     * syntactically valid URL (so Retrofit can be built) but resolves nowhere —
-     * no real host of ours is baked into the app. Every endpoint below comes
-     * from the config (worker -> Firebase -> cache).
+     * Per-service placeholders. Retrofit instances are built once at DI time,
+     * so each service gets its own stable (but unroutable) host; the interceptor
+     * rewrites it to the real one from the config on every request. That keeps
+     * zero real hosts inside the app and still honours a config that arrives
+     * after a service was first created.
      */
-    private const val UNRESOLVED = "https://unresolved.invalid/"
+    private const val PH_IMDB_PRIMARY = "https://imdb-primary.invalid/"
+    private const val PH_IMDB_BACKUP = "https://imdb-backup.invalid/"
+    private const val PH_SEARCH_KEY = "https://search-key.invalid/"
+    private const val PH_SEARCH_API = "https://search-api.invalid/"
+    private const val PH_SEARCH_PING = "https://search-ping.invalid/"
+    private const val PH_DL_AGENT = "https://dl-agent.invalid/"
+    private const val PH_EXTRACTOR = "https://extractor.invalid/"
+    private const val PH_PLAYLIST = "https://playlist-host.invalid"
+    private const val PH_PLAYER_ALT = "https://player-alt.invalid/"
+    private const val PH_SOURCE_HUB = "https://source-hub.invalid/"
+    private const val PH_SPORTS = "https://sports.invalid/"
+    private const val PH_ZEE5_API = "https://zee5-api.invalid/"
+    private const val PH_ZEE5_TOKEN = "https://zee5-token.invalid/"
+    private const val PH_CRICKET = "https://cricket.invalid/"
+
+    /** Placeholder hosts the interceptor knows how to map. */
+    val placeholderHosts: Set<String> = setOf(
+        "imdb-primary.invalid", "imdb-backup.invalid", "search-key.invalid",
+        "search-api.invalid", "search-ping.invalid", "dl-agent.invalid",
+        "extractor.invalid", "playlist-host.invalid", "player-alt.invalid",
+        "source-hub.invalid", "sports.invalid", "zee5-api.invalid",
+        "zee5-token.invalid", "cricket.invalid"
+    )
 
     @Volatile private var endpoints: Map<String, String> = emptyMap()
     @Volatile private var bases: List<String> = emptyList()
@@ -222,20 +245,20 @@ object RemoteConfig {
     /** Secondary front, used by the interceptor when the primary fails. */
     fun apiSecondary(): String? = mirrors().getOrNull(1)
     fun apiOrigin(): String = apiBase().removeSuffix("v1/").trimEnd('/')
-    fun imdbPrimary(): String = raw("imdb_primary", UNRESOLVED)
-    fun imdbBackup(): String = raw("imdb_backup", UNRESOLVED)
-    fun searchKey(): String = raw("search_key", UNRESOLVED)
-    fun searchApi(): String = raw("search_api", UNRESOLVED)
-    fun searchPing(): String = raw("search_ping", UNRESOLVED)
-    fun downloadAgent(): String = raw("download_agent", UNRESOLVED)
-    fun extractor(): String = raw("extractor", UNRESOLVED)
+    fun imdbPrimary(): String = raw("imdb_primary", PH_IMDB_PRIMARY)
+    fun imdbBackup(): String = raw("imdb_backup", PH_IMDB_BACKUP)
+    fun searchKey(): String = raw("search_key", PH_SEARCH_KEY)
+    fun searchApi(): String = raw("search_api", PH_SEARCH_API)
+    fun searchPing(): String = raw("search_ping", PH_SEARCH_PING)
+    fun downloadAgent(): String = raw("download_agent", PH_DL_AGENT)
+    fun extractor(): String = raw("extractor", PH_EXTRACTOR)
     fun extractorPlaylistHost(): String =
-        raw("extractor_playlist_host", UNRESOLVED.trimEnd('/'))
-    fun playerAlt(): String = raw("player_alt", UNRESOLVED)
-    fun sourceHub(): String = raw("source_hub", UNRESOLVED)
-    fun sports(): String = raw("sports", UNRESOLVED)
-    fun zee5Api(): String = raw("zee5_api", UNRESOLVED)
-    fun zee5Token(): String = raw("zee5_token", UNRESOLVED)
-    fun cricketScores(): String = raw("cricket_scores", UNRESOLVED)
+        raw("extractor_playlist_host", PH_PLAYLIST)
+    fun playerAlt(): String = raw("player_alt", PH_PLAYER_ALT)
+    fun sourceHub(): String = raw("source_hub", PH_SOURCE_HUB)
+    fun sports(): String = raw("sports", PH_SPORTS)
+    fun zee5Api(): String = raw("zee5_api", PH_ZEE5_API)
+    fun zee5Token(): String = raw("zee5_token", PH_ZEE5_TOKEN)
+    fun cricketScores(): String = raw("cricket_scores", PH_CRICKET)
     fun playerReferer(): String = raw("player_referer", "")
 }
