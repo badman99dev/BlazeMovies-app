@@ -26,8 +26,16 @@ fun encodeUrl(value: String): String {
     return java.util.Base64.getEncoder().encodeToString(out)
 }
 
-val primaryBaseEnc = encodeUrl(bundledUrls.getProperty("primary.base", ""))
-val secondaryBaseEnc = encodeUrl(bundledUrls.getProperty("secondary.base", ""))
+fun encodeUrlChecked(key: String): String {
+    val value = bundledUrls.getProperty(key, "")
+    require(value.startsWith("http")) {
+        "gradle/urls.properties: '$key' missing or invalid — refusing to build an APK without a bootstrap URL"
+    }
+    return encodeUrl(value)
+}
+
+val primaryBaseEnc = encodeUrlChecked("primary.base")
+val secondaryBaseEnc = encodeUrlChecked("secondary.base")
 
 android {
     namespace = "com.movie.app.best"
