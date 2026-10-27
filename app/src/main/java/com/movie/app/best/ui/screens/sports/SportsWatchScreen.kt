@@ -11,6 +11,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -56,7 +58,10 @@ import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
 import com.movie.app.best.ui.screens.player.PlayerFactory
 import com.movie.app.best.util.NetworkUtils
+import com.movie.app.best.ui.components.LoginRequiredDialog
 import com.movie.app.best.ui.components.TeamFlagBadge
+import com.movie.app.best.ui.screens.sports.components.LiveChatSheet
+import com.movie.app.best.ui.screens.sports.components.LiveChatStrip
 import com.movie.app.best.ui.theme.AppRed
 import com.movie.app.best.ui.theme.CardDark
 import com.movie.app.best.ui.theme.InfoBlue
@@ -69,12 +74,16 @@ import com.movie.app.best.ui.screens.sports.components.CricketScoreSection
 @Composable
 fun SportsWatchScreen(
     onBackClick: () -> Unit,
+    onLoginRequired: () -> Unit = {},
     viewModel: SportsWatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
 
+    val liveChatState by viewModel.liveChatState.collectAsState()
+    var isChatSheetOpen by remember { mutableStateOf(false) }
+    var showLoginDialog by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isPlayerBuffering by remember { mutableStateOf(true) }
@@ -118,6 +127,10 @@ fun SportsWatchScreen(
                 ImmersiveMode.exit(act)
             }
         }
+    }
+
+    BackHandler(enabled = isChatSheetOpen) {
+        isChatSheetOpen = false
     }
 
     DisposableEffect(Unit) {
@@ -594,7 +607,7 @@ fun SportsWatchScreen(
                     )
                 }
 
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
@@ -612,6 +625,22 @@ fun SportsWatchScreen(
                                 .verticalScroll(rememberScrollState())
                                 .padding(16.dp)
                         ) {
+                            if (event != null) {
+                                LiveChatStrip(
+                                    userName = viewModel.getUserFirstName(),
+                                    onlineCount = liveChatState.onlineCount,
+                                    onClick = {
+                                        if (!viewModel.isUserLoggedIn()) {
+                                            showLoginDialog = true
+                                        } else {
+                                            isChatSheetOpen = true
+                                            viewModel.connectChat(event.effectiveChatRid)
+                                        }
+                                    },
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
+
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),
@@ -826,9 +855,42 @@ fun SportsWatchScreen(
                             }
                         }
                     }
+
+                    // Full YouTube-style Live Chat overlay sheet covering non-video area
+                    AnimatedVisibility(
+                        visible = isChatSheetOpen,
+                        enter = slideInVertically(
+                            initialOffsetY = { it },
+                            animationSpec = tween(320, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(250)),
+                        exit = slideOutVertically(
+                            targetOffsetY = { it },
+                            animationSpec = tween(280, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(200)),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        LiveChatSheet(
+                            state = liveChatState,
+                            floatingReactions = viewModel.floatingReactions,
+                            currentUserName = viewModel.getUserFirstName(),
+                            onCloseClick = { isChatSheetOpen = false },
+                            onSendMessage = { viewModel.sendChatMessage(it) },
+                            onSendReaction = { id, emoji -> viewModel.sendChatReaction(id, emoji) }
+                        )
+                    }
                 }
             }
         }
+    }
+
+    if (showLoginDialog) {
+        LoginRequiredDialog(
+            onLoginClick = {
+                showLoginDialog = false
+                onLoginRequired()
+            },
+            onDismiss = { showLoginDialog = false }
+        )
     }
 }
 

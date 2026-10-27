@@ -7,6 +7,9 @@ import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.data.model.SportEvent
 import com.movie.app.best.data.model.SportStream
+import com.movie.app.best.data.chat.LiveChatManager
+import com.movie.app.best.data.chat.LiveChatState
+import com.movie.app.best.data.repository.AuthRepository
 import com.movie.app.best.data.repository.CricketScoreRepository
 import com.movie.app.best.data.repository.CricketScoreUiData
 import com.movie.app.best.data.repository.EventWatchResult
@@ -65,8 +68,38 @@ data class SportsWatchUiState(
 class SportsWatchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: SportsRepository,
-    private val cricketRepository: CricketScoreRepository
+    private val cricketRepository: CricketScoreRepository,
+    private val chatManager: LiveChatManager,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    val liveChatState: StateFlow<LiveChatState> = chatManager.chatState
+    val floatingReactions = chatManager.floatingReactions
+
+    fun isUserLoggedIn(): Boolean = authRepository.isLoggedIn()
+
+    fun getUserFirstName(): String? {
+        val user = authRepository.getUser() ?: return null
+        return user.firstName?.trim()?.ifBlank { null }
+            ?: user.username.split(" ").firstOrNull()?.trim()?.ifBlank { null }
+    }
+
+    fun connectChat(rid: String) {
+        val name = getUserFirstName() ?: "Fan"
+        chatManager.connectToRoom(rid, name)
+    }
+
+    fun sendChatMessage(text: String) {
+        viewModelScope.launch {
+            chatManager.sendMessage(text)
+        }
+    }
+
+    fun sendChatReaction(id: String, emoji: String) {
+        viewModelScope.launch {
+            chatManager.sendReaction(id, emoji)
+        }
+    }
 
     val slug: String = savedStateHandle.get<String>("slug") ?: ""
 
@@ -325,5 +358,6 @@ class SportsWatchViewModel @Inject constructor(
         countdownJob?.cancel()
         cricketPollingJob?.cancel()
         cricketRepository.resetBuffer()
+        chatManager.disconnect()
     }
 }

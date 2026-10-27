@@ -46,8 +46,20 @@ data class SportEvent(
     @SerializedName("eventInfo") val eventInfo: SportEventInfo? = null,
     @SerializedName("publish") val publish: String? = null,
     @SerializedName("formats") val formats: List<SportFormat> = emptyList(),
-    @SerializedName("streams") val streams: List<SportStream> = emptyList()
+    @SerializedName("streams") val streams: List<SportStream> = emptyList(),
+    @SerializedName("chat_rid") val chatRid: String? = null
 ) {
+    val effectiveChatRid: String
+        get() {
+            val fromServer = chatRid?.trim()
+            if (!fromServer.isNullOrBlank()) return fromServer
+            val cleanSlug = slug.trim().replace("/", "_").replace(" ", "_").ifBlank { id.ifBlank { "match" } }
+            return if (cleanSlug.startsWith("sports_") || cleanSlug.startsWith("sports-")) {
+                cleanSlug
+            } else {
+                "sports_${cleanSlug}"
+            }
+        } {
     enum class MatchStatus {
         LIVE,
         UPCOMING,

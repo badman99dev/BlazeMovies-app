@@ -80,6 +80,7 @@ object RemoteConfig {
     private const val PH_ZEE5_API = "https://zee5-api.invalid/"
     private const val PH_ZEE5_TOKEN = "https://zee5-token.invalid/"
     private const val PH_CRICKET = "https://cricket.invalid/"
+    private const val PH_LIVE_CHAT = "https://livechat-server-0ypb.onrender.com/"
 
     /** Placeholder hosts the interceptor knows how to map. */
     val placeholderHosts: Set<String> = setOf(
@@ -87,7 +88,7 @@ object RemoteConfig {
         "search-api.invalid", "search-ping.invalid", "dl-agent.invalid",
         "extractor.invalid", "playlist-host.invalid", "player-alt.invalid",
         "source-hub.invalid", "sports.invalid", "zee5-api.invalid",
-        "zee5-token.invalid", "cricket.invalid"
+        "zee5-token.invalid", "cricket.invalid", "live-chat.invalid"
     )
 
     @Volatile private var endpoints: Map<String, String> = emptyMap()
@@ -265,5 +266,6 @@ object RemoteConfig {
     fun zee5Api(): String = raw("zee5_api", PH_ZEE5_API)
     fun zee5Token(): String = raw("zee5_token", PH_ZEE5_TOKEN)
     fun cricketScores(): String = raw("cricket_scores", PH_CRICKET)
+    fun liveChat(): String = raw("live_chat", PH_LIVE_CHAT)
     fun playerReferer(): String = raw("player_referer", "")
 }

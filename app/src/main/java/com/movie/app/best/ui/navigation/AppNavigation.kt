@@ -560,7 +560,12 @@ fun AppNavigation(
             )
         ) {
             com.movie.app.best.ui.screens.sports.SportsWatchScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onLoginRequired = {
+                    navController.navigate(Screen.Login.route) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
