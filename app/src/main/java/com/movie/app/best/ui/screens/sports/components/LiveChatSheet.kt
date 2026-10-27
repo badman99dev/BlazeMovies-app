@@ -232,131 +232,37 @@ fun LiveChatSheet(
                     }
                 }
 
-                Box(
+                ReactionLayer(
+                    particles = particles,
+                    onFinish = { id -> particles.removeAll { it.id == id } },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 16.dp, bottom = 8.dp)
-                        .size(width = 96.dp, height = 240.dp),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    particles.forEach { particle ->
-                        FloatingEmoji(
-                            emoji = particle.emoji,
-                            lane = particle.lane,
-                            drift = particle.drift,
-                            durationMs = particle.durationMs,
-                            onFinish = { particles.removeAll { it.id == particle.id } }
-                        )
-                    }
-                }
+                        .size(width = 96.dp, height = 240.dp)
+                )
 
-                AnimatedVisibility(
+                ChatEmptyOverlay(
                     visible = rows.isEmpty() && !state.isConnecting,
-                    enter = fadeIn(tween(240)),
-                    exit = fadeOut(tween(120)),
+                    error = state.error,
                     modifier = Modifier.align(Alignment.Center)
-                ) {
-                    val message = state.error
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(58.dp)
-                                .background(Surface2, CircleShape)
-                                .border(1.dp, Hairline, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ChatBubbleOutline,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.5f),
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = "Be the first to say hi 👋",
-                            color = TextWhite,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = message ?: "Messages show up here the moment the room goes live.",
-                            color = Color.White.copy(alpha = 0.45f),
-                            fontSize = 12.sp,
-                            lineHeight = 17.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+                )
 
-                AnimatedVisibility(
-                    visible = rows.isEmpty() && state.isConnecting,
-                    enter = fadeIn(tween(200)),
-                    exit = fadeOut(tween(120))
-                ) {
-                    ChatSkeleton()
-                }
+                ChatSkeletonOverlay(visible = rows.isEmpty() && state.isConnecting)
 
-                AnimatedVisibility(
+                JumpToLatestPill(
                     visible = showJump,
-                    enter = fadeIn(tween(160)) + slideInVertically(tween(200)) { it / 2 },
-                    exit = fadeOut(tween(120)) + slideOutVertically(tween(160)) { it / 2 },
+                    onClick = { scope.launch { listState.animateScrollToItem(0) } },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Surface3)
-                            .border(1.dp, Hairline, RoundedCornerShape(20.dp))
-                            .clickable {
-                                scope.launch { listState.animateScrollToItem(0) }
-                            }
-                            .padding(start = 10.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = TextWhite,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Jump to latest",
-                            color = TextWhite,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+                )
 
-                AnimatedVisibility(
-                    visible = toast != null,
-                    enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 2 },
-                    exit = fadeOut(tween(150)) + slideOutVertically(tween(180)) { it / 2 },
+                ChatToast(
+                    text = toast,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 48.dp, start = 16.dp, end = 16.dp)
-                ) {
-                    Text(
-                        text = toast ?: "",
-                        color = TextWhite,
-                        fontSize = 11.5.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Surface3.copy(alpha = 0.97f))
-                            .border(1.dp, Hairline, RoundedCornerShape(14.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    )
-                }
+                )
             }
 
             ChatComposer(
@@ -995,4 +901,148 @@ private fun FloatingEmoji(
                 rotationZ = sin((p * 5f).toDouble()).toFloat() * 8f
             }
     )
+}
+@Composable
+private fun ReactionLayer(
+    particles: List<FloatingParticle>,
+    onFinish: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.BottomCenter) {
+        particles.forEach { particle ->
+            key(particle.id) {
+                FloatingEmoji(
+                    emoji = particle.emoji,
+                    lane = particle.lane,
+                    drift = particle.drift,
+                    durationMs = particle.durationMs,
+                    onFinish = { onFinish(particle.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatEmptyOverlay(
+    visible: Boolean,
+    error: String?,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(240)),
+        exit = fadeOut(tween(120)),
+        modifier = modifier
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(58.dp)
+                    .background(Surface2, CircleShape)
+                    .border(1.dp, Hairline, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChatBubbleOutline,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = "Be the first to say hi 👋",
+                color = TextWhite,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = error ?: "Messages show up here the moment the room goes live.",
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChatSkeletonOverlay(visible: Boolean) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(200)),
+        exit = fadeOut(tween(120))
+    ) {
+        ChatSkeleton()
+    }
+}
+
+@Composable
+private fun JumpToLatestPill(
+    visible: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(160)) + slideInVertically(tween(200)) { it / 2 },
+        exit = fadeOut(tween(120)) + slideOutVertically(tween(160)) { it / 2 },
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(Surface3)
+                .border(1.dp, Hairline, RoundedCornerShape(20.dp))
+                .clickable(onClick = onClick)
+                .padding(start = 10.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = TextWhite,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "Jump to latest",
+                color = TextWhite,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChatToast(
+    text: String?,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = text != null,
+        enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 2 },
+        exit = fadeOut(tween(150)) + slideOutVertically(tween(180)) { it / 2 },
+        modifier = modifier
+    ) {
+        Text(
+            text = text ?: "",
+            color = TextWhite,
+            fontSize = 11.5.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .background(Surface3.copy(alpha = 0.97f))
+                .border(1.dp, Hairline, RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        )
+    }
 }
