@@ -109,9 +109,20 @@ fun LiveChatSheet(
         }
     }
 
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.size - 1)
+    // seq is the stable identity; distinctBy also guarantees unique LazyColumn keys.
+    val messages = remember(state.messages) { state.messages.distinctBy { it.seq } }
+
+    // Auto-follow new messages only while the reader is already at the bottom.
+    var stickToBottom by remember { mutableStateOf(true) }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo }.collect { info ->
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+            stickToBottom = lastVisible >= info.totalItemsCount - 2
+        }
+    }
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty() && stickToBottom) {
+            listState.animateScrollToItem(messages.size - 1)
         }
     }
 
@@ -175,11 +186,18 @@ fun LiveChatSheet(
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
-                                .background(Color(0xFF22C55E), CircleShape)
+                                .background(
+                                    if (state.isConnected) Color(0xFF22C55E) else Color(0xFF6B7280),
+                                    CircleShape
+                                )
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "${state.onlineCount} Online",
+                            text = when {
+                                state.onlineCount > 0 -> "${state.onlineCount} Online"
+                                state.isConnecting -> "Connecting…"
+                                else -> "Offline"
+                            },
                             color = Color.White.copy(alpha = 0.8f),
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold
@@ -206,7 +224,7 @@ fun LiveChatSheet(
                     color = Color.White.copy(alpha = 0.07f)
                 )
 
-                if (state.error != null && state.messages.isNotEmpty()) {
+                if (state.error != null && messages.isNotEmpty()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -229,7 +247,7 @@ fun LiveChatSheet(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                if (state.messages.isEmpty()) {
+                if (messages.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -273,7 +291,7 @@ fun LiveChatSheet(
                         contentPadding = PaddingValues(vertical = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(state.messages, key = { it.seq }) { message ->
+                        items(messages, key = { it.seq }) { message ->
                             ChatMessageRow(
                                 message = message,
                                 isMe = state.currentUserId?.let { it == message.userId }
@@ -381,7 +399,7 @@ fun LiveChatSheet(
                         }
                         BasicTextField(
                             value = inputText,
-                            onValueChange = { inputText = it.take(300) },
+                            onValueChange = { inputText = it.take(500) },
                             textStyle = TextStyle(
                                 color = Color.White,
                                 fontSize = 13.5.sp,

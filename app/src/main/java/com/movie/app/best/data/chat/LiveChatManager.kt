@@ -26,7 +26,7 @@ data class LiveChatState(
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
     val roomId: String = "",
-    val onlineCount: Int = 1,
+    val onlineCount: Int = 0,
     val messages: List<ChatMessage> = emptyList(),
     val error: String? = null,
     val currentUserId: String? = null,
@@ -53,9 +53,14 @@ class LiveChatManager @Inject constructor(
 
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS) // infinite for SSE streaming
+        .readTimeout(25, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
+        .build()
+
+    /** Same pool/settings, but no read timeout so the SSE body can stay open. */
+    private val streamClient: OkHttpClient = client.newBuilder()
+        .readTimeout(0, TimeUnit.MILLISECONDS)
         .build()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -73,8 +78,10 @@ class LiveChatManager @Inject constructor(
 
     private var sseCall: Call? = null
     private var streamJob: Job? = null
-    private var activeRoomId: String? = null
-    private var lastEventSeq: Long = 0L
+    @Volatile private var activeRoomId: String? = null
+    @Volatile private var lastEventSeq: Long = 0L
+    @Volatile private var lastLocalReactionId: String = ""
+    @Volatile private var lastLocalReactionAt: Long = 0L
 
     private fun getBaseUrl(): String {
         val raw = RemoteConfig.liveChat().trim()
@@ -211,7 +218,7 @@ class LiveChatManager @Inject constructor(
                 isConnecting = true,
                 isConnected = false,
                 roomId = roomId,
-                onlineCount = 1,
+                onlineCount = 0,
                 messages = emptyList(),
                 error = null
             )
@@ -274,7 +281,7 @@ class LiveChatManager @Inject constructor(
                 }
                 sessionCookie?.let { reqBuilder.header("Cookie", it) }
 
-                val call = client.newCall(reqBuilder.build())
+                val call = streamClient.newCall(reqBuilder.build())
                 sseCall = call
                 val response = call.execute()
 
@@ -316,6 +323,9 @@ class LiveChatManager @Inject constructor(
                         if (dataBuilder.isNotEmpty()) {
                             val data = dataBuilder.toString().trim()
                             val keepGoing = dispatchSseEvent(currentEvent, data, currentId)
+                            // Only advance the cursor once the event was applied, so a
+                            // drop between `id:` and `data:` cannot lose a message.
+                            currentId?.let { lastEventSeq = maxOf(lastEventSeq, it) }
                             dataBuilder.setLength(0)
                             if (!keepGoing) {
                                 fatal = true
@@ -328,9 +338,6 @@ class LiveChatManager @Inject constructor(
                         currentEvent = line.substring(6).trim()
                     } else if (line.startsWith("id:")) {
                         currentId = line.substring(3).trim().toLongOrNull()
-                        if (currentId != null) {
-                            lastEventSeq = maxOf(lastEventSeq, currentId)
-                        }
                     } else if (line.startsWith("data:")) {
                         if (dataBuilder.isNotEmpty()) dataBuilder.append("\n")
                         dataBuilder.append(line.substring(5).trim())
@@ -370,20 +377,26 @@ class LiveChatManager @Inject constructor(
                 "presence" -> {
                     val p = gson.fromJson(data, ChatPresence::class.java)
                     if (p != null) {
-                        _chatState.update { it.copy(onlineCount = p.online.coerceAtLeast(1)) }
+                        _chatState.update { it.copy(onlineCount = p.online.coerceAtLeast(0)) }
                     }
                 }
                 "reaction" -> {
                     val r = gson.fromJson(data, ChatReaction::class.java)
                     if (r != null) {
-                        _floatingReactions.tryEmit(r)
+                        // Our own reaction already floats optimistically on tap; skip
+                        // the SSE echo so it doesn't animate twice.
+                        val ownEcho = r.userId.isNotEmpty() &&
+                            r.userId == _chatState.value.currentUserId &&
+                            r.reaction == lastLocalReactionId &&
+                            kotlin.math.abs(r.ts - lastLocalReactionAt) < 5000L
+                        if (!ownEcho) _floatingReactions.tryEmit(r)
                     }
                 }
                 "hello" -> {
                     runCatching {
                         val obj = gson.fromJson(data, Map::class.java)
-                        val online = (obj["online"] as? Number)?.toInt() ?: 1
-                        _chatState.update { it.copy(onlineCount = online.coerceAtLeast(1)) }
+                        val online = (obj["online"] as? Number)?.toInt() ?: 0
+                        _chatState.update { it.copy(onlineCount = online.coerceAtLeast(0)) }
                     }
                 }
                 "denied" -> {
@@ -480,9 +493,12 @@ class LiveChatManager @Inject constructor(
                 }
             }
 
+            lastLocalReactionId = reactionId
+            lastLocalReactionAt = System.currentTimeMillis()
+
             _floatingReactions.tryEmit(
                 ChatReaction(
-                    rid = rid,
+                    reactionId = "",
                     reaction = reactionId,
                     emoji = emoji,
                     userId = _chatState.value.currentUserId.orEmpty(),
@@ -504,6 +520,6 @@ class LiveChatManager @Inject constructor(
         streamJob?.cancel()
         streamJob = null
         activeRoomId = null
-        _chatState.update { it.copy(isConnected = false, isConnecting = false, error = null) }
+        _chatState.update { it.copy(isConnected = false, isConnecting = false, error = null, onlineCount = 0) }
     }
 }

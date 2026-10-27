@@ -13,7 +13,8 @@ data class ChatMessage(
 )
 
 data class ChatReaction(
-    @SerializedName("rid") val rid: String = "",
+    /** Server-side reaction id ("r12"), NOT the room id. */
+    @SerializedName("rid") val reactionId: String = "",
     @SerializedName("reaction") val reaction: String = "",
     @SerializedName("emoji") val emoji: String = "",
     @SerializedName("userId") val userId: String = "",

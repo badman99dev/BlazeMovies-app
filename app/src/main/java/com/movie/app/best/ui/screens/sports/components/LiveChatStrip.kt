@@ -25,6 +25,7 @@ import com.movie.app.best.ui.theme.AppRed
 fun LiveChatStrip(
     userName: String?,
     onlineCount: Int,
+    isConnected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,11 +55,14 @@ fun LiveChatStrip(
             Box(
                 modifier = Modifier
                     .size(6.dp)
-                    .background(Color(0xFF22C55E), CircleShape)
+                    .background(
+                        if (isConnected) Color(0xFF22C55E) else Color(0xFF6B7280),
+                        CircleShape
+                    )
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "👤 $onlineCount",
+                text = if (isConnected && onlineCount > 0) "👤 $onlineCount" else "Tap to join",
                 color = Color.White.copy(alpha = 0.6f),
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Medium

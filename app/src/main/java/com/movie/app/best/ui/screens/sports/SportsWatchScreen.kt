@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Refresh
@@ -83,6 +84,7 @@ fun SportsWatchScreen(
 
     val liveChatState by viewModel.liveChatState.collectAsState()
     var isChatSheetOpen by remember { mutableStateOf(false) }
+    var isFullscreenChatOpen by remember { mutableStateOf(false) }
     var showLoginDialog by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
@@ -104,6 +106,7 @@ fun SportsWatchScreen(
 
     val exitFullscreen = {
         isFullscreen = false
+        isFullscreenChatOpen = false
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         activity?.let { ImmersiveMode.exit(it) }
     }
@@ -131,6 +134,11 @@ fun SportsWatchScreen(
 
     BackHandler(enabled = isChatSheetOpen) {
         isChatSheetOpen = false
+        viewModel.disconnectChat()
+    }
+
+    BackHandler(enabled = isFullscreenChatOpen) {
+        isFullscreenChatOpen = false
         viewModel.disconnectChat()
     }
 
@@ -181,7 +189,7 @@ fun SportsWatchScreen(
         }
     }
 
-    BackHandler(enabled = !isChatSheetOpen) {
+    BackHandler(enabled = !isChatSheetOpen && !isFullscreenChatOpen) {
         if (isFullscreen) {
             exitFullscreen()
         } else {
@@ -481,6 +489,59 @@ fun SportsWatchScreen(
                         onBackClick = { exitFullscreen() }
                     )
                 }
+
+                if (isLive && event != null && !isFullscreenChatOpen) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 48.dp, end = 14.dp)
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                            .clickable {
+                                if (!viewModel.isUserLoggedIn()) {
+                                    showLoginDialog = true
+                                } else {
+                                    isFullscreenChatOpen = true
+                                    viewModel.connectChat(event.effectiveChatRid)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChatBubbleOutline,
+                            contentDescription = "Live chat",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isFullscreenChatOpen,
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = tween(320, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(250)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(280, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(200)),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    LiveChatSheet(
+                        state = liveChatState,
+                        floatingReactions = viewModel.floatingReactions,
+                        currentUserName = viewModel.getUserFirstName(),
+                        onCloseClick = {
+                            isFullscreenChatOpen = false
+                            viewModel.disconnectChat()
+                        },
+                        onSendMessage = { viewModel.sendChatMessage(it) },
+                        onSendReaction = { id, emoji -> viewModel.sendChatReaction(id, emoji) }
+                    )
+                }
             }
         } else {
             Column(
@@ -630,6 +691,7 @@ fun SportsWatchScreen(
                                 LiveChatStrip(
                                     userName = viewModel.getUserFirstName(),
                                     onlineCount = liveChatState.onlineCount,
+                                    isConnected = liveChatState.isConnected,
                                     onClick = {
                                         if (!viewModel.isUserLoggedIn()) {
                                             showLoginDialog = true
