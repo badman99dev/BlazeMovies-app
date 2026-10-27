@@ -93,6 +93,7 @@ class FirebaseRepository @Inject constructor(
                     uid = uid,
                     email = d["email"] as? String ?: "",
                     username = d["username"] as? String ?: "",
+                    handle = d["handle"] as? String ?: "",
                     firstName = d["firstName"] as? String,
                     lastName = d["lastName"] as? String,
                     role = d["role"] as? String ?: "user",

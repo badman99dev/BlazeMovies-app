@@ -2,8 +2,10 @@ package com.movie.app.best.data.chat
 
 import android.content.Context
 import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 import com.movie.app.best.data.config.RemoteConfig
+import com.movie.app.best.data.repository.AuthRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.tasks.await
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -36,7 +39,8 @@ data class LiveChatState(
 @Singleton
 class LiveChatManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val gson: Gson
+    private val gson: Gson,
+    private val authRepository: AuthRepository
 ) {
     companion object {
         private const val TAG = "LiveChatManager"
@@ -44,12 +48,23 @@ class LiveChatManager @Inject constructor(
         private const val KEY_SID = "chat_sid_cookie"
         private const val KEY_UID = "chat_uid"
         private const val KEY_NAME = "chat_name"
+        private const val KEY_OWNER = "chat_owner_uid"
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     @Volatile
     private var sessionCookie: String? = prefs.getString(KEY_SID, null)
+
+    /** The app account this chat session belongs to (Firebase uid). */
+    @Volatile
+    private var ownerUid: String? = null
+
+    private data class ChatIdentity(val token: String, val handle: String)
+
+    /** Verified Firebase token + server-assigned handle sent on EVERY request. */
+    @Volatile
+    private var identity: ChatIdentity? = null
 
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -76,6 +91,26 @@ class LiveChatManager @Inject constructor(
     private val _floatingReactions = MutableSharedFlow<ChatReaction>(extraBufferCapacity = 50)
     val floatingReactions: SharedFlow<ChatReaction> = _floatingReactions.asSharedFlow()
 
+    init {
+        ownerUid = prefs.getString(KEY_OWNER, null)
+        FirebaseAuth.getInstance().addAuthStateListener { fa ->
+            val uid = fa.currentUser?.uid
+            if (uid != ownerUid) {
+                // Account switched (or signed out): the stored chat session belongs
+                // to the previous account, so nothing from it may be reused — else
+                // messages keep going out under the old handle.
+                disconnect()
+                sessionCookie = null
+                identity = null
+                ownerUid = uid
+                prefs.edit().clear().putString(KEY_OWNER, uid ?: "").apply()
+                _chatState.update {
+                    it.copy(currentUserId = null, currentUserName = null, roomId = "")
+                }
+            }
+        }
+    }
+
     private var sseCall: Call? = null
     private var streamJob: Job? = null
     @Volatile private var activeRoomId: String? = null
@@ -88,15 +123,45 @@ class LiveChatManager @Inject constructor(
         return if (raw.endsWith("/")) raw else "$raw/"
     }
 
-    suspend fun ensureLogin(displayName: String): Boolean = withContext(Dispatchers.IO) {
+    /**
+     * Firebase ID token + the account's server-assigned handle. Every chat call
+     * carries both, so the server never has to trust a client-typed name.
+     */
+    private suspend fun resolveIdentity(force: Boolean = false): ChatIdentity? {
+        identity?.takeIf { !force }?.let { return it }
+        val user = FirebaseAuth.getInstance().currentUser ?: return null
+        val token = try { user.getIdToken(false).await()?.token } catch (_: Exception) { null }
+            ?: return null
+        val handle = authRepository.ensureHandle()?.takeIf { it.isNotBlank() } ?: return null
+        return ChatIdentity(token, handle).also { identity = it }
+    }
+
+    private fun Request.Builder.withIdentity(): Request.Builder {
+        identity?.let { id ->
+            header("Authorization", "Bearer ${id.token}")
+            header("X-Chat-Handle", id.handle)
+        }
+        return this
+    }
+
+    suspend fun ensureLogin(): Boolean = withContext(Dispatchers.IO) {
         try {
-            // Reuse an existing session when the cookie is still valid: the server
-            // mints a NEW user on every /api/login, which would reset uid-based
-            // identity (mutes, reports) on each connect.
+            // Firebase token + the account's immutable handle. Without both we do
+            // NOT connect — a wrong name would impersonate somebody in chat.
+            val id = resolveIdentity()
+            if (id == null) {
+                setError("Couldn't verify your chat identity. Check your connection and retry.")
+                return@withContext false
+            }
+            val handle = id.handle
+
+            // Reuse an existing session only when it belongs to THIS account and
+            // still carries the same handle (server mints a new user per login,
+            // so re-logging in would churn the uid on every connect).
             val existing = sessionCookie
             if (existing != null) {
                 val me = fetchMe(existing)
-                if (me != null) {
+                if (me != null && me.name.equals(handle, ignoreCase = true)) {
                     applyUser(me)
                     return@withContext true
                 }
@@ -104,7 +169,7 @@ class LiveChatManager @Inject constructor(
                 prefs.edit().remove(KEY_SID).apply()
             }
 
-            val cleanName = sanitizeName(displayName)
+            val cleanName = sanitizeName(handle)
             val body = gson.toJson(mapOf("name" to cleanName))
                 .toRequestBody("application/json".toMediaType())
 
@@ -112,6 +177,7 @@ class LiveChatManager @Inject constructor(
                 .url("${getBaseUrl()}api/login")
                 .post(body)
                 .header("Content-Type", "application/json")
+                .withIdentity()
                 .build()
 
             client.newCall(request).execute().use { response ->
@@ -120,7 +186,11 @@ class LiveChatManager @Inject constructor(
                     val cookieVal = setCookie.split(";").firstOrNull { it.trim().startsWith("sid=") }?.trim()
                     if (cookieVal != null) {
                         sessionCookie = cookieVal
-                        prefs.edit().putString(KEY_SID, cookieVal).apply()
+                        ownerUid = FirebaseAuth.getInstance().currentUser?.uid
+                        prefs.edit()
+                            .putString(KEY_SID, cookieVal)
+                            .putString(KEY_OWNER, ownerUid ?: "")
+                            .apply()
                     }
                 }
                 if (!response.isSuccessful) {
@@ -149,6 +219,7 @@ class LiveChatManager @Inject constructor(
         val request = Request.Builder()
             .url("${getBaseUrl()}api/me")
             .header("Cookie", cookie)
+            .withIdentity()
             .build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) null
@@ -204,7 +275,7 @@ class LiveChatManager @Inject constructor(
         }
     }
 
-    fun connectToRoom(roomId: String, userName: String) {
+    fun connectToRoom(roomId: String) {
         if (activeRoomId == roomId && _chatState.value.isConnected) {
             return
         }
@@ -225,7 +296,7 @@ class LiveChatManager @Inject constructor(
         }
 
         streamJob = scope.launch {
-            if (!ensureLogin(userName)) {
+            if (!ensureLogin()) {
                 _chatState.update { it.copy(isConnecting = false, isConnected = false) }
                 return@launch
             }
@@ -240,6 +311,7 @@ class LiveChatManager @Inject constructor(
             val reqBuilder = Request.Builder()
                 .url(url)
                 .get()
+                .withIdentity()
             sessionCookie?.let { reqBuilder.header("Cookie", it) }
 
             val response = client.newCall(reqBuilder.build()).execute()
@@ -275,6 +347,7 @@ class LiveChatManager @Inject constructor(
                     .url(urlBuilder.toString())
                     .header("Accept", "text/event-stream")
                     .header("Cache-Control", "no-cache")
+                    .withIdentity()
 
                 if (lastEventSeq > 0) {
                     reqBuilder.header("Last-Event-ID", lastEventSeq.toString())
@@ -439,6 +512,7 @@ class LiveChatManager @Inject constructor(
                 .url(url)
                 .post(body)
                 .header("Content-Type", "application/json")
+                .withIdentity()
 
             sessionCookie?.let { reqBuilder.header("Cookie", it) }
 
@@ -483,6 +557,7 @@ class LiveChatManager @Inject constructor(
                 .url(url)
                 .post(body)
                 .header("Content-Type", "application/json")
+                .withIdentity()
 
             sessionCookie?.let { reqBuilder.header("Cookie", it) }
 

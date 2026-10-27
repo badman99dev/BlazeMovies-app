@@ -66,3 +66,11 @@ data class FirebaseError(
     val message: String,
     val code: Int?
 )
+
+data class HandleResponse(
+    val status: String? = null,
+    val data: HandleData? = null,
+    val message: String? = null
+)
+
+data class HandleData(val handle: String? = null)

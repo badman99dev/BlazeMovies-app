@@ -6,6 +6,8 @@ data class FirebaseUserProfile(
     val uid: String = "",
     val email: String = "",
     val username: String = "",
+    /** Read-only: assigned + reserved by the backend, never written by the app. */
+    val handle: String = "",
     val firstName: String? = null,
     val lastName: String? = null,
     val role: String = "user",

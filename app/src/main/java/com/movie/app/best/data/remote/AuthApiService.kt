@@ -1,6 +1,7 @@
 package com.movie.app.best.data.remote
 
 import com.movie.app.best.data.model.AuthResponse
+import com.movie.app.best.data.model.HandleResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -38,6 +39,13 @@ interface AuthApiService {
     suspend fun getProfile(
         @Header("X-Auth-Token") authHeader: String
     ): AuthResponse
+
+    // Public chat handle — server-assigned, globally unique, immutable.
+    // The client only ever reads it; it can never pick or change it.
+    @GET("handle")
+    suspend fun getHandle(
+        @Header("X-Auth-Token") authHeader: String?
+    ): HandleResponse
 
     // Device registration handshake — binds FCM token + FID to current user
     // (or marks device "anon" when logged out). Never cached server-side.

@@ -76,6 +76,10 @@ class SportsWatchViewModel @Inject constructor(
     val liveChatState: StateFlow<LiveChatState> = chatManager.chatState
     val floatingReactions = chatManager.floatingReactions
 
+    /** Public, unique, immutable handle the chat posts under. */
+    private val _chatHandle = MutableStateFlow(authRepository.getHandle())
+    val chatHandle: StateFlow<String?> = _chatHandle.asStateFlow()
+
     fun isUserLoggedIn(): Boolean = authRepository.isLoggedIn()
 
     fun getUserFirstName(): String? {
@@ -85,8 +89,8 @@ class SportsWatchViewModel @Inject constructor(
     }
 
     fun connectChat(rid: String) {
-        val name = getUserFirstName() ?: "Fan"
-        chatManager.connectToRoom(rid, name)
+        // The handle is resolved (and the header identity attached) by the manager.
+        chatManager.connectToRoom(rid)
     }
 
     suspend fun sendChatMessage(text: String): Boolean = chatManager.sendMessage(text)
@@ -112,6 +116,9 @@ class SportsWatchViewModel @Inject constructor(
     init {
         loadMatchAndStreams()
         startTicker()
+        viewModelScope.launch {
+            authRepository.ensureHandle()?.let { _chatHandle.value = it }
+        }
     }
 
     private fun checkIsCricket(event: SportEvent?): Boolean {

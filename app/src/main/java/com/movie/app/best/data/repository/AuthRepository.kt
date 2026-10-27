@@ -10,6 +10,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.gson.Gson
 import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.model.AppUser
+import com.movie.app.best.data.remote.AuthApiService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthRepository @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext context: Context,
+    private val apiService: AuthApiService
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_auth", Context.MODE_PRIVATE)
     private val gson = Gson()
@@ -62,6 +64,28 @@ class AuthRepository @Inject constructor(
     fun isLoggedIn(): Boolean = getToken() != null
 
     fun isVerified(): Boolean = getUser()?.isVerified == 1
+
+    /** Cached chat handle (null until the server has issued it). */
+    fun getHandle(): String? = prefs.getString("handle", null)?.takeIf { it.isNotBlank() }
+
+    /**
+     * The account's public handle — assigned + permanently reserved by the
+     * backend on first request, then cached. The client can never choose it.
+     */
+    suspend fun ensureHandle(): String? = withContext(Dispatchers.IO) {
+        getHandle()?.let { return@withContext it }
+        val user = firebaseAuth.currentUser ?: return@withContext null
+        try {
+            val jwt = user.getIdToken(false).await().token ?: return@withContext null
+            val handle = apiService.getHandle("Bearer $jwt")
+                .data?.handle?.trim()?.takeIf { it.isNotEmpty() }
+                ?: return@withContext null
+            prefs.edit().putString("handle", handle).apply()
+            handle
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     private fun saveAuth(token: String, user: AppUser) {
         prefs.edit()

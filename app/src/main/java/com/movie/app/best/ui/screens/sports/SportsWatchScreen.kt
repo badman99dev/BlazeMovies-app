@@ -83,6 +83,7 @@ fun SportsWatchScreen(
     val activity = context as? Activity
 
     val liveChatState by viewModel.liveChatState.collectAsState()
+    val chatHandle by viewModel.chatHandle.collectAsState()
     var isChatSheetOpen by remember { mutableStateOf(false) }
     var isFullscreenChatOpen by remember { mutableStateOf(false) }
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -533,7 +534,7 @@ fun SportsWatchScreen(
                     LiveChatSheet(
                         state = liveChatState,
                         floatingReactions = viewModel.floatingReactions,
-                        currentUserName = viewModel.getUserFirstName(),
+                        currentUserName = liveChatState.currentUserName ?: chatHandle,
                         onCloseClick = {
                             isFullscreenChatOpen = false
                             viewModel.disconnectChat()
@@ -689,7 +690,7 @@ fun SportsWatchScreen(
                         ) {
                             if (event != null) {
                                 LiveChatStrip(
-                                    userName = viewModel.getUserFirstName(),
+                                    userName = chatHandle ?: viewModel.getUserFirstName(),
                                     onlineCount = liveChatState.onlineCount,
                                     isConnected = liveChatState.isConnected,
                                     onClick = {
@@ -935,7 +936,7 @@ fun SportsWatchScreen(
                         LiveChatSheet(
                             state = liveChatState,
                             floatingReactions = viewModel.floatingReactions,
-                            currentUserName = viewModel.getUserFirstName(),
+                            currentUserName = liveChatState.currentUserName ?: chatHandle,
                             onCloseClick = {
                                 isChatSheetOpen = false
                                 viewModel.disconnectChat()
