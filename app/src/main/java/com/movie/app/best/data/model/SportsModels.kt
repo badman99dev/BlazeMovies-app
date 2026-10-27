@@ -59,7 +59,8 @@ data class SportEvent(
             } else {
                 "sports_${cleanSlug}"
             }
-        } {
+        }
+
     enum class MatchStatus {
         LIVE,
         UPCOMING,
