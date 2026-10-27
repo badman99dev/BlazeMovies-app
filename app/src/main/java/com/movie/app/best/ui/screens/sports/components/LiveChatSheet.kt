@@ -37,6 +37,7 @@ import com.movie.app.best.data.chat.ChatReaction
 import com.movie.app.best.data.chat.LiveChatState
 import com.movie.app.best.ui.theme.AppRed
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.random.Random
@@ -69,7 +70,7 @@ fun LiveChatSheet(
     floatingReactions: SharedFlow<ChatReaction>,
     currentUserName: String?,
     onCloseClick: () -> Unit,
-    onSendMessage: (String) -> Unit,
+    onSendMessage: suspend (String) -> Boolean,
     onSendReaction: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -78,6 +79,24 @@ fun LiveChatSheet(
     val focusManager = LocalFocusManager.current
 
     var particles by remember { mutableStateOf<List<FloatingParticle>>(emptyList()) }
+    val scope = rememberCoroutineScope()
+    var isSending by remember { mutableStateOf(false) }
+
+    // Only clear the composer once the server actually accepted the message.
+    val sendCurrent: () -> Unit = {
+        val text = inputText.trim()
+        if (text.isNotEmpty() && !isSending) {
+            scope.launch {
+                isSending = true
+                val ok = onSendMessage(text)
+                isSending = false
+                if (ok) {
+                    inputText = ""
+                    focusManager.clearFocus()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(floatingReactions) {
         floatingReactions.collect { reaction ->
@@ -102,7 +121,7 @@ fun LiveChatSheet(
             "fire" to "🔥",
             "lol" to "😂",
             "clap" to "👏",
-            "hundred" to "💯"
+            "party" to "🎉"
         )
     }
 
@@ -186,6 +205,22 @@ fun LiveChatSheet(
                     thickness = 0.8.dp,
                     color = Color.White.copy(alpha = 0.07f)
                 )
+
+                if (state.error != null && state.messages.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF7F1D1D).copy(alpha = 0.35f))
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = state.error ?: "",
+                            color = Color(0xFFFCA5A5),
+                            fontSize = 11.5.sp
+                        )
+                    }
+                }
             }
 
             // Message Feed & Floating reactions
@@ -199,7 +234,15 @@ fun LiveChatSheet(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (state.isConnecting) {
+                        if (state.error != null) {
+                            Text(
+                                text = state.error ?: "",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 13.sp,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            )
+                        } else if (state.isConnecting) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(
                                     color = AppRed,
@@ -233,7 +276,8 @@ fun LiveChatSheet(
                         items(state.messages, key = { it.seq }) { message ->
                             ChatMessageRow(
                                 message = message,
-                                isMe = message.name.equals(currentUserName, ignoreCase = true)
+                                isMe = state.currentUserId?.let { it == message.userId }
+                                    ?: message.name.equals(currentUserName, ignoreCase = true)
                             )
                         }
                     }
@@ -347,14 +391,7 @@ fun LiveChatSheet(
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                             keyboardActions = KeyboardActions(
-                                onSend = {
-                                    val t = inputText.trim()
-                                    if (t.isNotEmpty()) {
-                                        onSendMessage(t)
-                                        inputText = ""
-                                        focusManager.clearFocus()
-                                    }
-                                }
+                                onSend = { sendCurrent() }
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -362,16 +399,9 @@ fun LiveChatSheet(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    val canSend = inputText.trim().isNotEmpty()
+                    val canSend = inputText.trim().isNotEmpty() && !isSending && !state.isConnecting
                     IconButton(
-                        onClick = {
-                            val t = inputText.trim()
-                            if (t.isNotEmpty()) {
-                                onSendMessage(t)
-                                inputText = ""
-                                focusManager.clearFocus()
-                            }
-                        },
+                        onClick = sendCurrent,
                         enabled = canSend,
                         modifier = Modifier
                             .size(38.dp)

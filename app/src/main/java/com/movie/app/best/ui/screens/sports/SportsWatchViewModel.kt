@@ -89,10 +89,10 @@ class SportsWatchViewModel @Inject constructor(
         chatManager.connectToRoom(rid, name)
     }
 
-    fun sendChatMessage(text: String) {
-        viewModelScope.launch {
-            chatManager.sendMessage(text)
-        }
+    suspend fun sendChatMessage(text: String): Boolean = chatManager.sendMessage(text)
+
+    fun disconnectChat() {
+        chatManager.disconnect()
     }
 
     fun sendChatReaction(id: String, emoji: String) {

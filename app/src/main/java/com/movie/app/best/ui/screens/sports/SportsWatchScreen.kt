@@ -131,6 +131,7 @@ fun SportsWatchScreen(
 
     BackHandler(enabled = isChatSheetOpen) {
         isChatSheetOpen = false
+        viewModel.disconnectChat()
     }
 
     DisposableEffect(Unit) {
@@ -180,7 +181,7 @@ fun SportsWatchScreen(
         }
     }
 
-    BackHandler {
+    BackHandler(enabled = !isChatSheetOpen) {
         if (isFullscreen) {
             exitFullscreen()
         } else {
@@ -873,7 +874,10 @@ fun SportsWatchScreen(
                             state = liveChatState,
                             floatingReactions = viewModel.floatingReactions,
                             currentUserName = viewModel.getUserFirstName(),
-                            onCloseClick = { isChatSheetOpen = false },
+                            onCloseClick = {
+                                isChatSheetOpen = false
+                                viewModel.disconnectChat()
+                            },
                             onSendMessage = { viewModel.sendChatMessage(it) },
                             onSendReaction = { id, emoji -> viewModel.sendChatReaction(id, emoji) }
                         )

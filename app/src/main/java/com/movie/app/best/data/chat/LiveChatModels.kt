@@ -59,3 +59,12 @@ data class ChatReactResponse(
     @SerializedName("dropped") val dropped: Boolean = false,
     @SerializedName("error") val error: String? = null
 )
+
+data class ChatMeResponse(
+    @SerializedName("user") val user: ChatUser? = null
+)
+
+data class ChatErrorResponse(
+    @SerializedName("error") val error: String? = null,
+    @SerializedName("message") val message: String? = null
+)

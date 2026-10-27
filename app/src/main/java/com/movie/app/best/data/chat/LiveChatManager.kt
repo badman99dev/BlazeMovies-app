@@ -82,51 +82,118 @@ class LiveChatManager @Inject constructor(
     }
 
     suspend fun ensureLogin(displayName: String): Boolean = withContext(Dispatchers.IO) {
-        val cleanName = displayName.trim().ifBlank { "Fan" }.take(24)
         try {
-            val url = "${getBaseUrl()}api/login"
+            // Reuse an existing session when the cookie is still valid: the server
+            // mints a NEW user on every /api/login, which would reset uid-based
+            // identity (mutes, reports) on each connect.
+            val existing = sessionCookie
+            if (existing != null) {
+                val me = fetchMe(existing)
+                if (me != null) {
+                    applyUser(me)
+                    return@withContext true
+                }
+                sessionCookie = null
+                prefs.edit().remove(KEY_SID).apply()
+            }
+
+            val cleanName = sanitizeName(displayName)
             val body = gson.toJson(mapOf("name" to cleanName))
                 .toRequestBody("application/json".toMediaType())
 
-            val reqBuilder = Request.Builder()
-                .url(url)
+            val request = Request.Builder()
+                .url("${getBaseUrl()}api/login")
                 .post(body)
                 .header("Content-Type", "application/json")
+                .build()
 
-            sessionCookie?.let { reqBuilder.header("Cookie", it) }
-
-            val response = client.newCall(reqBuilder.build()).execute()
-            val setCookie = response.header("Set-Cookie")
-            if (!setCookie.isNullOrBlank()) {
-                val cookieVal = setCookie.split(";").firstOrNull { it.trim().startsWith("sid=") }?.trim()
-                if (cookieVal != null) {
-                    sessionCookie = cookieVal
-                    prefs.edit().putString(KEY_SID, cookieVal).apply()
-                }
-            }
-
-            val respBody = response.body?.string().orEmpty()
-            if (response.isSuccessful) {
-                val loginResp = gson.fromJson(respBody, ChatLoginResponse::class.java)
-                val user = loginResp.user
-                if (user != null) {
-                    prefs.edit()
-                        .putString(KEY_UID, user.id)
-                        .putString(KEY_NAME, user.name)
-                        .apply()
-                    _chatState.update {
-                        it.copy(
-                            currentUserId = user.id,
-                            currentUserName = user.name
-                        )
+            client.newCall(request).execute().use { response ->
+                val setCookie = response.header("Set-Cookie")
+                if (!setCookie.isNullOrBlank()) {
+                    val cookieVal = setCookie.split(";").firstOrNull { it.trim().startsWith("sid=") }?.trim()
+                    if (cookieVal != null) {
+                        sessionCookie = cookieVal
+                        prefs.edit().putString(KEY_SID, cookieVal).apply()
                     }
-                    return@withContext true
                 }
+                if (!response.isSuccessful) {
+                    setError(friendlyError(readError(response)))
+                    return@withContext false
+                }
+                val user = gson.fromJson(
+                    response.body?.string().orEmpty(),
+                    ChatLoginResponse::class.java
+                )?.user
+                if (user == null) {
+                    setError("Couldn't join live chat. Please try again.")
+                    return@withContext false
+                }
+                applyUser(user)
+                return@withContext true
             }
-            return@withContext false
         } catch (e: Exception) {
             Log.e(TAG, "Login failed: ${e.message}")
+            setError("Can't reach the chat server.")
             return@withContext false
+        }
+    }
+
+    private fun fetchMe(cookie: String): ChatUser? = try {
+        val request = Request.Builder()
+            .url("${getBaseUrl()}api/me")
+            .header("Cookie", cookie)
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) null
+            else gson.fromJson(response.body?.string().orEmpty(), ChatMeResponse::class.java)?.user
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun applyUser(user: ChatUser) {
+        prefs.edit()
+            .putString(KEY_UID, user.id)
+            .putString(KEY_NAME, user.name)
+            .apply()
+        _chatState.update { it.copy(currentUserId = user.id, currentUserName = user.name) }
+    }
+
+    /** Server accepts 2-24 chars of letters/numbers/space/underscore/dot/dash. */
+    private fun sanitizeName(raw: String): String {
+        val cleaned = raw.trim()
+            .replace(Regex("[^\\p{L}\\p{N} ._-]"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(24)
+            .trim()
+        return if (cleaned.length >= 2) cleaned else "Fan"
+    }
+
+    private fun setError(message: String?) {
+        _chatState.update { it.copy(error = message) }
+    }
+
+    private fun readError(response: Response): String? = try {
+        val parsed = gson.fromJson(response.body?.string().orEmpty(), ChatErrorResponse::class.java)
+        parsed?.message?.takeIf { it.isNotBlank() } ?: parsed?.error
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun friendlyError(code: String?): String {
+        val c = code?.trim()?.lowercase()
+        return when {
+            c.isNullOrEmpty() -> "Chat connection failed."
+            c == "slow down" -> "Slow down a little and try again."
+            c == "login required" -> "Chat login failed. Reopen the chat to retry."
+            c == "you are muted" -> "You are muted in this room."
+            c == "unknown reaction" -> "That reaction isn't available."
+            c == "no_key" -> "Live chat isn't available for this match."
+            c == "room_not_exist" -> "This chat room has closed."
+            c == "not_yet" -> "This chat room hasn't opened yet."
+            c == "bad_signature" || c == "invalid_key" -> "Live chat is misconfigured."
+            else -> (code ?: "").trim()
         }
     }
 
@@ -144,12 +211,17 @@ class LiveChatManager @Inject constructor(
                 isConnecting = true,
                 isConnected = false,
                 roomId = roomId,
+                onlineCount = 1,
+                messages = emptyList(),
                 error = null
             )
         }
 
         streamJob = scope.launch {
-            ensureLogin(userName)
+            if (!ensureLogin(userName)) {
+                _chatState.update { it.copy(isConnecting = false, isConnected = false) }
+                return@launch
+            }
             loadHistory(roomId)
             startSseLoop(roomId)
         }
@@ -172,15 +244,19 @@ class LiveChatManager @Inject constructor(
                 _chatState.update { current ->
                     current.copy(messages = list)
                 }
+            } else if (activeRoomId == roomId) {
+                setError(friendlyError(readError(response)))
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to load history: ${e.message}")
+            if (activeRoomId == roomId) setError("Couldn't load chat history.")
         }
     }
 
     private suspend fun startSseLoop(roomId: String) {
         var backoffMs = 1000L
-        while (scope.isActive && activeRoomId == roomId) {
+        var fatal = false
+        while (scope.isActive && activeRoomId == roomId && !fatal) {
             try {
                 _chatState.update { it.copy(isConnecting = true) }
                 val urlBuilder = StringBuilder("${getBaseUrl()}events/chat?key=$roomId")
@@ -203,7 +279,17 @@ class LiveChatManager @Inject constructor(
                 val response = call.execute()
 
                 if (!response.isSuccessful) {
+                    val code = response.code
+                    val err = friendlyError(readError(response))
                     response.close()
+                    _chatState.update { it.copy(isConnected = false) }
+                    // A key that is rejected/expired will never start working by
+                    // retrying — stop and show the reason instead of looping.
+                    if (code in 400..499) {
+                        setError(err)
+                        fatal = true
+                        break
+                    }
                     delay(backoffMs)
                     backoffMs = (backoffMs * 1.5).toLong().coerceAtMost(10000L)
                     continue
@@ -212,7 +298,12 @@ class LiveChatManager @Inject constructor(
                 backoffMs = 1000L
                 _chatState.update { it.copy(isConnected = true, isConnecting = false, error = null) }
 
-                val source = response.body?.byteStream() ?: break
+                val source = response.body?.byteStream()
+                if (source == null) {
+                    response.close()
+                    _chatState.update { it.copy(isConnected = false) }
+                    break
+                }
                 val reader = BufferedReader(InputStreamReader(source, Charsets.UTF_8))
 
                 var currentEvent = ""
@@ -224,8 +315,12 @@ class LiveChatManager @Inject constructor(
                     if (line.isEmpty()) {
                         if (dataBuilder.isNotEmpty()) {
                             val data = dataBuilder.toString().trim()
-                            dispatchSseEvent(currentEvent, data, currentId)
+                            val keepGoing = dispatchSseEvent(currentEvent, data, currentId)
                             dataBuilder.setLength(0)
+                            if (!keepGoing) {
+                                fatal = true
+                                break
+                            }
                         }
                         currentEvent = ""
                         currentId = null
@@ -242,6 +337,7 @@ class LiveChatManager @Inject constructor(
                     }
                 }
                 response.close()
+                _chatState.update { it.copy(isConnected = false) }
             } catch (e: Exception) {
                 if (scope.isActive && activeRoomId == roomId) {
                     _chatState.update { it.copy(isConnected = false, isConnecting = true) }
@@ -250,9 +346,13 @@ class LiveChatManager @Inject constructor(
                 }
             }
         }
+        if (fatal) {
+            _chatState.update { it.copy(isConnected = false, isConnecting = false) }
+        }
     }
 
-    private fun dispatchSseEvent(eventName: String, data: String, eventId: Long?) {
+    /** Returns false when the stream should stop (room denied / closed). */
+    private fun dispatchSseEvent(eventName: String, data: String, eventId: Long?): Boolean {
         try {
             when (eventName) {
                 "chat" -> {
@@ -286,13 +386,26 @@ class LiveChatManager @Inject constructor(
                         _chatState.update { it.copy(onlineCount = online.coerceAtLeast(1)) }
                     }
                 }
+                "denied" -> {
+                    val obj = runCatching { gson.fromJson(data, Map::class.java) }.getOrNull()
+                    val code = (obj?.get("error") as? String) ?: (obj?.get("message") as? String)
+                    setError(friendlyError(code))
+                    _chatState.update { it.copy(isConnected = false, isConnecting = false) }
+                    return false
+                }
                 "room" -> {
-                    Log.d(TAG, "Room closed notification received: $data")
+                    val obj = runCatching { gson.fromJson(data, Map::class.java) }.getOrNull()
+                    if (obj?.get("closed") == true) {
+                        setError("This chat room has closed.")
+                        _chatState.update { it.copy(isConnected = false, isConnecting = false) }
+                        return false
+                    }
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing event $eventName: ${e.message}")
         }
+        return true
     }
 
     suspend fun sendMessage(text: String, kind: String = "text"): Boolean = withContext(Dispatchers.IO) {
@@ -327,8 +440,14 @@ class LiveChatManager @Inject constructor(
                         else state.copy(messages = (state.messages + msg).takeLast(200))
                     }
                 }
+                setError(null)
                 return@withContext true
             }
+            if (response.code == 401) {
+                sessionCookie = null
+                prefs.edit().remove(KEY_SID).apply()
+            }
+            setError(friendlyError(readError(response)))
             return@withContext false
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send message: ${e.message}")
@@ -338,17 +457,6 @@ class LiveChatManager @Inject constructor(
 
     suspend fun sendReaction(reactionId: String, emoji: String): Boolean = withContext(Dispatchers.IO) {
         val rid = activeRoomId ?: return@withContext false
-
-        _floatingReactions.tryEmit(
-            ChatReaction(
-                rid = rid,
-                reaction = reactionId,
-                emoji = emoji,
-                userId = _chatState.value.currentUserId.orEmpty(),
-                name = _chatState.value.currentUserName.orEmpty(),
-                ts = System.currentTimeMillis()
-            )
-        )
 
         try {
             val url = "${getBaseUrl()}api/chat/react"
@@ -365,7 +473,24 @@ class LiveChatManager @Inject constructor(
 
             sessionCookie?.let { reqBuilder.header("Cookie", it) }
 
-            client.newCall(reqBuilder.build()).execute().close()
+            client.newCall(reqBuilder.build()).execute().use { response ->
+                if (!response.isSuccessful) {
+                    setError(friendlyError(readError(response)))
+                    return@withContext false
+                }
+            }
+
+            _floatingReactions.tryEmit(
+                ChatReaction(
+                    rid = rid,
+                    reaction = reactionId,
+                    emoji = emoji,
+                    userId = _chatState.value.currentUserId.orEmpty(),
+                    name = _chatState.value.currentUserName.orEmpty(),
+                    ts = System.currentTimeMillis()
+                )
+            )
+            setError(null)
             return@withContext true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send reaction: ${e.message}")
@@ -379,6 +504,6 @@ class LiveChatManager @Inject constructor(
         streamJob?.cancel()
         streamJob = null
         activeRoomId = null
-        _chatState.update { it.copy(isConnected = false, isConnecting = false) }
+        _chatState.update { it.copy(isConnected = false, isConnecting = false, error = null) }
     }
 }
