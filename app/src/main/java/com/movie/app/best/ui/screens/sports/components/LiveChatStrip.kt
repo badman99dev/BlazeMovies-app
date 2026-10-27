@@ -30,21 +30,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.ui.theme.AppRed
-
-private val STRIP_AVATARS = listOf(
-    Color(0xFFEF4444) to Color(0xFF7F1D1D),
-    Color(0xFFF97316) to Color(0xFF7C2D12),
-    Color(0xFF22C55E) to Color(0xFF14532D),
-    Color(0xFF06B6D4) to Color(0xFF164E63),
-    Color(0xFF3B82F6) to Color(0xFF1E3A8A),
-    Color(0xFF8B5CF6) to Color(0xFF4C1D95),
-    Color(0xFFEC4899) to Color(0xFF831843)
-)
 
 private fun stripAvatarColors(name: String): Pair<Color, Color> {
     val hash = kotlin.math.abs(name.hashCode())
-    return STRIP_AVATARS[hash % STRIP_AVATARS.size]
+    val start = when (hash % 3) {
+        0 -> Color(0xFF3F3F46)
+        1 -> Color(0xFF4A4A52)
+        else -> Color(0xFF35353B)
+    }
+    return start to Color(0xFF1A1A1D)
 }
 
 @Composable
@@ -75,18 +69,8 @@ fun LiveChatStrip(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Brush.linearGradient(listOf(Color(0xFF171B25), Color(0xFF10141C))))
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.10f),
-                        AppRed.copy(alpha = 0.18f),
-                        Color.White.copy(alpha = 0.05f)
-                    )
-                ),
-                shape = RoundedCornerShape(14.dp)
-            )
+            .background(Color(0xFF0B0B0D))
+            .border(1.dp, Color(0xFF1F1F23), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 11.dp)
     ) {
@@ -155,8 +139,8 @@ fun LiveChatStrip(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF1B2029))
-                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(22.dp))
+                .background(Color(0xFF121214))
+                .border(1.dp, Color(0xFF1F1F23), RoundedCornerShape(22.dp))
                 .padding(start = 8.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -178,7 +162,7 @@ fun LiveChatStrip(
 
             Text(
                 text = displayName?.let { "Chat publicly as @$it" } ?: "Chat publicly with other fans",
-                color = Color.White.copy(alpha = 0.5f),
+                color = Color(0xFF9A9AA0),
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -188,13 +172,13 @@ fun LiveChatStrip(
             Box(
                 modifier = Modifier
                     .size(26.dp)
-                    .background(AppRed.copy(alpha = 0.16f), CircleShape),
+                    .background(Color(0xFF1C1C1F), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Send,
                     contentDescription = null,
-                    tint = AppRed,
+                    tint = Color.White.copy(alpha = 0.65f),
                     modifier = Modifier.size(13.dp)
                 )
             }

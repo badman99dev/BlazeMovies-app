@@ -115,8 +115,8 @@ class LiveChatManager @Inject constructor(
     private var streamJob: Job? = null
     @Volatile private var activeRoomId: String? = null
     @Volatile private var lastEventSeq: Long = 0L
-    @Volatile private var lastLocalReactionId: String = ""
-    @Volatile private var lastLocalReactionAt: Long = 0L
+    @Volatile private var localReactionId: String = ""
+    @Volatile private var localReactionWindowEnd: Long = 0L
 
     private fun getBaseUrl(): String {
         val raw = RemoteConfig.liveChat().trim()
@@ -456,13 +456,19 @@ class LiveChatManager @Inject constructor(
                 "reaction" -> {
                     val r = gson.fromJson(data, ChatReaction::class.java)
                     if (r != null) {
-                        // Our own reaction already floats optimistically on tap; skip
-                        // the SSE echo so it doesn't animate twice.
-                        val ownEcho = r.userId.isNotEmpty() &&
-                            r.userId == _chatState.value.currentUserId &&
-                            r.reaction == lastLocalReactionId &&
-                            kotlin.math.abs(r.ts - lastLocalReactionAt) < 5000L
-                        if (!ownEcho) _floatingReactions.tryEmit(r)
+                        val state = _chatState.value
+                        val mine = (r.userId.isNotEmpty() && r.userId == state.currentUserId) ||
+                            (r.userId.isEmpty() && r.name.isNotEmpty() &&
+                                r.name.equals(state.currentUserName, ignoreCase = true))
+                        val ownEcho = mine &&
+                            r.reaction == localReactionId &&
+                            System.currentTimeMillis() < localReactionWindowEnd
+                        if (ownEcho) {
+                            localReactionId = ""
+                            localReactionWindowEnd = 0L
+                        } else {
+                            _floatingReactions.tryEmit(r)
+                        }
                     }
                 }
                 "hello" -> {
@@ -545,6 +551,9 @@ class LiveChatManager @Inject constructor(
     suspend fun sendReaction(reactionId: String, emoji: String): Boolean = withContext(Dispatchers.IO) {
         val rid = activeRoomId ?: return@withContext false
 
+        localReactionId = reactionId
+        localReactionWindowEnd = System.currentTimeMillis() + 8000L
+
         try {
             val url = "${getBaseUrl()}api/chat/react"
             val payload = mapOf(
@@ -567,9 +576,6 @@ class LiveChatManager @Inject constructor(
                     return@withContext false
                 }
             }
-
-            lastLocalReactionId = reactionId
-            lastLocalReactionAt = System.currentTimeMillis()
 
             _floatingReactions.tryEmit(
                 ChatReaction(

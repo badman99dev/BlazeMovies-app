@@ -3,7 +3,6 @@ package com.movie.app.best.ui.screens.sports.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -12,8 +11,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AddReaction
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -43,7 +45,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -52,6 +53,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -60,7 +62,6 @@ import androidx.compose.ui.unit.sp
 import com.movie.app.best.data.chat.ChatMessage
 import com.movie.app.best.data.chat.ChatReaction
 import com.movie.app.best.data.chat.LiveChatState
-import com.movie.app.best.ui.theme.AppRed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -72,20 +73,23 @@ import kotlin.random.Random
 private const val MAX_INPUT = 500
 private const val GROUP_WINDOW_MS = 5 * 60 * 1000L
 
-private val AVATAR_PAIRS = listOf(
-    Color(0xFFEF4444) to Color(0xFF7F1D1D),
-    Color(0xFFF97316) to Color(0xFF7C2D12),
-    Color(0xFFF59E0B) to Color(0xFF78350F),
-    Color(0xFF22C55E) to Color(0xFF14532D),
-    Color(0xFF06B6D4) to Color(0xFF164E63),
-    Color(0xFF3B82F6) to Color(0xFF1E3A8A),
-    Color(0xFF8B5CF6) to Color(0xFF4C1D95),
-    Color(0xFFEC4899) to Color(0xFF831843)
-)
+private val BgBlack = Color(0xFF000000)
+private val Surface1 = Color(0xFF0D0D0F)
+private val Surface2 = Color(0xFF141416)
+private val Surface3 = Color(0xFF1C1C1F)
+private val Hairline = Color(0xFF1F1F23)
+private val HandleGrey = Color(0xFF9A9AA0)
+private val TimeGrey = Color(0xFF5C5C63)
+private val TextWhite = Color(0xFFF5F5F7)
 
-private fun avatarColors(name: String): Pair<Color, Color> {
+private fun avatarBrush(name: String): Brush {
     val hash = kotlin.math.abs(name.lowercase(Locale.getDefault()).hashCode())
-    return AVATAR_PAIRS[hash % AVATAR_PAIRS.size]
+    val start = when (hash % 3) {
+        0 -> Color(0xFF3F3F46)
+        1 -> Color(0xFF4A4A52)
+        else -> Color(0xFF35353B)
+    }
+    return Brush.linearGradient(listOf(start, Color(0xFF1A1A1D)))
 }
 
 data class FloatingParticle(
@@ -205,11 +209,7 @@ fun LiveChatSheet(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF0B0E14), Color(0xFF070910), Color(0xFF05070B))
-                )
-            )
+            .background(BgBlack)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             ChatHeader(state = state, onCloseClick = onCloseClick)
@@ -225,8 +225,7 @@ fun LiveChatSheet(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 12.dp),
-                    contentPadding = PaddingValues(top = 10.dp, bottom = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                    contentPadding = PaddingValues(top = 10.dp, bottom = 14.dp)
                 ) {
                     items(rows, key = { it.message.seq }) { row ->
                         ChatMessageRow(row)
@@ -265,31 +264,31 @@ fun LiveChatSheet(
                         Box(
                             modifier = Modifier
                                 .size(58.dp)
-                                .background(Color.White.copy(alpha = 0.05f), CircleShape)
-                                .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape),
+                                .background(Surface2, CircleShape)
+                                .border(1.dp, Hairline, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ChatBubbleOutline,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.55f),
+                                tint = Color.White.copy(alpha = 0.5f),
                                 modifier = Modifier.size(26.dp)
                             )
                         }
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = if (message != null) "Chat is warming up" else "Be the first to say hi 👋",
-                            color = Color.White,
+                            text = "Be the first to say hi 👋",
+                            color = TextWhite,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = message ?: "Messages show up here the moment the room goes live.",
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = Color.White.copy(alpha = 0.45f),
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -313,8 +312,8 @@ fun LiveChatSheet(
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF1D2330))
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+                            .background(Surface3)
+                            .border(1.dp, Hairline, RoundedCornerShape(20.dp))
                             .clickable {
                                 scope.launch { listState.animateScrollToItem(0) }
                             }
@@ -324,13 +323,13 @@ fun LiveChatSheet(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = TextWhite,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Jump to latest",
-                            color = Color.White,
+                            color = TextWhite,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -347,14 +346,14 @@ fun LiveChatSheet(
                 ) {
                     Text(
                         text = toast ?: "",
-                        color = Color(0xFFFECACA),
+                        color = TextWhite,
                         fontSize = 11.5.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF3B1113).copy(alpha = 0.96f))
-                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.28f), RoundedCornerShape(14.dp))
+                            .background(Surface3.copy(alpha = 0.97f))
+                            .border(1.dp, Hairline, RoundedCornerShape(14.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     )
                 }
@@ -379,15 +378,7 @@ private fun ChatHeader(
     state: LiveChatState,
     onCloseClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF12161F), Color(0xFF0C1016))
-                )
-            )
-    ) {
+    Column(modifier = Modifier.fillMaxWidth().background(BgBlack)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -398,7 +389,7 @@ private fun ChatHeader(
                 modifier = Modifier
                     .width(38.dp)
                     .height(4.dp)
-                    .background(Color.White.copy(alpha = 0.22f), RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(2.dp))
             )
         }
 
@@ -412,7 +403,7 @@ private fun ChatHeader(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Live Chat",
-                        color = Color.White,
+                        color = TextWhite,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Black
                     )
@@ -421,8 +412,8 @@ private fun ChatHeader(
                 }
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = if (state.onlineCount > 0) "Keep it friendly • no spam" else "Be respectful • no spam",
-                    color = Color.White.copy(alpha = 0.42f),
+                    text = "Keep it friendly • no spam",
+                    color = Color.White.copy(alpha = 0.35f),
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -432,13 +423,14 @@ private fun ChatHeader(
                 onClick = onCloseClick,
                 modifier = Modifier
                     .size(32.dp)
-                    .background(Color.White.copy(alpha = 0.06f), CircleShape)
+                    .background(Surface2, CircleShape)
+                    .border(1.dp, Hairline, CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close Live Chat",
-                    tint = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.size(17.dp)
+                    tint = Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
@@ -447,15 +439,7 @@ private fun ChatHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color.White.copy(alpha = 0.10f),
-                            Color.Transparent
-                        )
-                    )
-                )
+                .background(Hairline)
         )
     }
 }
@@ -476,8 +460,8 @@ private fun StatusPill(state: LiveChatState) {
 
     Row(
         modifier = Modifier
-            .background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(20.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(20.dp))
+            .background(Surface1, RoundedCornerShape(20.dp))
+            .border(1.dp, Hairline, RoundedCornerShape(20.dp))
             .padding(start = 7.dp, end = 9.dp, top = 3.dp, bottom = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -485,7 +469,7 @@ private fun StatusPill(state: LiveChatState) {
         Spacer(modifier = Modifier.width(5.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.8f),
+            color = Color.White.copy(alpha = 0.7f),
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -511,7 +495,7 @@ private fun LiveDot(color: Color, pulsing: Boolean) {
                 modifier = Modifier
                     .size(11.dp)
                     .graphicsLayer {
-                        alpha = (1f - halo) * 0.45f
+                        alpha = (1f - halo) * 0.4f
                         scaleX = 0.45f + halo
                         scaleY = 0.45f + halo
                     }
@@ -530,8 +514,8 @@ private fun LiveDot(color: Color, pulsing: Boolean) {
 private fun ChatSkeleton() {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val shimmer by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.7f,
+        initialValue = 0.3f,
+        targetValue = 0.65f,
         animationSpec = infiniteRepeatable(
             animation = tween(950, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
@@ -551,7 +535,7 @@ private fun ChatSkeleton() {
                     modifier = Modifier
                         .size(28.dp)
                         .graphicsLayer { alpha = shimmer }
-                        .background(Color.White.copy(alpha = 0.10f), CircleShape)
+                        .background(Surface2, CircleShape)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(
@@ -564,13 +548,13 @@ private fun ChatSkeleton() {
                         modifier = Modifier
                             .width((58 + index * 9).dp)
                             .height(8.dp)
-                            .background(Color.White.copy(alpha = 0.10f), RoundedCornerShape(4.dp))
+                            .background(Surface2, RoundedCornerShape(4.dp))
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(fraction = 0.55f + (index % 3) * 0.12f)
                             .height(11.dp)
-                            .background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(5.dp))
+                            .background(Surface1, RoundedCornerShape(5.dp))
                     )
                 }
             }
@@ -581,7 +565,6 @@ private fun ChatSkeleton() {
 @Composable
 private fun ChatMessageRow(row: ChatRow) {
     val message = row.message
-    val (accent, _) = remember(message.name) { avatarColors(message.name) }
     val timeStr = remember(message.ts) {
         if (message.ts > 0) {
             SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.ts))
@@ -604,14 +587,14 @@ private fun ChatMessageRow(row: ChatRow) {
                     if (timeStr.isNotEmpty()) {
                         Text(
                             text = timeStr,
-                            color = Color.White.copy(alpha = 0.32f),
+                            color = TimeGrey,
                             fontSize = 10.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                     }
                     Text(
                         text = "You",
-                        color = Color.White.copy(alpha = 0.85f),
+                        color = HandleGrey,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -629,12 +612,13 @@ private fun ChatMessageRow(row: ChatRow) {
                 modifier = Modifier
                     .widthIn(max = 300.dp)
                     .clip(shape)
-                    .background(Brush.linearGradient(listOf(AppRed, Color(0xFFB3121B))))
+                    .background(Surface3)
+                    .border(1.dp, Hairline, shape)
                     .padding(horizontal = 13.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = message.body,
-                    color = Color.White,
+                    color = TextWhite,
                     fontSize = 13.5.sp,
                     lineHeight = 18.sp
                 )
@@ -662,10 +646,10 @@ private fun ChatMessageRow(row: ChatRow) {
                         modifier = Modifier.padding(bottom = 3.dp)
                     ) {
                         Text(
-                            text = "@${message.name}",
-                            color = accent,
+                            text = message.name,
+                            color = HandleGrey,
                             fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
@@ -674,7 +658,7 @@ private fun ChatMessageRow(row: ChatRow) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = timeStr,
-                                color = Color.White.copy(alpha = 0.3f),
+                                color = TimeGrey,
                                 fontSize = 10.sp
                             )
                         }
@@ -692,13 +676,13 @@ private fun ChatMessageRow(row: ChatRow) {
                     modifier = Modifier
                         .widthIn(max = 300.dp)
                         .clip(shape)
-                        .background(Color.White.copy(alpha = 0.055f))
-                        .border(1.dp, Color.White.copy(alpha = 0.05f), shape)
+                        .background(Surface2)
+                        .border(1.dp, Hairline, shape)
                         .padding(horizontal = 13.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = message.body,
-                        color = Color.White.copy(alpha = 0.92f),
+                        color = TextWhite,
                         fontSize = 13.5.sp,
                         lineHeight = 18.sp
                     )
@@ -710,18 +694,18 @@ private fun ChatMessageRow(row: ChatRow) {
 
 @Composable
 private fun Avatar(name: String?, size: Dp) {
-    val (start, end) = remember(name) { avatarColors(name?.ifBlank { null } ?: "fan") }
+    val brush = remember(name) { avatarBrush(name?.ifBlank { null } ?: "fan") }
     val initial = name?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "F"
 
     Box(
         modifier = Modifier
             .size(size)
-            .background(Brush.linearGradient(listOf(start, end)), CircleShape),
+            .background(brush, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = initial,
-            color = Color.White,
+            color = Color.White.copy(alpha = 0.92f),
             fontSize = (size.value * 0.44f).sp,
             fontWeight = FontWeight.Bold
         )
@@ -740,50 +724,46 @@ private fun ChatComposer(
     onSendReaction: (String, String) -> Unit
 ) {
     val canSend = inputText.trim().isNotEmpty() && !isSending && !state.isConnecting
+    var reactionsOpen by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF0C1016), Color(0xFF080A10))
-                )
-            )
+            .background(BgBlack)
+            .navigationBarsPadding()
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color.White.copy(alpha = 0.09f),
-                            Color.Transparent
-                        )
-                    )
-                )
+                .background(Hairline)
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 50.dp, end = 12.dp, top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        AnimatedVisibility(
+            visible = reactionsOpen,
+            enter = expandVertically(tween(180)) + fadeIn(tween(180)),
+            exit = shrinkVertically(tween(160)) + fadeOut(tween(120))
         ) {
-            reactionOptions.forEach { (id, emoji) ->
-                ReactionChip(
-                    emoji = emoji,
-                    enabled = !state.isConnecting,
-                    onClick = { onSendReaction(id, emoji) }
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 53.dp, end = 12.dp, top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                reactionOptions.forEach { (id, emoji) ->
+                    ReactionChip(
+                        emoji = emoji,
+                        enabled = !state.isConnecting,
+                        onClick = { onSendReaction(id, emoji) }
+                    )
+                }
             }
         }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, top = 8.dp, bottom = 10.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 18.dp),
             verticalAlignment = Alignment.Bottom
         ) {
             Avatar(name = currentUserName, size = 32.dp)
@@ -794,14 +774,14 @@ private fun ChatComposer(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF161B25))
-                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 14.dp, vertical = 9.dp)
+                    .background(Surface1)
+                    .border(1.dp, Hairline, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 if (inputText.isEmpty()) {
                     Text(
                         text = currentUserName?.let { "Chat as @$it" } ?: "Connecting…",
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = Color.White.copy(alpha = 0.35f),
                         fontSize = 13.sp
                     )
                 }
@@ -809,12 +789,12 @@ private fun ChatComposer(
                     value = inputText,
                     onValueChange = onInputChange,
                     textStyle = TextStyle(
-                        color = Color.White,
+                        color = TextWhite,
                         fontSize = 13.5.sp,
                         lineHeight = 18.sp,
                         fontWeight = FontWeight.Normal
                     ),
-                    cursorBrush = SolidColor(AppRed),
+                    cursorBrush = SolidColor(TextWhite),
                     maxLines = 4,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = { onSend() }),
@@ -822,10 +802,60 @@ private fun ChatComposer(
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+
+            ReactionToggle(
+                open = reactionsOpen,
+                enabled = !state.isConnecting,
+                onClick = { reactionsOpen = !reactionsOpen }
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
 
             SendButton(canSend = canSend, isSending = isSending, onClick = onSend)
         }
+    }
+}
+
+@Composable
+private fun ReactionToggle(
+    open: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.88f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 900f),
+        label = "toggleScale"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                alpha = if (enabled) 1f else 0.4f
+            }
+            .clip(CircleShape)
+            .background(if (open) Surface3 else Surface1)
+            .border(1.dp, Hairline, CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.AddReaction,
+            contentDescription = "Reactions",
+            tint = if (open) TextWhite else Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
@@ -849,11 +879,11 @@ private fun ReactionChip(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                alpha = if (enabled) 1f else 0.45f
+                alpha = if (enabled) 1f else 0.4f
             }
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.055f))
-            .border(1.dp, Color.White.copy(alpha = 0.07f), CircleShape)
+            .background(Surface1)
+            .border(1.dp, Hairline, CircleShape)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -880,20 +910,26 @@ private fun SendButton(
         label = "sendScale"
     )
     val background by animateColorAsState(
-        targetValue = if (canSend) AppRed else Color.White.copy(alpha = 0.07f),
+        targetValue = if (canSend) TextWhite else Surface1,
         animationSpec = tween(180),
         label = "sendBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (canSend) TextWhite else Hairline,
+        animationSpec = tween(180),
+        label = "sendBorder"
     )
 
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(38.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
             .clip(CircleShape)
             .background(background)
+            .border(1.dp, borderColor, CircleShape)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -904,16 +940,16 @@ private fun SendButton(
     ) {
         if (isSending) {
             CircularProgressIndicator(
-                modifier = Modifier.size(16.dp),
-                color = Color.White,
+                modifier = Modifier.size(15.dp),
+                color = Color.White.copy(alpha = 0.85f),
                 strokeWidth = 2.dp
             )
         } else {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,
                 contentDescription = "Send",
-                tint = if (canSend) Color.White else Color.White.copy(alpha = 0.35f),
-                modifier = Modifier.size(17.dp)
+                tint = if (canSend) Color.Black else Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.size(16.dp)
             )
         }
     }
