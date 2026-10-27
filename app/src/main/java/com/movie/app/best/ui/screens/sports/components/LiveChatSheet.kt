@@ -42,6 +42,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -143,6 +145,7 @@ fun LiveChatSheet(
     var inputText by remember { mutableStateOf("") }
     var isSending by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
+    var unreadCount by remember { mutableIntStateOf(0) }
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
@@ -193,7 +196,28 @@ fun LiveChatSheet(
     }
 
     val showJump by remember(listState) {
-        derivedStateOf { listState.firstVisibleItemIndex > 2 }
+        derivedStateOf { listState.firstVisibleItemIndex > 0 }
+    }
+
+    val newestSeq = rows.firstOrNull()?.message?.seq ?: 0L
+    var lastSeenSeq by remember { mutableLongStateOf(newestSeq) }
+
+    LaunchedEffect(newestSeq) {
+        if (newestSeq == 0L || newestSeq == lastSeenSeq) return@LaunchedEffect
+        val added = rows.count { it.message.seq > lastSeenSeq }
+        lastSeenSeq = newestSeq
+        if (listState.firstVisibleItemIndex <= 1) {
+            unreadCount = 0
+            listState.animateScrollToItem(0)
+        } else {
+            unreadCount += added.coerceAtLeast(1)
+        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }.collect { index ->
+            if (index == 0) unreadCount = 0
+        }
     }
 
     val reactionOptions = remember {
@@ -250,8 +274,12 @@ fun LiveChatSheet(
                 ChatSkeletonOverlay(visible = rows.isEmpty() && state.isConnecting)
 
                 JumpToLatestPill(
-                    visible = showJump,
-                    onClick = { scope.launch { listState.animateScrollToItem(0) } },
+                    visible = showJump || unreadCount > 0,
+                    unreadCount = unreadCount,
+                    onClick = {
+                        scope.launch { listState.animateScrollToItem(0) }
+                        unreadCount = 0
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 10.dp)
@@ -986,6 +1014,7 @@ private fun ChatSkeletonOverlay(visible: Boolean) {
 @Composable
 private fun JumpToLatestPill(
     visible: Boolean,
+    unreadCount: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1012,7 +1041,11 @@ private fun JumpToLatestPill(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "Jump to latest",
+                text = if (unreadCount > 0) {
+                    if (unreadCount == 1) "1 new message" else "$unreadCount new messages"
+                } else {
+                    "Jump to latest"
+                },
                 color = TextWhite,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
