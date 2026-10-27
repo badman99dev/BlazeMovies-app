@@ -80,7 +80,7 @@ object RemoteConfig {
     private const val PH_ZEE5_API = "https://zee5-api.invalid/"
     private const val PH_ZEE5_TOKEN = "https://zee5-token.invalid/"
     private const val PH_CRICKET = "https://cricket.invalid/"
-    private const val PH_LIVE_CHAT = "https://livechat-server-0ypb.onrender.com/"
+    private const val PH_LIVE_CHAT = "https://live-chat.invalid/"
 
     /** Placeholder hosts the interceptor knows how to map. */
     val placeholderHosts: Set<String> = setOf(
