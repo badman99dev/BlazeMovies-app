@@ -613,7 +613,7 @@ fun SportsWatchScreen(
                         .weight(1f)
                         .background(Color.Black)
                 ) {
-                    AnimatedVisibility(
+                    androidx.compose.animation.AnimatedVisibility(
                         visible = !state.isLoading && event != null,
                         enter = fadeIn(animationSpec = tween(350)),
                         exit = fadeOut(animationSpec = tween(150))
@@ -857,7 +857,7 @@ fun SportsWatchScreen(
                     }
 
                     // Full YouTube-style Live Chat overlay sheet covering non-video area
-                    AnimatedVisibility(
+                    androidx.compose.animation.AnimatedVisibility(
                         visible = isChatSheetOpen,
                         enter = slideInVertically(
                             initialOffsetY = { it },
