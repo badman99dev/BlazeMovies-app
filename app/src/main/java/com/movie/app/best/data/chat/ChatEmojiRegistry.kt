@@ -86,6 +86,14 @@ object ChatEmojiRegistry {
         // 12. Party Popper
         CustomChatEmoji(":party-popper:", "Party Popper", "YouTube") { modifier ->
             PartyPopperEmoji(modifier)
+        },
+        // 13. Cool Sunglasses
+        CustomChatEmoji(":face-cool-sunglasses:", "Cool Shades", "YouTube") { modifier ->
+            CoolSunglassesFace(modifier)
+        },
+        // 14. GG
+        CustomChatEmoji(":gg:", "GG", "Blaze") { modifier ->
+            GGBadgeEmoji(modifier)
         }
     )
 
@@ -420,5 +428,72 @@ fun PartyPopperEmoji(modifier: Modifier = Modifier) {
         drawCircle(color = Color(0xFF3B82F6), radius = w * 0.06f, center = Offset(w * 0.82f, h * 0.40f))
         drawCircle(color = Color(0xFF10B981), radius = w * 0.05f, center = Offset(w * 0.72f, h * 0.55f))
         drawCircle(color = Color(0xFFA855F7), radius = w * 0.05f, center = Offset(w * 0.52f, h * 0.15f))
+    }
+}
+
+@Composable
+fun CoolSunglassesFace(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        // Yellow head
+        drawCircle(color = Color(0xFFFACC15), radius = w * 0.46f, center = Offset(w * 0.5f, h * 0.5f))
+        // Bridge of the shades
+        drawRoundRect(
+            color = Color(0xFF18181B),
+            topLeft = Offset(w * 0.30f, h * 0.40f),
+            size = Size(w * 0.40f, h * 0.07f),
+            cornerRadius = CornerRadius(2f, 2f)
+        )
+        // Left / right lenses
+        drawRoundRect(
+            color = Color(0xFF111113),
+            topLeft = Offset(w * 0.13f, h * 0.34f),
+            size = Size(w * 0.31f, h * 0.20f),
+            cornerRadius = CornerRadius(w * 0.07f, w * 0.07f)
+        )
+        drawRoundRect(
+            color = Color(0xFF111113),
+            topLeft = Offset(w * 0.56f, h * 0.34f),
+            size = Size(w * 0.31f, h * 0.20f),
+            cornerRadius = CornerRadius(w * 0.07f, w * 0.07f)
+        )
+        // Lens shine
+        drawCircle(color = Color.White.copy(alpha = 0.55f), radius = w * 0.045f, center = Offset(w * 0.22f, h * 0.40f))
+        drawCircle(color = Color.White.copy(alpha = 0.55f), radius = w * 0.045f, center = Offset(w * 0.65f, h * 0.40f))
+        // Smile
+        val mouth = Path().apply {
+            moveTo(w * 0.32f, h * 0.68f)
+            quadraticTo(w * 0.5f, h * 0.88f, w * 0.68f, h * 0.68f)
+        }
+        drawPath(mouth, color = Color(0xFF18181B), style = Stroke(width = 3f))
+    }
+}
+
+@Composable
+fun GGBadgeEmoji(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        // Purple badge with a white plate and bold "GG"
+        drawRoundRect(
+            color = Color(0xFF7C3AED),
+            size = Size(w, h * 0.86f),
+            topLeft = Offset(0f, h * 0.07f),
+            cornerRadius = CornerRadius(w * 0.22f, w * 0.22f)
+        )
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(w * 0.10f, h * 0.20f),
+            size = Size(w * 0.80f, h * 0.60f),
+            cornerRadius = CornerRadius(w * 0.14f, w * 0.14f)
+        )
+        val paint = android.graphics.Paint().apply {
+            color = 0xFF7C3AED.toInt()
+            textSize = h * 0.46f
+            isFakeBoldText = true
+            textAlign = android.graphics.Paint.Align.CENTER
+        }
+        drawContext.canvas.nativeCanvas.drawText("GG", w * 0.5f, h * 0.68f, paint)
     }
 }

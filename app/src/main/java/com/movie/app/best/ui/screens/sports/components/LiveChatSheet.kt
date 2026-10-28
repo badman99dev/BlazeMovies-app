@@ -57,7 +57,6 @@ private const val MAX_INPUT = 500
 private val BgBlack = Color(0xFF000000)
 private val SurfaceInput = Color(0xFF18181B)
 private val Hairline = Color(0xFF27272A)
-private val HandleGrey = Color(0xFFA1A1AA)
 private val TextWhite = Color(0xFFF4F4F5)
 
 private fun avatarColors(name: String): Pair<Color, Color> {
@@ -119,7 +118,10 @@ fun LiveChatSheet(
     LaunchedEffect(currentMessagesCount) {
         if (currentMessagesCount > 0) {
             if (isNearBottom) {
-                listState.animateScrollToItem(currentMessagesCount - 1)
+                // Instant (non-animated) follow while the user is at the bottom:
+                // animating every incoming message queues animations and jitters
+                // in fast rooms. Smooth animation is reserved for explicit jumps.
+                listState.scrollToItem(currentMessagesCount - 1)
                 unreadCount = 0
             } else {
                 unreadCount += 1
@@ -198,7 +200,7 @@ fun LiveChatSheet(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 14.dp),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 12.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 56.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(state.messages, key = { it.seq }) { message ->
@@ -226,39 +228,22 @@ fun LiveChatSheet(
                         .padding(end = 10.dp, bottom = 8.dp)
                 )
 
-                // Scroll to Bottom Floating Button (↓)
-                AnimatedVisibility(
+                // Jump to Latest (↓) — floating button with unread badge
+                JumpToLatestButton(
                     visible = !isNearBottom,
-                    enter = fadeIn(tween(180)) + slideInVertically(tween(200)) { it },
-                    exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it },
+                    unreadCount = unreadCount,
+                    onClick = {
+                        scope.launch {
+                            if (state.messages.isNotEmpty()) {
+                                listState.animateScrollToItem(state.messages.size - 1)
+                            }
+                        }
+                        unreadCount = 0
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color(0xFF27272A))
-                            .border(1.dp, Color(0xFF3F3F46), CircleShape)
-                            .clickable {
-                                scope.launch {
-                                    if (state.messages.isNotEmpty()) {
-                                        listState.animateScrollToItem(state.messages.size - 1)
-                                    }
-                                }
-                                unreadCount = 0
-                            }
-                            .padding(10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = "Scroll to bottom",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
+                )
 
                 // Toast Notification
                 if (toast != null) {
@@ -332,6 +317,65 @@ fun LiveChatSheet(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Jump to Latest (standalone composable — keeps AnimatedVisibility out of the
+// Box/Column scope overlap that resolves to the wrong overload)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun JumpToLatestButton(
+    visible: Boolean,
+    unreadCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(180)) + slideInVertically(tween(200)) { it },
+        exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it },
+        modifier = modifier
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFF27272A))
+                    .border(1.dp, Color(0xFF3F3F46), CircleShape)
+                    .clickable(onClick = onClick)
+                    .padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowDownward,
+                    contentDescription = "Jump to latest",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            if (unreadCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 7.dp, y = (-5).dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2563EB))
+                        .border(1.5.dp, BgBlack, CircleShape)
+                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                        color = Color.White,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // YouTube Header (Compact & Streamlined)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -362,19 +406,6 @@ private fun YouTubeChatHeader(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Top messages",
-                        color = Color(0xFFA1A1AA),
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "•",
-                        color = Color(0xFF71717A),
-                        fontSize = 11.sp
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = when {
                             isConnected && onlineCount > 0 -> "👥 $onlineCount"
@@ -455,7 +486,7 @@ private fun YouTubeChatMessageItem(message: ChatMessage) {
             ) {
                 Text(
                     text = if (message.name.startsWith("@")) message.name else "@${message.name}",
-                    color = HandleGrey,
+                    color = startColor,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
