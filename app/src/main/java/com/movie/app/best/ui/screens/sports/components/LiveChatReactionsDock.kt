@@ -15,12 +15,12 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +34,23 @@ data class QuickReactionItem(
     val emoji: String
 )
 
+/**
+ * Floating reaction dock (YouTube style).
+ *
+ * Collapsed: only a single heart. Tapping the heart EXPANDS the dock — it does
+ * not send anything. Once expanded all five reactions are shown and tapping one
+ * sends it and collapses the dock again.
+ *
+ * Ids must exist in the server catalogue (LiveChat-server/lib/reactions.js).
+ */
+private val REACTIONS = listOf(
+    QuickReactionItem("heart", "❤️"),
+    QuickReactionItem("lol", "😂"),
+    QuickReactionItem("party", "🎉"),
+    QuickReactionItem("wow", "😮"),
+    QuickReactionItem("100", "💯")
+)
+
 @Composable
 fun LiveChatReactionsDock(
     onSendReaction: (String, String) -> Unit,
@@ -41,35 +58,16 @@ fun LiveChatReactionsDock(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
-    val primaryReactions = remember {
-        listOf(
-            QuickReactionItem("heart", "❤️"),
-            QuickReactionItem("lol", "😂"),
-            QuickReactionItem("party", "🎉"),
-            QuickReactionItem("wow", "😮"),
-            QuickReactionItem("100", "💯")
-        )
-    }
-
-    val extraReactions = remember {
-        listOf(
-            QuickReactionItem("fire", "🔥"),
-            QuickReactionItem("clap", "👏"),
-            QuickReactionItem("eyes", "👀"),
-            QuickReactionItem("pray", "🙏")
-        )
-    }
-
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(26.dp))
-            .background(Color(0xCC18181B)) // Translucent dark pill
+            .background(Color(0xCC18181B))
             .border(1.dp, Color(0xFF2E2E35), RoundedCornerShape(26.dp))
             .padding(vertical = 6.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Extra reactions shown when expanded
+        // The four extra reactions appear only when expanded
         AnimatedVisibility(
             visible = isExpanded,
             enter = expandVertically() + fadeIn(),
@@ -79,10 +77,13 @@ fun LiveChatReactionsDock(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                extraReactions.forEach { item ->
+                REACTIONS.drop(1).forEach { item ->
                     ReactionDockButton(
                         emoji = item.emoji,
-                        onClick = { onSendReaction(item.id, item.emoji) }
+                        onClick = {
+                            onSendReaction(item.id, item.emoji)
+                            isExpanded = false
+                        }
                     )
                 }
                 Box(
@@ -94,29 +95,18 @@ fun LiveChatReactionsDock(
             }
         }
 
-        // Primary 5 reactions
-        primaryReactions.forEach { item ->
-            ReactionDockButton(
-                emoji = item.emoji,
-                onClick = { onSendReaction(item.id, item.emoji) }
-            )
-        }
-
-        // Expand / Collapse Chevron Toggle
-        Box(
-            modifier = Modifier
-                .size(34.dp)
-                .clip(CircleShape)
-                .clickable { isExpanded = !isExpanded },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) "Collapse reactions" else "More reactions",
-                tint = Color.White.copy(alpha = 0.75f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
+        // Heart — collapsed it expands, expanded it sends
+        ReactionDockButton(
+            emoji = REACTIONS.first().emoji,
+            onClick = {
+                if (isExpanded) {
+                    onSendReaction(REACTIONS.first().id, REACTIONS.first().emoji)
+                    isExpanded = false
+                } else {
+                    isExpanded = true
+                }
+            }
+        )
     }
 }
 

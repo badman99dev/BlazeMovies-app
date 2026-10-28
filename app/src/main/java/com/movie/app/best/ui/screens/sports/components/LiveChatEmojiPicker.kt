@@ -3,7 +3,6 @@ package com.movie.app.best.ui.screens.sports.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,91 +15,80 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.data.chat.ChatEmojiRegistry
-import com.movie.app.best.data.chat.CustomChatEmoji
+
+/**
+ * Emoji drawer for the live-chat composer.
+ *
+ * Plain unicode emoji only: they travel as normal text (no shortcodes), render
+ * natively inside BasicTextField, and the chat server needs no changes.
+ */
+private val POPULAR_EMOJI = listOf(
+    "😂", "❤️", "🔥", "👍", "😍", "🙏", "👏", "🎉",
+    "💯", "😮", "😢", "😡", "🤣", "😭", "😎", "🤔",
+    "👀", "🙌", "💪", "🤝", "✨", "⚡", "💔", "😴",
+    "🤯", "😱", "👌", "🥳", "😇", "🤩", "🥺", "😜"
+)
+
+private val SPORTS_EMOJI = listOf(
+    "🏏", "⚽", "🏆", "🥇", "🏅", "🎯", "🏀", "🎾",
+    "🏐", "🏓", "🥊", "🏸", "🏃", "🚴", "📣", "🎽"
+)
+
+private val ALL_EMOJI = POPULAR_EMOJI + SPORTS_EMOJI
 
 @Composable
-fun LiveChatCustomEmojiKeyboard(
-    onEmojiSelected: (CustomChatEmoji) -> Unit,
+fun LiveChatEmojiPicker(
+    onEmojiSelected: (String) -> Unit,
     onBackspace: () -> Unit,
     onSwitchToTextKeyboard: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val categories = remember { listOf("YouTube", "Blaze") }
-    var selectedCategory by remember { mutableStateOf("YouTube") }
-
-    val filteredEmojis = remember(selectedCategory) {
-        ChatEmojiRegistry.allEmojis.filter { it.category == selectedCategory }
-    }
+    val emojis = remember { ALL_EMOJI }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(250.dp)
             .background(Color(0xFF0F0F12))
             .border(1.dp, Color(0xFF1E1E24))
     ) {
-        // Category Header (like "YouTube" in screenshot 2)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            categories.forEach { cat ->
-                val isSelected = cat == selectedCategory
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) Color(0xFF27272A) else Color.Transparent)
-                        .clickable { selectedCategory = cat }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = cat,
-                        color = if (isSelected) Color.White else Color(0xFF9CA3AF),
-                        fontSize = 12.5.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                    )
-                }
-                Spacer(modifier = Modifier.width(6.dp))
-            }
-        }
-
-        // Custom Emojis Grid
         LazyVerticalGrid(
-            columns = GridCells.Fixed(5),
+            columns = GridCells.Fixed(8),
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(horizontal = 12.dp),
-            contentPadding = PaddingValues(vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            items(filteredEmojis, key = { it.code }) { emoji ->
+            items(emojis) { emoji ->
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(42.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .clickable { onEmojiSelected(emoji) }
-                        .padding(6.dp),
+                        .clickable { onEmojiSelected(emoji) },
                     contentAlignment = Alignment.Center
                 ) {
-                    emoji.draw(Modifier.size(32.dp))
+                    Text(
+                        text = emoji,
+                        fontSize = 25.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
 
-        // Bottom Controls Bar (Keyboard switch on left, Backspace on right)
+        // Bottom controls: text keyboard on the left, backspace on the right
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -117,14 +105,14 @@ fun LiveChatCustomEmojiKeyboard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Keyboard,
-                    contentDescription = "Switch to Text Keyboard",
+                    contentDescription = "Switch to text keyboard",
                     tint = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.size(20.dp)
                 )
             }
 
             Text(
-                text = "Tap sticker to insert",
+                text = "Tap an emoji to insert",
                 color = Color(0xFF71717A),
                 fontSize = 11.sp
             )

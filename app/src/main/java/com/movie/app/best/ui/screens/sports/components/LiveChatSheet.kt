@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.movie.app.best.data.chat.ChatEmojiRegistry
 import com.movie.app.best.data.chat.ChatMessage
 import com.movie.app.best.data.chat.ChatReaction
 import com.movie.app.best.data.chat.LiveChatState
@@ -281,30 +280,24 @@ fun LiveChatSheet(
                 onSend = sendAction
             )
 
-            // Custom Emojis / Stickers Drawer (Screenshot 2)
+            // Emoji / sticker drawer (plain unicode emoji)
             AnimatedVisibility(
                 visible = showCustomEmojiPicker,
                 enter = expandVertically(tween(200)) + fadeIn(),
                 exit = shrinkVertically(tween(180)) + fadeOut()
             ) {
-                LiveChatCustomEmojiKeyboard(
+                LiveChatEmojiPicker(
                     onEmojiSelected = { emoji ->
-                        if (inputText.length + emoji.code.length <= MAX_INPUT) {
-                            inputText += emoji.code
+                        if (inputText.length + emoji.length <= MAX_INPUT) {
+                            inputText += emoji
                         }
                     },
                     onBackspace = {
                         if (inputText.isNotEmpty()) {
-                            // Check if deleting a shortcode like :face-green-smiling:
-                            val lastColon = inputText.lastIndexOf(':')
-                            if (lastColon >= 0 && inputText.endsWith(":")) {
-                                val shortcode = inputText.substring(lastColon)
-                                if (ChatEmojiRegistry.findEmoji(shortcode) != null) {
-                                    inputText = inputText.substring(0, lastColon)
-                                    return@LiveChatCustomEmojiKeyboard
-                                }
-                            }
-                            inputText = inputText.dropLast(1)
+                            // Delete a whole code point so emoji (surrogate pairs)
+                            // are never cut in half.
+                            val cut = inputText.offsetByCodePoints(inputText.length, -1)
+                            inputText = inputText.substring(0, cut)
                         }
                     },
                     onSwitchToTextKeyboard = {
@@ -452,11 +445,6 @@ private fun YouTubeChatMessageItem(message: ChatMessage) {
         message.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U"
     }
 
-    // Parse the message body to support both text and inline custom stickers!
-    val (annotatedString, inlineMap) = remember(message.body) {
-        ChatEmojiRegistry.parseToAnnotatedString(message.body, emojiSize = 20.dp)
-    }
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
@@ -496,16 +484,13 @@ private fun YouTubeChatMessageItem(message: ChatMessage) {
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // Inline message body with rich stickers support
-            BasicText(
-                text = annotatedString,
-                inlineContent = inlineMap,
-                style = TextStyle(
-                    color = TextWhite,
-                    fontSize = 13.5.sp,
-                    lineHeight = 19.sp,
-                    fontWeight = FontWeight.Normal
-                )
+            // Plain body — real unicode emoji render natively, no shortcodes
+            Text(
+                text = message.body,
+                color = TextWhite,
+                fontSize = 13.5.sp,
+                lineHeight = 19.sp,
+                fontWeight = FontWeight.Normal
             )
         }
     }
@@ -526,16 +511,22 @@ private fun YouTubeChatComposer(
 ) {
     val canSend = inputText.trim().isNotEmpty() && !isSending
 
-    // Parse input text for preview with custom emojis (Screenshot 4)
-    val (annotatedPreview, inlineMap) = remember(inputText) {
-        ChatEmojiRegistry.parseToAnnotatedString(inputText, emojiSize = 19.dp)
-    }
+    // Sit EXACTLY above the keyboard. The window is edge-to-edge
+    // (decorFitsSystemWindows = false), so the IME never resizes the window —
+    // we lift the bar ourselves by max(navigation bar, keyboard height).
+    // WindowInsets.ime is snapshot-backed, so this recomposes the moment the
+    // keyboard opens or closes.
+    val density = LocalDensity.current
+    val bottomLift = maxOf(
+        WindowInsets.navigationBars.getBottom(density),
+        WindowInsets.ime.getBottom(density)
+    )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(BgBlack)
-            .navigationBarsPadding()
+            .padding(bottom = with(density) { bottomLift.toDp() })
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
