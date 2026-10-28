@@ -50,6 +50,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
@@ -155,6 +158,34 @@ fun SportsWatchScreen(
             exoPlayer?.release()
             exoPlayer = null
         }
+    }
+
+    // The stream must go silent when the app leaves the foreground: onDispose
+    // alone never runs while the Activity is merely stopped, so the sports
+    // stream used to keep playing after the app was closed. Live TV avoids this
+    // because it plays through the shared player screen, which pauses on
+    // ON_PAUSE — we do the same here (and resume when coming back).
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var resumeOnReturn by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    resumeOnReturn = exoPlayer?.isPlaying == true
+                    exoPlayer?.pause()
+                }
+                Lifecycle.Event.ON_START -> {
+                    if (resumeOnReturn) {
+                        exoPlayer?.play()
+                        resumeOnReturn = false
+                    }
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val mainHandler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
