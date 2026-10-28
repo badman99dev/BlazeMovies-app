@@ -15,6 +15,10 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -80,10 +84,9 @@ fun LiveChatReactionsDock(
                 REACTIONS.drop(1).forEach { item ->
                     ReactionDockButton(
                         emoji = item.emoji,
-                        onClick = {
-                            onSendReaction(item.id, item.emoji)
-                            isExpanded = false
-                        }
+                        // Sending must NOT collapse the dock — collapse is done
+                        // with the chevron, so several reactions can be tapped.
+                        onClick = { onSendReaction(item.id, item.emoji) }
                     )
                 }
                 Box(
@@ -95,18 +98,34 @@ fun LiveChatReactionsDock(
             }
         }
 
-        // Heart — collapsed it expands, expanded it sends
+        // Heart — collapsed it expands, expanded it sends (dock stays open)
         ReactionDockButton(
             emoji = REACTIONS.first().emoji,
             onClick = {
                 if (isExpanded) {
                     onSendReaction(REACTIONS.first().id, REACTIONS.first().emoji)
-                    isExpanded = false
                 } else {
                     isExpanded = true
                 }
             }
         )
+
+        // Collapse / expand chevron, below the heart
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .clickable { isExpanded = !isExpanded },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp
+                else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "Collapse reactions" else "More reactions",
+                tint = Color.White.copy(alpha = 0.75f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 

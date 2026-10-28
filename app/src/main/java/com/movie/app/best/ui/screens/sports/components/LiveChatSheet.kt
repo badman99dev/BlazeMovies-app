@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,7 +90,6 @@ fun LiveChatSheet(
     var inputText by remember { mutableStateOf("") }
     var isSending by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
-    var showCustomEmojiPicker by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
@@ -269,42 +267,9 @@ fun LiveChatSheet(
             YouTubeChatComposer(
                 inputText = inputText,
                 isSending = isSending,
-                showCustomEmojiPicker = showCustomEmojiPicker,
                 onInputChange = { inputText = it.take(MAX_INPUT) },
-                onToggleEmojiPicker = {
-                    showCustomEmojiPicker = !showCustomEmojiPicker
-                    if (showCustomEmojiPicker) {
-                        focusManager.clearFocus()
-                    }
-                },
                 onSend = sendAction
             )
-
-            // Emoji / sticker drawer (plain unicode emoji)
-            AnimatedVisibility(
-                visible = showCustomEmojiPicker,
-                enter = expandVertically(tween(200)) + fadeIn(),
-                exit = shrinkVertically(tween(180)) + fadeOut()
-            ) {
-                LiveChatEmojiPicker(
-                    onEmojiSelected = { emoji ->
-                        if (inputText.length + emoji.length <= MAX_INPUT) {
-                            inputText += emoji
-                        }
-                    },
-                    onBackspace = {
-                        if (inputText.isNotEmpty()) {
-                            // Delete a whole code point so emoji (surrogate pairs)
-                            // are never cut in half.
-                            val cut = inputText.offsetByCodePoints(inputText.length, -1)
-                            inputText = inputText.substring(0, cut)
-                        }
-                    },
-                    onSwitchToTextKeyboard = {
-                        showCustomEmojiPicker = false
-                    }
-                )
-            }
         }
     }
 }
@@ -497,16 +462,14 @@ private fun YouTubeChatMessageItem(message: ChatMessage) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// YouTube Chat Input Bar (Input field + Emoji icon toggle + Send)
+// YouTube Chat Input Bar (Input field + Send)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun YouTubeChatComposer(
     inputText: String,
     isSending: Boolean,
-    showCustomEmojiPicker: Boolean,
     onInputChange: (String) -> Unit,
-    onToggleEmojiPicker: () -> Unit,
     onSend: () -> Unit
 ) {
     val canSend = inputText.trim().isNotEmpty() && !isSending
@@ -566,23 +529,6 @@ private fun YouTubeChatComposer(
         }
 
         Spacer(modifier = Modifier.width(8.dp))
-
-        // Custom Emoji Toggle Icon (Smiley face)
-        IconButton(
-            onClick = onToggleEmojiPicker,
-            modifier = Modifier
-                .size(38.dp)
-                .background(if (showCustomEmojiPicker) Color(0xFF27272A) else Color.Transparent, CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Mood,
-                contentDescription = "Custom Emojis",
-                tint = if (showCustomEmojiPicker) Color.White else Color(0xFFA1A1AA),
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(4.dp))
 
         // Send Button
         IconButton(
