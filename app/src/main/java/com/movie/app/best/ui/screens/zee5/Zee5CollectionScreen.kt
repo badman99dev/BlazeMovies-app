@@ -69,6 +69,13 @@ fun Zee5CollectionScreen(
             .background(AppBlack)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // Keep the header below the status bar (edge-to-edge window)
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                    .background(AppBlack)
+            )
             // Header
             Row(
                 modifier = Modifier
@@ -146,11 +153,12 @@ fun Zee5CollectionScreen(
             }
         }
 
-        // Initial loading shimmer
+        // Initial loading shimmer — starts below the status bar too
         AnimatedVisibility(
             visible = uiState.isLoading && uiState.items.isEmpty(),
             enter = fadeIn(),
-            exit = fadeOut()
+            exit = fadeOut(),
+            modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
         ) {
             Zee5GridShimmer()
         }
