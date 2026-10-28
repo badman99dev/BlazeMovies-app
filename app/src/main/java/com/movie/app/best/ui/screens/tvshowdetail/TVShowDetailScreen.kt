@@ -107,6 +107,7 @@ import com.movie.app.best.ui.components.ErrorView
 import com.movie.app.best.ui.components.CollapsibleCrewRow
 import com.movie.app.best.ui.components.InterestsGenreSection
 import com.movie.app.best.ui.components.LoginRequiredDialog
+import com.movie.app.best.ui.components.QualityConfirmDialog
 import com.movie.app.best.ui.components.StorylineWarningBadge
 import com.movie.app.best.ui.screens.auth.AuthViewModel
 import com.movie.app.best.ui.screens.moviedetail.components.DetailActionButtons
@@ -414,6 +415,13 @@ fun TVShowDetailScreen(
                 },
                 onDismiss = { showLoginDialog = false },
                 anchorCenter = lastTap.takeIf { it != Offset.Unspecified }
+            )
+        }
+
+        uiState.qualityConfirm?.let { req ->
+            QualityConfirmDialog(
+                request = req,
+                onChoose = { id -> viewModel.chooseQuality(id) }
             )
         }
     }

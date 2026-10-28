@@ -7,7 +7,9 @@ import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.model.DownloadMetadata
 import com.movie.app.best.data.model.DownloadPhase
 import com.movie.app.best.data.model.Resource
+import com.movie.app.best.data.remote.BypassConfirmEvent
 import com.movie.app.best.data.remote.BypassWsClient
+import com.movie.app.best.data.remote.ConfirmCancelledException
 import com.ketch.Ketch
 import com.ketch.Status
 import com.ketch.DownloadModel
@@ -26,6 +28,8 @@ import javax.inject.Singleton
 
 const val DOWNLOAD_USER_AGENT =
     "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
+
+const val CONFIRM_CANCELLED = "__confirm_cancelled__"
 
 private data class CachedCookie(val header: String, val expiresAtMs: Long)
 
@@ -83,11 +87,15 @@ class DownloadRepository @Inject constructor(
             r.contains("cloudflare") || r.contains("just a moment")
     }
 
-    fun resolveDownloadUrls(linkUrl: String, onLog: (String) -> Unit = {}): Flow<Resource<List<ResolvedMirror>>> = flow {
+    fun resolveDownloadUrls(
+        linkUrl: String,
+        onLog: (String) -> Unit = {},
+        onConfirm: (suspend (BypassConfirmEvent) -> String?)? = null
+    ): Flow<Resource<List<ResolvedMirror>>> = flow {
         emit(Resource.Loading())
         try {
             NetworkLogger.logAction("RESOLVE", "linkUrl=$linkUrl (ws)")
-            val done = bypassWsClient.resolve(linkUrl, fetchInfo = true, onLog = onLog)
+            val done = bypassWsClient.resolve(linkUrl, fetchInfo = true, onLog = onLog, onConfirm = onConfirm)
             val results = done.results
             val successItems = results.filter { it.status == "SUCCESS" && !it.jackpot.isNullOrEmpty() }
             if (successItems.isEmpty()) {
@@ -123,6 +131,9 @@ class DownloadRepository @Inject constructor(
             }
             NetworkLogger.logAction("RESOLVE", "mirrors=${mirrors.size}")
             emit(Resource.Success(mirrors))
+        } catch (e: ConfirmCancelledException) {
+            NetworkLogger.logAction("RESOLVE_CANCELLED", "confirm cancelled by user/timeout")
+            emit(Resource.Error(CONFIRM_CANCELLED))
         } catch (e: Exception) {
             NetworkLogger.logAction("RESOLVE_ERR", e.message ?: "unknown")
             emit(Resource.Error(e.message ?: "Failed to resolve download URL"))

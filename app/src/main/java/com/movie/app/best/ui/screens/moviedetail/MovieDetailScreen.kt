@@ -31,6 +31,7 @@ import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.CelebrationOverlay
 import com.movie.app.best.ui.components.ErrorView
 import com.movie.app.best.ui.components.LoginRequiredDialog
+import com.movie.app.best.ui.components.QualityConfirmDialog
 import com.movie.app.best.ui.components.SkeletonDetailPage
 import com.movie.app.best.ui.components.StorylineWarningBadge
 import com.movie.app.best.ui.components.CollapsibleCrewRow
@@ -288,6 +289,13 @@ fun MovieDetailScreen(
                 },
                 onDismiss = { showLoginDialog = false },
                 anchorCenter = lastTap.takeIf { it != Offset.Unspecified }
+            )
+        }
+
+        uiState.qualityConfirm?.let { req ->
+            QualityConfirmDialog(
+                request = req,
+                onChoose = { id -> viewModel.chooseQuality(id) }
             )
         }
     }

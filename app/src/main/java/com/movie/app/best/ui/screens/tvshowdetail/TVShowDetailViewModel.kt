@@ -21,8 +21,11 @@ import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.repository.MovieRepository
 import com.movie.app.best.data.repository.MyListRefreshState
 import com.movie.app.best.data.repository.ResolvedMirror
+import com.movie.app.best.data.repository.CONFIRM_CANCELLED
 import com.movie.app.best.data.model.DownloadPhase
+import com.movie.app.best.data.remote.BypassConfirmEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +51,8 @@ class TVShowDetailViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TVShowDetailUiState())
     val uiState: StateFlow<TVShowDetailUiState> = _uiState.asStateFlow()
+
+    private var qualityDeferred: CompletableDeferred<String?>? = null
 
     init {
         MyListRefreshState.markStale()
@@ -204,6 +209,14 @@ class TVShowDetailViewModel @Inject constructor(
                     val prev = state.downloadLogs[linkId] ?: emptyList()
                     state.copy(downloadLogs = state.downloadLogs + (linkId to (prev + line).takeLast(200)))
                 }
+            }, onConfirm = { event ->
+                val deferred = CompletableDeferred<String?>()
+                qualityDeferred = deferred
+                _uiState.update { it.copy(qualityConfirm = event) }
+                val choice = deferred.await()
+                qualityDeferred = null
+                _uiState.update { it.copy(qualityConfirm = null) }
+                choice
             }).collect { result ->
                 when (result) {
                     is Resource.Loading -> {}
@@ -241,16 +254,32 @@ class TVShowDetailViewModel @Inject constructor(
                         observeDownloadStatus(ketchId, slug + (episodeLabel ?: ""))
                     }
                     is Resource.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                downloadLoadingLinkId = null,
-                                downloadError = result.error
-                            )
+                        if (result.error == CONFIRM_CANCELLED) {
+                            _uiState.update {
+                                it.copy(
+                                    downloadPhase = DownloadPhase.NONE,
+                                    downloadLoadingLinkId = null,
+                                    downloadError = null,
+                                    downloadStarted = false,
+                                    qualityConfirm = null
+                                )
+                            }
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    downloadLoadingLinkId = null,
+                                    downloadError = result.error
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    fun chooseQuality(id: String?) {
+        qualityDeferred?.complete(id)
     }
 
     fun startDirectDownload(mirror: ResolvedMirror, episodeId: Int? = null, episodeLabel: String? = null) {
@@ -854,6 +883,7 @@ data class TVShowDetailUiState(
     val downloadFallbackInfo: String? = null,
     val pendingMirrorEpisodeId: Int? = null,
     val pendingMirrorEpisodeLabel: String? = null,
+    val qualityConfirm: BypassConfirmEvent? = null,
 
     val isBookmarked: Boolean = false,
     val isLiked: Boolean = false,

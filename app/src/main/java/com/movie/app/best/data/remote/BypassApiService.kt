@@ -24,3 +24,18 @@ data class BypassFileInfo(
     val resumable: Boolean?,
     @SerializedName("content_type") val contentType: String?
 )
+
+data class BypassConfirmEvent(
+    @SerializedName("confirm_id") val confirmId: String? = null,
+    val prompt: String? = null,
+    val multiple: Boolean = false,
+    @SerializedName("default") val defaultOption: String? = null,
+    val options: List<BypassOption> = emptyList()
+)
+
+data class BypassOption(
+    val id: String,
+    val label: String? = null,
+    val meta: String? = null,
+    val default: Boolean = false
+)

@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
+class ConfirmCancelledException : Exception("confirm cancelled")
+
 @Singleton
 class BypassWsClient @Inject constructor(private val gson: Gson) {
 
@@ -99,9 +101,10 @@ class BypassWsClient @Inject constructor(private val gson: Gson) {
     suspend fun resolve(
         linkUrl: String,
         fetchInfo: Boolean = true,
-        onLog: (String) -> Unit = {}
+        onLog: (String) -> Unit = {},
+        onConfirm: (suspend (BypassConfirmEvent) -> String?)? = null
     ): BypassDoneEvent = withContext(Dispatchers.IO) {
-        val session = Session(linkUrl, fetchInfo, onLog)
+        val session = Session(linkUrl, fetchInfo, onLog, onConfirm)
         try {
             withTimeout(SESSION_TIMEOUT_MS) { session.await() }
         } finally {
@@ -112,7 +115,8 @@ class BypassWsClient @Inject constructor(private val gson: Gson) {
     private inner class Session(
         private val linkUrl: String,
         private val fetchInfo: Boolean,
-        private val onLog: (String) -> Unit
+        private val onLog: (String) -> Unit,
+        private val onConfirm: (suspend (BypassConfirmEvent) -> String?)? = null
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         private val result = CompletableDeferred<BypassDoneEvent>()
@@ -150,6 +154,31 @@ class BypassWsClient @Inject constructor(private val gson: Gson) {
                             val reply = runCatching { executeFetch(msg).toString() }
                                 .getOrElse { fetchError(it.message ?: "fetch failed").toString() }
                             runCatching { webSocket.send(reply) }
+                        }
+                        "confirm" -> scope.launch {
+                            val event = runCatching { gson.fromJson(text, BypassConfirmEvent::class.java) }
+                                .getOrNull() ?: BypassConfirmEvent()
+                            val chosen: String? = if (onConfirm != null) {
+                                onConfirm(event)
+                            } else {
+                                event.defaultOption
+                                    ?: event.options.firstOrNull { it.default }?.id
+                                    ?: event.options.firstOrNull()?.id
+                            }
+                            val socket = webSocket
+                            if (chosen != null && socket != null) {
+                                val reply = JsonObject().apply {
+                                    addProperty("type", "confirm_result")
+                                    event.confirmId?.let { addProperty("confirm_id", it) }
+                                    addProperty("choice", chosen)
+                                }
+                                runCatching { socket.send(reply.toString()) }
+                            } else {
+                                if (finished.compareAndSet(false, true)) {
+                                    result.completeExceptionally(ConfirmCancelledException())
+                                }
+                                runCatching { socket?.close(1000, "confirm cancelled") }
+                            }
                         }
                         "done" -> {
                             val event = runCatching { gson.fromJson(text, BypassDoneEvent::class.java) }
