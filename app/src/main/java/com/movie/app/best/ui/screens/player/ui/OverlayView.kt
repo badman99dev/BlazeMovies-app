@@ -86,8 +86,8 @@ fun BoxScope.OverlayView(
                             Brush.horizontalGradient(
                                 colorStops = arrayOf(
                                     0f to Color.Transparent,
-                                    0.5f to SheetPanelDark.copy(alpha = 0.79f),
-                                    1f to SheetPanelDark.copy(alpha = 1f),
+                                    0.5f to SheetPanelDark.copy(alpha = 0.52f),
+                                    1f to SheetPanelDark.copy(alpha = 0.72f),
                                 )
                             )
                         )
