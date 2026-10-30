@@ -27,11 +27,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 private val LabelShadow = Shadow(
     color = Color.Black.copy(alpha = 0.65f),
@@ -41,16 +43,15 @@ private val LabelShadow = Shadow(
 
 @Composable
 fun VerticalGestureIndicator(
-    value: Int,
+    percent: Float,
     label: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    maxValue: Int = 100,
     barHeight: Dp = 170.dp,
     labelOnRight: Boolean = false,
 ) {
-    val clamped = value.coerceIn(0, maxValue)
-    val fraction = clamped.toFloat() / maxValue.toFloat()
+    val clampedPercent = percent.coerceIn(0f, 100f)
+    val fraction = clampedPercent / 100f
     val animatedFill by animateFloatAsState(
         targetValue = fraction,
         animationSpec = tween(70, easing = LinearEasing),
@@ -72,17 +73,23 @@ fun VerticalGestureIndicator(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
         ) {
-            Text(
-                text = "$clamped%",
-                color = Color.White.copy(alpha = 0.92f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                style = TextStyle(shadow = LabelShadow),
-            )
+            Box(
+                modifier = Modifier.width(44.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "${clampedPercent.roundToInt()}%",
+                    color = Color.White.copy(alpha = 0.92f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    style = TextStyle(shadow = LabelShadow),
+                )
+            }
             Spacer(modifier = Modifier.height(10.dp))
             Box(
                 modifier = Modifier
-                    .width(3.dp)
+                    .width(4.dp)
                     .height(barHeight)
                     .clip(RoundedCornerShape(50))
                     .background(Color.White.copy(alpha = 0.28f)),

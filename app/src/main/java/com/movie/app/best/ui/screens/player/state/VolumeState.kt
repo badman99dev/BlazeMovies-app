@@ -12,6 +12,7 @@ import androidx.compose.runtime.DisposableEffectResult
 import androidx.compose.runtime.DisposableEffectScope
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,10 +45,18 @@ class VolumeState(
     var volumePercentage: Int by mutableIntStateOf(calculateVolumePercentage())
         private set
 
+    /** Continuous 0f..1f level so the gesture indicator fills smoothly instead of
+     *  snapping to the coarse system volume steps (e.g. 0, 6, 13, 20 ...). */
+    var volumeFraction: Float by mutableFloatStateOf(calculateVolumePercentage() / 100f)
+        private set
+
+    private var lastSetVolume: Int = -1
+
     fun updateVolumePercentage(percentage: Int) {
         val clampedPercentage = percentage.coerceIn(0, maxVolumePercentage)
-        val targetVolume = (clampedPercentage * systemMaxVolume) / 100
-        setVolume(targetVolume)
+        volumeFraction = (clampedPercentage / 100f).coerceIn(0f, 1f)
+        val targetVolume = (volumeFraction * systemMaxVolume).toInt().coerceIn(0, systemMaxVolume)
+        setVolume(targetVolume, keepFraction = true)
     }
 
     fun increaseVolume() { setVolume(currentVolume + 1) }
@@ -60,6 +69,9 @@ class VolumeState(
                     if (intent.action == VOLUME_CHANGED_ACTION) {
                         currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
                         volumePercentage = calculateVolumePercentage()
+                        if (currentVolume != lastSetVolume) {
+                            volumeFraction = currentVolume.toFloat() / systemMaxVolume
+                        }
                     }
                 }
             }
@@ -71,10 +83,14 @@ class VolumeState(
             onDispose { context.unregisterReceiver(receiver) }
         }
 
-    private fun setVolume(volume: Int) {
+    private fun setVolume(volume: Int, keepFraction: Boolean = false) {
         val clampedVolume = volume.coerceIn(0, systemMaxVolume)
         currentVolume = clampedVolume
+        lastSetVolume = clampedVolume
         volumePercentage = calculateVolumePercentage()
+        if (!keepFraction) {
+            volumeFraction = clampedVolume.toFloat() / systemMaxVolume
+        }
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, clampedVolume, 0)
     }
 
