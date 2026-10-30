@@ -143,12 +143,12 @@ fun ControlsBottomView(
 
                 IconButton(
                     onClick = onFullscreenClick,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = if (isEffectivelyFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
                         contentDescription = if (isEffectivelyFullscreen) "Exit Fullscreen" else "Fullscreen",
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = Color.White.copy(alpha = 0.9f),
                     )
                 }
@@ -263,11 +263,11 @@ private fun CustomSeekbar(
     barHeight: Dp = if (isLive) 12.dp else 20.dp,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    val trackHeight = 2.dp
+    val trackHeight = 3.dp
     val hasDvr = isLive && duration >= 90_000f
     val isPureLive = isLive && !hasDvr
     val canSeek = !isLive || hasDvr
-    val thumbRadius = if (canSeek && !isPureLive) 6.dp else 0.dp
+    val thumbRadius = if (canSeek && !isPureLive) 7.dp else 0.dp
     
     // 🎯 Virtual Max: Subtract 6s safety margin from visual live duration so seekbar reaches 100% right edge!
     val virtualDuration = if (isLive && duration > 6000f) (duration - 6000f) else duration

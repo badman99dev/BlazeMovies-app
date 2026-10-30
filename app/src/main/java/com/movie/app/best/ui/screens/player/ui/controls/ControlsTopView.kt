@@ -62,25 +62,25 @@ fun ControlsTopView(
                 horizontalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 PlayerButton(onClick = onPlaybackSpeedClick) {
-                    Icon(imageVector = Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
+                    Icon(imageVector = Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = 0.85f))
                 }
                 PlayerButton(onClick = onSubtitleClick, onLongClick = onSubtitleLongClick) {
                     Icon(
                         imageVector = if (isCaptionOn) Icons.Default.ClosedCaption else ClosedCaptionOutlined,
                         contentDescription = "Captions",
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = Color.White.copy(alpha = if (isCaptionOn) 0.95f else 0.7f)
                     )
                 }
                 PlayerButton(onClick = onAudioClick) {
-                    Icon(imageVector = Icons.Default.Audiotrack, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
+                    Icon(imageVector = Icons.Default.Audiotrack, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = 0.85f))
                 }
                 PlayerButton(onClick = onQualityClick) {
-                    Icon(imageVector = Icons.Default.HighQuality, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
+                    Icon(imageVector = Icons.Default.HighQuality, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = 0.85f))
                 }
                 if (showServerButton) {
                     PlayerButton(onClick = onServerClick) {
-                        Icon(imageVector = Icons.Default.Storage, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
+                        Icon(imageVector = Icons.Default.Storage, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = 0.85f))
                     }
                 }
             }

@@ -58,7 +58,7 @@ fun PlayerButton(
         IconButton(
             onClick = if (onLongClick == null) onClick else {{}},
             enabled = isEnabled,
-            modifier = modifier.size(40.dp),
+            modifier = modifier.size(48.dp),
             interactionSource = interactionSource,
             colors = IconButtonDefaults.iconButtonColors().copy(containerColor = containerColor),
             content = content,
