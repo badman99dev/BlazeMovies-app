@@ -1,6 +1,6 @@
 package com.movie.app.best.ui.screens.player.ui
 
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -54,7 +54,7 @@ fun VerticalGestureIndicator(
     val fraction = clampedPercent / 100f
     val animatedFill by animateFloatAsState(
         targetValue = fraction,
-        animationSpec = tween(70, easing = LinearEasing),
+        animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "gestureFill",
     )
 

@@ -406,7 +406,7 @@ fun MediaPlayerScreen(
                         exit = fadeOut() + slideOutHorizontally { -it / 4 },
                     ) {
                         VerticalGestureIndicator(
-                            percent = volumeState.volumeFraction * 100f,
+                            percent = volumeState.volumePercentage.toFloat(),
                             label = "Volume",
                             icon = if (volumeState.currentVolume <= 0) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
                             barHeight = gestureBarHeight,
@@ -421,7 +421,7 @@ fun MediaPlayerScreen(
                         exit = fadeOut() + slideOutHorizontally { it / 4 },
                     ) {
                         VerticalGestureIndicator(
-                            percent = brightnessState.currentBrightness * 100f,
+                            percent = brightnessState.brightnessPercentage.toFloat(),
                             label = "Brightness",
                             icon = Icons.Outlined.SettingsBrightness,
                             barHeight = gestureBarHeight,
