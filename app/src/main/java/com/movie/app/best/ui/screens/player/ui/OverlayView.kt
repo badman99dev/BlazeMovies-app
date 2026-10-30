@@ -55,7 +55,7 @@ fun BoxScope.OverlayView(
     ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = if (isPortrait) MaterialTheme.colorScheme.surface else Color.Transparent,
+            color = if (isPortrait) Color.Black.copy(alpha = 0.55f) else Color.Transparent,
             modifier = modifier.then(
                 if (isPortrait) {
                     Modifier.fillMaxWidth().fillMaxHeight(0.45f)

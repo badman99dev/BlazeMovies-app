@@ -439,7 +439,7 @@ fun MediaPlayerScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.7f))
+                                .background(Color.Black.copy(alpha = 0.38f))
                                 .clickable { overlayView = null }
                         )
                         when (overlayView) {
