@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -90,6 +91,17 @@ fun LiveChatSheet(
     var inputText by remember { mutableStateOf("") }
     var isSending by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
+
+    var guidelinesVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(state.isConnected, state.messages.isEmpty()) {
+        if (state.isConnected && state.messages.isEmpty()) {
+            // small grace window: join history usually lands right after connect
+            delay(800)
+            guidelinesVisible = state.isConnected && state.messages.isEmpty()
+        } else {
+            guidelinesVisible = false
+        }
+    }
 
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
@@ -205,12 +217,14 @@ fun LiveChatSheet(
                     }
                 }
 
-                // Empty state: community guidelines instead of a blank panel
-                if (state.messages.isEmpty()) {
+                // Empty state: community guidelines — only after the server has
+                // confirmed the room is connected and has no messages, otherwise it
+                // flashes for a moment before the history arrives.
+                if (guidelinesVisible) {
                     EmptyChatGuidelines(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 18.dp, end = 54.dp, top = 14.dp, bottom = 62.dp)
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
                     )
                 }
 
@@ -291,19 +305,22 @@ fun LiveChatSheet(
 private fun EmptyChatGuidelines(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "Live chat is quiet right now",
             color = TextWhite,
             fontSize = 13.5.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = "Say hi and get the conversation started.",
             color = TextWhite.copy(alpha = 0.55f),
-            fontSize = 12.sp
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(14.dp))
         Box(
