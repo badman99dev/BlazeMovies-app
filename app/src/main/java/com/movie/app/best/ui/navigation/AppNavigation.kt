@@ -37,6 +37,7 @@ import com.movie.app.best.ui.screens.search.SearchScreen
 import com.movie.app.best.ui.screens.tvshowdetail.TVShowDetailScreen
 import com.movie.app.best.ui.screens.tvshows.TVShowsScreen
 import com.movie.app.best.ui.screens.livetv.LiveTvScreen
+import com.movie.app.best.ui.screens.livetv.LiveTvWatchScreen
 import com.movie.app.best.ui.screens.serieswatch.SeriesWatchScreen
 import com.movie.app.best.ui.screens.moviewatch.MovieWatchScreen
 import java.net.URLEncoder
@@ -122,6 +123,11 @@ sealed class Screen(val route: String) {
     object MovieWatch : Screen("movieWatch/{slug}?imdbId={imdbId}&title={title}&movieId={movieId}&hasStream={hasStream}&playerUrl={playerUrl}&posterUrl={posterUrl}&cast={cast}&director={director}&description={description}&genres={genres}") {
         fun createRoute(slug: String, imdbId: String, title: String, movieId: String, hasStream: Boolean, playerUrl: String, posterUrl: String, cast: String = "", director: String = "", description: String = "", genres: String = ""): String {
             return "movieWatch/${Uri.encode(slug)}?imdbId=${URLEncoder.encode(imdbId, "UTF-8")}&title=${Uri.encode(title)}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&hasStream=$hasStream&playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&posterUrl=${URLEncoder.encode(posterUrl, "UTF-8")}&cast=${Uri.encode(cast)}&director=${Uri.encode(director)}&description=${Uri.encode(description)}&genres=${Uri.encode(genres)}"
+        }
+    }
+    object LiveTvWatch : Screen("liveTvWatch/{channelId}?name={name}&url={url}&category={category}&logo={logo}") {
+        fun createRoute(channelId: String, name: String, url: String, category: String = "", logo: String = ""): String {
+            return "liveTvWatch/${Uri.encode(channelId.ifBlank { name })}?name=${Uri.encode(name)}&url=${URLEncoder.encode(url, "UTF-8")}&category=${Uri.encode(category)}&logo=${URLEncoder.encode(logo, "UTF-8")}"
         }
     }
     object VideoPlayer : Screen("videoPlayer?playerUrl={playerUrl}&streamUrl={streamUrl}&title={title}&youtubeId={youtubeId}&movieId={movieId}&slug={slug}&isLive={isLive}&contentSource={contentSource}") {
@@ -424,17 +430,46 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onChannelClick = { channel ->
                     navController.navigate(
-                        Screen.VideoPlayer.createRoute(
-                            playerUrl = channel.streamUrl,
-                            streamUrl = "",
-                            title = channel.name,
-                            youtubeId = "",
-                            isLive = true,
-                            contentSource = "live_tv"
+                        Screen.LiveTvWatch.createRoute(
+                            channelId = channel.id,
+                            name = channel.name,
+                            url = channel.streamUrl,
+                            category = channel.category,
+                            logo = channel.logoUrl
                         )
                     )
                 },
                 onSearchClick = { navController.navigate(Screen.Search.route) }
+            )
+        }
+
+        composable(
+            route = Screen.LiveTvWatch.route,
+            arguments = listOf(
+                navArgument("channelId") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType; defaultValue = "" },
+                navArgument("url") { type = NavType.StringType; defaultValue = "" },
+                navArgument("category") { type = NavType.StringType; defaultValue = "" },
+                navArgument("logo") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val openChannel = { ch: com.movie.app.best.data.model.UnifiedChannel ->
+                navController.navigate(
+                    Screen.LiveTvWatch.createRoute(
+                        channelId = ch.id,
+                        name = ch.name,
+                        url = ch.streamUrl,
+                        category = ch.category,
+                        logo = ch.logoUrl
+                    )
+                ) {
+                    popUpTo(Screen.LiveTvWatch.route) { inclusive = true }
+                }
+            }
+            LiveTvWatchScreen(
+                onBackClick = { navController.popBackStack() },
+                onLoginRequired = { navController.navigate(Screen.Login.route) },
+                onSimilarChannelClick = openChannel
             )
         }
 
