@@ -81,7 +81,7 @@ fun VerticalGestureIndicator(
             Spacer(modifier = Modifier.height(10.dp))
             Box(
                 modifier = Modifier
-                    .width(4.dp)
+                    .width(6.dp)
                     .height(barHeight)
                     .clip(RoundedCornerShape(50))
                     .background(Color.White.copy(alpha = 0.28f)),
