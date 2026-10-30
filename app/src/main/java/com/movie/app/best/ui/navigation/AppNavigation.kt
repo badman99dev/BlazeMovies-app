@@ -403,13 +403,12 @@ fun AppNavigation(
                 onZee5Click = { id -> navController.navigate("zee5_detail/$id") },
                 onTvChannelClick = { channel ->
                     navController.navigate(
-                        Screen.VideoPlayer.createRoute(
-                            playerUrl = channel.streamUrl,
-                            streamUrl = "",
-                            title = channel.name,
-                            youtubeId = "",
-                            isLive = true,
-                            contentSource = "live_tv"
+                        Screen.LiveTvWatch.createRoute(
+                            channelId = channel.id,
+                            name = channel.name,
+                            url = channel.streamUrl,
+                            category = channel.category,
+                            logo = channel.logoUrl
                         )
                     )
                 }

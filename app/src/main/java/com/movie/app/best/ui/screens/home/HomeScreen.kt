@@ -99,7 +99,13 @@ fun HomeScreen(
                         isLoading = uiState.isLiveChannelsLoading && uiState.liveChannels.isEmpty(),
                         onChannelClick = { channel ->
                             navController.navigate(
-                                "videoPlayer?playerUrl=${channel.streamUrl}&title=${channel.name}&isLive=true"
+                                com.movie.app.best.ui.navigation.Screen.LiveTvWatch.createRoute(
+                                    channelId = channel.id.toString(),
+                                    name = channel.name,
+                                    url = channel.streamUrl,
+                                    category = channel.category,
+                                    logo = channel.logoUrl
+                                )
                             )
                         },
                         onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
