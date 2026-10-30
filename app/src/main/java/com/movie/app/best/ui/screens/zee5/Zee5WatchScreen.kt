@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -363,136 +362,149 @@ fun Zee5WatchScreen(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppBlack)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+        LazyColumn(
+            state = episodeListState,
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            val title = state.currentEpisode?.title ?: state.detail?.title
-            if (!title.isNullOrEmpty()) {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    state.detail?.releaseDate?.let {
+            item(key = "zee5_meta") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AppBlack)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    val title = state.currentEpisode?.title ?: state.detail?.title
+                    if (!title.isNullOrEmpty()) {
                         Text(
-                            text = it.take(4),
-                            color = SecondaryText,
-                            fontSize = 12.sp
+                            text = title,
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    state.detail?.ageRating?.let {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = it,
-                                color = Color.White,
-                                fontSize = 11.sp
-                            )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            state.detail?.releaseDate?.let {
+                                Text(
+                                    text = it.take(4),
+                                    color = SecondaryText,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            state.detail?.ageRating?.let {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = it,
+                                        color = Color.White,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            state.detail?.languages?.firstOrNull()?.let { lang ->
+                                Text(
+                                    text = lang,
+                                    color = SecondaryText,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            state.currentEpisode?.episodeNumber?.let {
+                                Text(
+                                    text = "Episode $it",
+                                    color = SecondaryText,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            GlassBadge(text = "HD", tint = Color.White)
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
                     }
-                    state.detail?.languages?.firstOrNull()?.let { lang ->
-                        Text(
-                            text = lang,
-                            color = SecondaryText,
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    state.currentEpisode?.episodeNumber?.let {
-                        Text(
-                            text = "Episode $it",
-                            color = SecondaryText,
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    GlassBadge(text = "HD", tint = Color.White)
-                }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            val description = state.currentEpisode?.description ?: state.detail?.description
-            description?.let { desc ->
-                Text(
-                    text = desc,
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 13.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 19.sp
-                )
-            }
-        }
-
-        if (state.seasons.size > 1) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(AppBlack)
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                state.seasons.forEach { season ->
-                    val isSelected = season.id == state.selectedSeasonId
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (isSelected) AppRed else CardDark)
-                            .clickable { season.id?.let { viewModel.selectSeason(it) } }
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                    ) {
+                    val description = state.currentEpisode?.description ?: state.detail?.description
+                    description?.let { desc ->
                         Text(
-                            text = season.title ?: "Season ${season.seasonNumber}",
-                            color = if (isSelected) Color.White else SecondaryText,
+                            text = desc,
+                            color = Color.White.copy(alpha = 0.75f),
                             fontSize = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 19.sp
                         )
                     }
                 }
             }
-        }
 
-        when {
-            state.detail?.isTvShow == true -> {
-                Text(
-                    text = "Episodes",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
-                if (state.episodes.isEmpty() && !state.isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize().padding(32.dp),
-                        contentAlignment = Alignment.Center
+            if (state.seasons.size > 1) {
+                item(key = "zee5_seasons") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(AppBlack)
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("No episodes available", color = SecondaryText, fontSize = 14.sp)
+                        state.seasons.forEach { season ->
+                            val isSelected = season.id == state.selectedSeasonId
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(if (isSelected) AppRed else CardDark)
+                                    .clickable { season.id?.let { viewModel.selectSeason(it) } }
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = season.title ?: "Season ${season.seasonNumber}",
+                                    color = if (isSelected) Color.White else SecondaryText,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
                     }
-                } else {
-                    LazyColumn(
-                        state = episodeListState,
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(0.dp)
-                    ) {
+                }
+            }
+
+            when {
+                state.detail?.isTvShow == true -> {
+                    item(key = "zee5_episodes_label") {
+                        Text(
+                            text = "Episodes",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    if (state.episodes.isEmpty() && !state.isLoading) {
+                        item(key = "zee5_empty") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No episodes available", color = SecondaryText, fontSize = 14.sp)
+                            }
+                        }
+                    } else {
                         items(state.episodes, key = { it.id ?: it.episodeNumber?.toString() ?: it.title ?: "" }) { episode ->
                             Zee5WatchEpisodeCard(
                                 episode = episode,
@@ -502,7 +514,7 @@ fun Zee5WatchScreen(
                         }
 
                         if (state.isLoadingMore) {
-                            item {
+                            item(key = "zee5_loading_more") {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -515,7 +527,7 @@ fun Zee5WatchScreen(
                         }
 
                         if (!state.hasMoreEpisodes && state.episodes.isNotEmpty()) {
-                            item {
+                            item(key = "zee5_bottom_badge") {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -527,174 +539,36 @@ fun Zee5WatchScreen(
                             }
                         }
 
-                        item { Spacer(modifier = Modifier.height(80.dp)) }
-                    }
-                }
-            }
-            state.detail?.isMovie == true -> {
-                val related = state.detail?.related
-                if (!related.isNullOrEmpty()) {
-                    Zee5RelatedSection(
-                        related = related,
-                        onItemClick = { item ->
-                            item.id?.let { onRelatedItemClick(it) }
-                        }
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize().padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No recommendations available", color = SecondaryText, fontSize = 14.sp)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun Zee5WatchEpisodeCard(
-    episode: Zee5Item,
-    isPlaying: Boolean,
-    onPlayClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        label = "watch_ep_press"
-    )
-
-    val titleColor = if (isPlaying) AppRed else Color.White
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer { scaleX = scale; scaleY = scale }
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onPlayClick
-                )
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(140.dp)
-                    .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CardDark)
-            ) {
-                val thumbUrl = episode.effectiveLandscapeUrl ?: episode.effectiveImageUrl
-                if (thumbUrl != null) {
-                    AsyncImage(
-                        model = thumbUrl,
-                        contentDescription = episode.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Brush.verticalGradient(colors = listOf(Color(0xFF1A1A2E), Color(0xFF16213E)))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "E${episode.episodeNumber ?: "?"}",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                        item(key = "zee5_bottom_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
                     }
                 }
 
-                if (isPlaying) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(6.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(AppRed)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text("NOW PLAYING", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                    }
-                }
-
-                episode.duration?.let { duration ->
-                    if (duration > 0) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(6.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color.Black.copy(alpha = 0.7f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "${duration / 60} min",
-                                color = Color.White,
-                                fontSize = 10.sp
+                state.detail?.isMovie == true -> {
+                    val related = state.detail?.related
+                    if (!related.isNullOrEmpty()) {
+                        item(key = "zee5_related") {
+                            Zee5RelatedSection(
+                                related = related,
+                                onItemClick = { relatedItem ->
+                                    relatedItem.id?.let { onRelatedItemClick(it) }
+                                }
                             )
                         }
+                    } else {
+                        item(key = "zee5_no_recommendations") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No recommendations available", color = SecondaryText, fontSize = 14.sp)
+                            }
+                        }
                     }
                 }
             }
-
-            Column(modifier = Modifier.weight(1f)) {
-                val titleText = episode.episodeNumber?.let { "$it. ${episode.title ?: "Untitled"}" } ?: (episode.title ?: "Untitled")
-                Text(
-                    text = titleText,
-                    color = titleColor,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                val meta = buildList {
-                    episode.episodeNumber?.let { add("Episode $it") }
-                    episode.duration?.let { if (it > 0) add("${it / 60} min") }
-                    episode.releaseDate?.let { try { add(java.text.SimpleDateFormat("yyyy", java.util.Locale.US).format(java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(it) ?: return@let)) } catch (_: Exception) {} }
-                }.joinToString(" · ")
-
-                if (meta.isNotEmpty()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(meta, color = SecondaryText, fontSize = 12.sp)
-                }
-
-                if (!episode.description.isNullOrBlank()) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = episode.description,
-                        color = Color.White.copy(alpha = 0.65f),
-                        fontSize = 13.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Icon(
-                imageVector = Icons.Filled.Download,
-                contentDescription = "Download",
-                tint = SecondaryText,
-                modifier = Modifier.size(22.dp)
-            )
         }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            color = Color.White.copy(alpha = 0.06f),
-            thickness = 0.5.dp
-        )
     }
 }
-
-

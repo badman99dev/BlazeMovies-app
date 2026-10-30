@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -188,14 +187,6 @@ fun EpisodeCard(
                 }
             }
 
-            if (episode.available) {
-                Icon(
-                    imageVector = Icons.Filled.Download,
-                    contentDescription = "Download",
-                    tint = SecondaryText,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
         }
 
         HorizontalDivider(

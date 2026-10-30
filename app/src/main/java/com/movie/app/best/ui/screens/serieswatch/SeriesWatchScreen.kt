@@ -45,7 +45,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
@@ -540,203 +539,230 @@ fun SeriesWatchScreen(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppBlack)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+        val episodes = state.mergedEpisodes
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            val headerTitle = state.currentEpisode?.title ?: state.titleDetails?.primaryTitle ?: ""
-            if (headerTitle.isNotBlank()) {
-                Text(
-                    text = headerTitle,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val year = state.currentEpisode?.releaseYear?.takeIf { it.isNotBlank() }
-                        ?: state.titleDetails?.startYear?.takeIf { it > 0 }?.toString()
-                    year?.let {
+            item(key = "series_meta") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AppBlack)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    val headerTitle = state.currentEpisode?.title ?: state.titleDetails?.primaryTitle ?: ""
+                    if (headerTitle.isNotBlank()) {
                         Text(
-                            text = it,
-                            color = SecondaryText,
-                            fontSize = 12.sp
+                            text = headerTitle,
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    state.ageRating.takeIf { it.isNotBlank() }?.let {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = it,
-                                color = Color.White,
-                                fontSize = 11.sp
-                            )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val year = state.currentEpisode?.releaseYear?.takeIf { it.isNotBlank() }
+                                ?: state.titleDetails?.startYear?.takeIf { it > 0 }?.toString()
+                            year?.let {
+                                Text(
+                                    text = it,
+                                    color = SecondaryText,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            state.ageRating.takeIf { it.isNotBlank() }?.let {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = it,
+                                        color = Color.White,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            state.currentEpisode?.episodeNo?.let {
+                                Text(
+                                    text = "Episode $it",
+                                    color = SecondaryText,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            GlassBadge(text = "HD", tint = Color.White)
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
                     }
-                    state.currentEpisode?.episodeNo?.let {
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val description = state.currentEpisode?.plot?.takeIf { it.isNotBlank() }
+                        ?: state.titleDetails?.plot?.takeIf { it.isNotBlank() }
+                        ?: state.backendDescription?.takeIf { it.isNotBlank() }
+                    description?.let { desc ->
                         Text(
-                            text = "Episode $it",
-                            color = SecondaryText,
-                            fontSize = 12.sp
+                            text = desc,
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontSize = 13.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 19.sp
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
                     }
-                    GlassBadge(text = "HD", tint = Color.White)
+
+                    val titleDetails = state.titleDetails
+                    val crew = when {
+                        state.crewCredits.isNotEmpty() -> state.crewCredits
+                        titleDetails != null -> {
+                            val directors = titleDetails.directors.map { CrewPerson.fromName(it, CrewPerson.CAT_DIRECTOR) }
+                            val stars = titleDetails.stars.map { CrewPerson.fromName(it, CrewPerson.CAT_ACTOR) }
+                            CrewPerson.sortCrew(directors + stars)
+                        }
+                        state.backendCast.isNotBlank() -> {
+                            state.backendCast.split(",").mapNotNull { name ->
+                                val trimmed = name.trim()
+                                if (trimmed.isNotBlank()) CrewPerson(displayName = trimmed) else null
+                            }
+                        }
+                        else -> emptyList()
+                    }
+                    if (crew.isNotEmpty()) {
+                        CollapsibleCrewRow(crew, onNameClick = onCelebClick)
+                    }
+
+                    val watchInterests = titleDetails?.interests ?: emptyList()
+                    if (watchInterests.isNotEmpty()) {
+                        InterestsGenreSection(
+                            interests = watchInterests,
+                            onInterestClick = onInterestClick
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (state.seasonKeys.isNotEmpty()) {
+                item(key = "series_seasons") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(AppBlack)
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        state.seasonKeys.forEach { seasonNo ->
+                            val isSelected = seasonNo == state.selectedSeason
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(if (isSelected) AppRed else CardDark)
+                                    .clickable { viewModel.selectSeason(seasonNo) }
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "Season $seasonNo",
+                                    color = if (isSelected) Color.White else SecondaryText,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
-            val description = state.currentEpisode?.plot?.takeIf { it.isNotBlank() }
-                ?: state.titleDetails?.plot?.takeIf { it.isNotBlank() }
-                ?: state.backendDescription?.takeIf { it.isNotBlank() }
-            description?.let { desc ->
+            item(key = "series_episodes_label") {
                 Text(
-                    text = desc,
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 13.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 19.sp
+                    text = "Episodes",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
-            val titleDetails = state.titleDetails
-            val crew = when {
-                state.crewCredits.isNotEmpty() -> state.crewCredits
-                titleDetails != null -> {
-                    val directors = titleDetails.directors.map { CrewPerson.fromName(it, CrewPerson.CAT_DIRECTOR) }
-                    val stars = titleDetails.stars.map { CrewPerson.fromName(it, CrewPerson.CAT_ACTOR) }
-                    CrewPerson.sortCrew(directors + stars)
-                }
-                state.backendCast.isNotBlank() -> {
-                    state.backendCast.split(",").mapNotNull { name ->
-                        val trimmed = name.trim()
-                        if (trimmed.isNotBlank()) CrewPerson(displayName = trimmed) else null
-                    }
-                }
-                else -> emptyList()
-            }
-            if (crew.isNotEmpty()) {
-                CollapsibleCrewRow(crew, onNameClick = onCelebClick)
-            }
-
-            val watchInterests = titleDetails?.interests ?: emptyList()
-            if (watchInterests.isNotEmpty()) {
-                InterestsGenreSection(
-                    interests = watchInterests,
-                    onInterestClick = onInterestClick
-                )
-            }
-        }
-
-        if (state.seasonKeys.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(AppBlack)
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                state.seasonKeys.forEach { seasonNo ->
-                    val isSelected = seasonNo == state.selectedSeason
+            when {
+                state.isLoading && state.currentEpisode == null -> item(key = "series_state") {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (isSelected) AppRed else CardDark)
-                            .clickable { viewModel.selectSeason(seasonNo) }
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = AppRed, modifier = Modifier.size(40.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Fetching episodes...", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
+                        }
+                    }
+                }
+
+                state.error != null -> item(key = "series_state") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Error",
+                                tint = Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Source not found",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            TextButton(onClick = { viewModel.selectSeason(state.selectedSeason) }) {
+                                Text("Retry", color = AppRed)
+                            }
+                        }
+                    }
+                }
+
+                episodes.isEmpty() -> item(key = "series_state") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Season $seasonNo",
-                            color = if (isSelected) Color.White else SecondaryText,
-                            fontSize = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            text = "No episodes available for this season",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
-            }
-        }
 
-        Text(
-            text = "Episodes",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        if (state.isLoading && state.currentEpisode == null) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = AppRed, modifier = Modifier.size(40.dp))
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Fetching episodes...", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
-                }
-            }
-        } else if (state.error != null) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Error",
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Source not found",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    TextButton(onClick = { viewModel.selectSeason(state.selectedSeason) }) {
-                        Text("Retry", color = AppRed)
-                    }
-                }
-            }
-        } else {
-            val episodes = state.mergedEpisodes
-            if (episodes.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("No episodes available for this season", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    items(episodes, key = { it.episodeNo }) { episode ->
+                else -> {
+                    items(episodes, key = { "ep_${it.seasonNo}_${it.episodeNo}" }) { episode ->
                         EpisodeCard(
                             episode = episode,
                             isPlaying = state.currentEpisode?.episodeNo == episode.episodeNo && state.currentEpisode?.seasonNo == episode.seasonNo,
                             onPlayClick = { viewModel.onEpisodeClick(episode) }
                         )
                     }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                    item(key = "series_bottom_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
         }
