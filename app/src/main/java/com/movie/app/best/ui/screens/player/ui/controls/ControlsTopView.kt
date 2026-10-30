@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.movie.app.best.ui.screens.player.buttons.PlayerButton
+import com.movie.app.best.ui.screens.player.ui.icons.ClosedCaptionOutlined
 
 @Composable
 fun ControlsTopView(
@@ -38,6 +39,8 @@ fun ControlsTopView(
     onQualityClick: () -> Unit = {},
     onPlaybackSpeedClick: () -> Unit = {},
     onSubtitleClick: () -> Unit = {},
+    onSubtitleLongClick: (() -> Unit)? = null,
+    isCaptionOn: Boolean = false,
     onServerClick: () -> Unit = {},
     showServerButton: Boolean = false,
     onBackClick: () -> Unit,
@@ -61,8 +64,13 @@ fun ControlsTopView(
                 PlayerButton(onClick = onPlaybackSpeedClick) {
                     Icon(imageVector = Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
                 }
-                PlayerButton(onClick = onSubtitleClick) {
-                    Icon(imageVector = Icons.Default.ClosedCaption, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
+                PlayerButton(onClick = onSubtitleClick, onLongClick = onSubtitleLongClick) {
+                    Icon(
+                        imageVector = if (isCaptionOn) Icons.Default.ClosedCaption else ClosedCaptionOutlined,
+                        contentDescription = "Captions",
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White.copy(alpha = if (isCaptionOn) 0.95f else 0.7f)
+                    )
                 }
                 PlayerButton(onClick = onAudioClick) {
                     Icon(imageVector = Icons.Default.Audiotrack, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.85f))
@@ -108,8 +116,12 @@ fun ControlsTopView(
                 PlayerButton(onClick = onPlaybackSpeedClick) {
                     Icon(imageVector = Icons.Default.Speed, contentDescription = null)
                 }
-                PlayerButton(onClick = onSubtitleClick) {
-                    Icon(imageVector = Icons.Default.ClosedCaption, contentDescription = null)
+                PlayerButton(onClick = onSubtitleClick, onLongClick = onSubtitleLongClick) {
+                    Icon(
+                        imageVector = if (isCaptionOn) Icons.Default.ClosedCaption else ClosedCaptionOutlined,
+                        contentDescription = "Captions",
+                        tint = Color.White.copy(alpha = if (isCaptionOn) 1f else 0.7f)
+                    )
                 }
                 PlayerButton(onClick = onAudioClick) {
                     Icon(imageVector = Icons.Default.Audiotrack, contentDescription = null)

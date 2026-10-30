@@ -55,7 +55,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.C
 import androidx.media3.common.Player
+import com.movie.app.best.ui.screens.player.extensions.switchTrack
+import com.movie.app.best.ui.screens.player.state.rememberTracksState
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.compose.ui.graphics.graphicsLayer
@@ -135,6 +138,10 @@ fun MediaPlayerScreen(
     val volumeState = rememberVolumeState(player = player)
     player ?: return
     val mediaPresentationState = rememberMediaPresentationState(player = player, isLive = isLive)
+
+    // Captions: outlined icon when off/unavailable, filled when a text track is rendering.
+    val textTracksState = rememberTracksState(player, C.TRACK_TYPE_TEXT)
+    val isCaptionOn = textTracksState.tracks.any { it.isSelected }
     val controlsVisibilityState = rememberControlsVisibilityState(
         player = player,
         hideAfter = 4.seconds,
@@ -175,6 +182,18 @@ fun MediaPlayerScreen(
     }
 
     var overlayView by remember { mutableStateOf<OverlayViewType?>(null) }
+
+    // Tap = toggle captions, long press = subtitle track sheet.
+    val toggleCaptions = {
+        when {
+            textTracksState.tracks.any { it.isSelected } -> textTracksState.switchTrack(-1)
+            textTracksState.tracks.isNotEmpty() -> textTracksState.switchTrack(0)
+            else -> {
+                controlsVisibilityState.hideControls()
+                overlayView = OverlayViewType.SUBTITLE_SELECTOR
+            }
+        }
+    }
 
     CompositionLocalProvider(LocalControlsVisibilityState provides controlsVisibilityState) {
         Box {
@@ -282,10 +301,12 @@ fun MediaPlayerScreen(
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayViewType.PLAYBACK_SPEED
                                     },
-                                    onSubtitleClick = {
+                                    onSubtitleClick = toggleCaptions,
+                                    onSubtitleLongClick = {
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayViewType.SUBTITLE_SELECTOR
                                     },
+                                    isCaptionOn = isCaptionOn,
                                     onServerClick = {
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayViewType.SERVER_SELECTOR
