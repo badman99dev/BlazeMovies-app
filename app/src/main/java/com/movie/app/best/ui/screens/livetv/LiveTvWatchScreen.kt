@@ -512,17 +512,19 @@ fun LiveTvWatchScreen(
                             .padding(horizontal = 16.dp, vertical = 12.dp)
                             .navigationBarsPadding()
                     ) {
+                        ChannelInfoCard(
+                            name = viewModel.channelName,
+                            logoUrl = viewModel.logoUrl
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
                         LiveChatStrip(
                             userName = chatHandle ?: viewModel.getUserFirstName(),
                             onlineCount = liveChatState.onlineCount,
                             isConnected = liveChatState.isConnected,
                             onClick = openChat,
                             modifier = Modifier.padding(bottom = 12.dp)
-                        )
-
-                        ChannelInfoCard(
-                            name = viewModel.channelName,
-                            logoUrl = viewModel.logoUrl
                         )
 
                         if (similarChannels.isNotEmpty()) {
