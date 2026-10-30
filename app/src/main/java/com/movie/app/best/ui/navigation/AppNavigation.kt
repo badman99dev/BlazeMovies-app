@@ -452,6 +452,8 @@ fun AppNavigation(
                 navArgument("logo") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
+            // Channel-to-channel hops are pushed on the back stack (not replaced) so
+            // Back returns to the previously watched channel instead of quitting.
             val openChannel = { ch: com.movie.app.best.data.model.UnifiedChannel ->
                 navController.navigate(
                     Screen.LiveTvWatch.createRoute(
@@ -462,7 +464,7 @@ fun AppNavigation(
                         logo = ch.logoUrl
                     )
                 ) {
-                    popUpTo(Screen.LiveTvWatch.route) { inclusive = true }
+                    launchSingleTop = true
                 }
             }
             LiveTvWatchScreen(
