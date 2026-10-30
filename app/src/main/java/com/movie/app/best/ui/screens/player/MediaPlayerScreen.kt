@@ -96,6 +96,7 @@ import com.movie.app.best.ui.screens.player.ui.QualitySelectorView
 import com.movie.app.best.ui.screens.player.ui.ServerSourceSelectorView
 import com.movie.app.best.ui.screens.player.ui.ShutterView
 import com.movie.app.best.data.settings.PlayerRotationSettings
+import com.movie.app.best.ui.screens.player.ui.PlayerVignette
 import com.movie.app.best.ui.screens.player.ui.VerticalGestureIndicator
 import com.movie.app.best.ui.screens.player.ui.VideoContentScaleSelectorView
 import com.movie.app.best.ui.screens.player.ui.controls.ControlsBottomView
@@ -244,7 +245,7 @@ fun MediaPlayerScreen(
                     enter = fadeIn(),
                     exit = fadeOut(),
                 ) {
-                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
+                    PlayerVignette()
                 }
 
                 if (mediaPresentationState.isBuffering) {

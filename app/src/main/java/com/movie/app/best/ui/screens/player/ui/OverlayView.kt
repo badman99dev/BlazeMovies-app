@@ -5,6 +5,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -25,10 +26,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
+
+private val SheetPanelDark = Color(0xFF0C0C0E)
 
 @Composable
 fun BoxScope.OverlayView(
@@ -40,30 +45,45 @@ fun BoxScope.OverlayView(
     val configuration = LocalConfiguration.current
     val layoutDirection = LocalLayoutDirection.current
     val endPadding = WindowInsets.safeDrawing.asPaddingValues().calculateEndPadding(layoutDirection)
+    val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
 
     AnimatedVisibility(
-        modifier = Modifier.align(
-            if (configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT)
-                Alignment.BottomCenter else Alignment.CenterEnd,
-        ),
+        modifier = Modifier.align(if (isPortrait) Alignment.BottomCenter else Alignment.CenterEnd),
         visible = show,
-        enter = if (configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT)
-            slideInVertically { it } else slideInHorizontally { it },
-        exit = if (configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT)
-            slideOutVertically { it } else slideOutHorizontally { it },
+        enter = if (isPortrait) slideInVertically { it } else slideInHorizontally { it },
+        exit = if (isPortrait) slideOutVertically { it } else slideOutHorizontally { it },
     ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
+            color = if (isPortrait) MaterialTheme.colorScheme.surface else Color.Transparent,
             modifier = modifier.then(
-                if (configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) {
+                if (isPortrait) {
                     Modifier.fillMaxWidth().fillMaxHeight(0.45f)
                 } else {
                     Modifier.fillMaxWidth(0.45f).fillMaxHeight()
                 },
             ),
         ) {
+            if (!isPortrait) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,
+                                    0.5f to SheetPanelDark.copy(alpha = 0.44f),
+                                    1f to SheetPanelDark.copy(alpha = 0.62f),
+                                )
+                            )
+                        )
+                )
+            }
             Column(
-                modifier = Modifier.padding(top = 24.dp).padding(end = endPadding),
+                modifier = Modifier
+                    .padding(top = 24.dp)
+                    .padding(start = if (isPortrait) 0.dp else 18.dp)
+                    .padding(end = endPadding),
             ) {
                 Text(
                     modifier = Modifier.padding(horizontal = 24.dp),
