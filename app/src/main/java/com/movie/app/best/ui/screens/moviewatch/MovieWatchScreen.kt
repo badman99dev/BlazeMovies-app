@@ -38,12 +38,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
@@ -554,7 +553,6 @@ fun MovieWatchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
     ) {
         Spacer(
             modifier = Modifier
@@ -696,116 +694,123 @@ fun MovieWatchScreen(
                 }
             }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppBlack)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
         ) {
-            val headerTitle = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title
-            Text(
-                text = headerTitle,
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val year = state.titleDetails?.startYear?.takeIf { it > 0 }?.toString()
-                year?.let {
+            item(key = "movie_meta") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AppBlack)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    val headerTitle = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title
                     Text(
-                        text = it,
-                        color = SecondaryText,
-                        fontSize = 12.sp
+                        text = headerTitle,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                }
-                state.ageRating.takeIf { it.isNotBlank() }?.let {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val year = state.titleDetails?.startYear?.takeIf { it > 0 }?.toString()
+                        year?.let {
+                            Text(
+                                text = it,
+                                color = SecondaryText,
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        state.ageRating.takeIf { it.isNotBlank() }?.let {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .border(0.5.dp, SecondaryText, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = it,
+                                    color = Color.White,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        GlassBadge(text = "HD", tint = Color.White)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val description = state.titleDetails?.plot?.takeIf { it.isNotBlank() }
+                        ?: state.backendDescription?.takeIf { it.isNotBlank() }
+                    description?.let { desc ->
                         Text(
-                            text = it,
-                            color = Color.White,
-                            fontSize = 11.sp
+                            text = desc,
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontSize = 13.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 19.sp
                         )
                     }
-                    Spacer(modifier = Modifier.width(6.dp))
-                }
-                GlassBadge(text = "HD", tint = Color.White)
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                    val titleDetails = state.titleDetails
+                    val crew = when {
+                        state.crewCredits.isNotEmpty() -> state.crewCredits
+                        titleDetails != null -> {
+                            val directors = titleDetails.directors.map { CrewPerson.fromName(it, CrewPerson.CAT_DIRECTOR) }
+                            val stars = titleDetails.stars.map { CrewPerson.fromName(it, CrewPerson.CAT_ACTOR) }
+                            CrewPerson.sortCrew(directors + stars)
+                        }
+                        state.backendCast.isNotBlank() -> {
+                            state.backendCast.split(",").mapNotNull { name ->
+                                val trimmed = name.trim()
+                                if (trimmed.isNotBlank()) CrewPerson(displayName = trimmed) else null
+                            }
+                        }
+                        else -> emptyList()
+                    }
+                    if (crew.isNotEmpty()) {
+                        CollapsibleCrewRow(crew, onNameClick = onCelebClick)
+                    }
 
-            val description = state.titleDetails?.plot?.takeIf { it.isNotBlank() }
-                ?: state.backendDescription?.takeIf { it.isNotBlank() }
-            description?.let { desc ->
-                Text(
-                    text = desc,
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 13.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 19.sp
-                )
-            }
-
-            val titleDetails = state.titleDetails
-            val crew = when {
-                state.crewCredits.isNotEmpty() -> state.crewCredits
-                titleDetails != null -> {
-                    val directors = titleDetails.directors.map { CrewPerson.fromName(it, CrewPerson.CAT_DIRECTOR) }
-                    val stars = titleDetails.stars.map { CrewPerson.fromName(it, CrewPerson.CAT_ACTOR) }
-                    CrewPerson.sortCrew(directors + stars)
-                }
-                state.backendCast.isNotBlank() -> {
-                    state.backendCast.split(",").mapNotNull { name ->
-                        val trimmed = name.trim()
-                        if (trimmed.isNotBlank()) CrewPerson(displayName = trimmed) else null
+                    val watchInterests = titleDetails?.interests ?: emptyList()
+                    if (watchInterests.isNotEmpty()) {
+                        InterestsGenreSection(
+                            interests = watchInterests,
+                            onInterestClick = onInterestClick
+                        )
                     }
                 }
-                else -> emptyList()
-            }
-            if (crew.isNotEmpty()) {
-                CollapsibleCrewRow(crew, onNameClick = onCelebClick)
             }
 
-            val watchInterests = titleDetails?.interests ?: emptyList()
-            if (watchInterests.isNotEmpty()) {
-                InterestsGenreSection(
-                    interests = watchInterests,
-                    onInterestClick = onInterestClick
+            item(key = "movie_divider") {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.07f))
                 )
             }
-        }
 
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.White.copy(alpha = 0.07f))
-        )
-
-        // More Like This (replaces episodes/seasons)
-        if (state.isSimilarLoading) {
-            FindingSimilarSection()
-        } else if (state.similarMovies.isNotEmpty()) {
-            MoreLikeThisSection(
-                movies = state.similarMovies,
-                onMovieClick = { movieSlug, isSeries, imdbId ->
-                    if (!isSeries) onMovieClick(movieSlug, imdbId)
+            item(key = "movie_similar") {
+                if (state.isSimilarLoading) {
+                    FindingSimilarSection()
+                } else if (state.similarMovies.isNotEmpty()) {
+                    MoreLikeThisSection(
+                        movies = state.similarMovies,
+                        onMovieClick = { movieSlug, isSeries, imdbId ->
+                            if (!isSeries) onMovieClick(movieSlug, imdbId)
+                        }
+                    )
                 }
-            )
-            Spacer(modifier = Modifier.height(80.dp))
-        } else {
-            Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(80.dp))
+            }
         }
     }
 
