@@ -24,7 +24,7 @@ fun BoxScope.ServerSourceSelectorView(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp)
+                .sheetBottomInset()
                 .padding(horizontal = 24.dp)
                 .selectableGroup(),
         ) {

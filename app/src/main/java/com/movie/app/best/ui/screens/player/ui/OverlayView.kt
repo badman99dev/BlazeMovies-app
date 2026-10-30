@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
 private val SheetPanelDark = Color(0xFF0C0C0E)
+
+/** Keeps the last row of a sheet above the system gesture bar. */
+fun Modifier.sheetBottomInset(): Modifier = this
+    .padding(bottom = 20.dp)
+    .navigationBarsPadding()
 
 @Composable
 fun BoxScope.OverlayView(
@@ -54,11 +60,19 @@ fun BoxScope.OverlayView(
         exit = if (isPortrait) slideOutVertically { it } else slideOutHorizontally { it },
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = if (isPortrait) {
+                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+            } else {
+                RoundedCornerShape(16.dp)
+            },
             color = if (isPortrait) SheetPanelDark else Color.Transparent,
+            shadowElevation = if (isPortrait) 10.dp else 0.dp,
             modifier = modifier.then(
                 if (isPortrait) {
-                    Modifier.fillMaxWidth().fillMaxHeight(0.45f)
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.48f)
+                        .padding(horizontal = 12.dp)
                 } else {
                     Modifier.fillMaxWidth(0.45f).fillMaxHeight()
                 },

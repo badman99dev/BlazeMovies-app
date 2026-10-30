@@ -23,7 +23,7 @@ fun BoxScope.CustomAudioTrackSelectorView(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp)
+                .sheetBottomInset()
                 .padding(horizontal = 24.dp)
                 .selectableGroup(),
         ) {

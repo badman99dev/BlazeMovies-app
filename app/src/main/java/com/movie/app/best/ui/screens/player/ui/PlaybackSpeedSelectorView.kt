@@ -52,7 +52,7 @@ fun BoxScope.PlaybackSpeedSelectorView(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp)
+                .sheetBottomInset()
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
