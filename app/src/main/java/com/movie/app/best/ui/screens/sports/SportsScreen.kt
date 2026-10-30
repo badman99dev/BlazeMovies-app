@@ -60,9 +60,9 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.movie.app.best.data.model.SportCategory
 import com.movie.app.best.data.model.SportEvent
 import com.movie.app.best.ui.components.AppHeader
@@ -88,6 +88,7 @@ fun SportsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing = uiState.isRefreshing
     val listState = rememberLazyListState()
+    val pullRefreshState = rememberPullToRefreshState()
 
     val barsState = LocalCollapsibleBarsState.current
     val isBarsVisible = barsState?.isBarsVisible?.value ?: true
@@ -123,19 +124,22 @@ fun SportsScreen(
             .background(Color.Black)
     ) {
         // ── Pull-To-Refresh wrapping the whole screen content ──
-        SwipeRefresh(
-            state = rememberSwipeRefreshState(isRefreshing),
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
             onRefresh = { viewModel.loadData(forceRefresh = true) },
-            indicator = { state, trigger ->
-                SwipeRefreshIndicator(
-                    state = state,
-                    refreshTriggerDistance = trigger,
-                    scale = true,
-                    backgroundColor = Color.White,
-                    contentColor = Color.Black
+            modifier = Modifier.fillMaxSize(),
+            state = pullRefreshState,
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = pullRefreshState,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = if (measuredHeaderHeightDp > 0.dp) measuredHeaderHeightDp else sportsHeaderClearance),
+                    containerColor = Color(0xFF1A1A1A),
+                    color = AppRed
                 )
-            },
-            modifier = Modifier.fillMaxSize()
+            }
         ) {
             when {
                 uiState.isLoading && uiState.events.isEmpty() -> {

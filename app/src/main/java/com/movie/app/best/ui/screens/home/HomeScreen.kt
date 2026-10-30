@@ -20,6 +20,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,6 +55,8 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val context = LocalContext.current
+    val pullRefreshState = rememberPullToRefreshState()
+    val density = LocalDensity.current
 
     val allMovies = remember(uiState.allTabMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.allTabMovies) }
     val trending    = remember(uiState.trendingMovies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.trendingMovies) }
@@ -86,6 +92,23 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize(),
+            state = pullRefreshState,
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = pullRefreshState,
+                    isRefreshing = uiState.isRefreshing,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = with(density) { (barsState?.headerHeightPx ?: 0f).toDp() }),
+                    containerColor = Color(0xFF1A1A1A),
+                    color = Color(0xFFE50914)
+                )
+            }
+        ) {
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(bottom = 88.dp),
@@ -229,6 +252,7 @@ fun HomeScreen(
                     }
                 }
             }
+        }
         }
 
         AppHeader(

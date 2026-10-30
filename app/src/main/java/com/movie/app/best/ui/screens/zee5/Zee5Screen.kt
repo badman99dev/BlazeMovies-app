@@ -18,6 +18,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -71,7 +74,9 @@ fun Zee5Screen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentTab by viewModel.currentTab.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listState = rememberLazyListState()
+    val pullRefreshState = rememberPullToRefreshState()
 
     val barsState = LocalCollapsibleBarsState.current
     val isBarsVisible = barsState?.isBarsVisible?.value ?: true
@@ -149,6 +154,23 @@ fun Zee5Screen(
                 }
             }
             is Zee5UiState.Success -> {
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize(),
+                    state = pullRefreshState,
+                    indicator = {
+                        PullToRefreshDefaults.Indicator(
+                            state = pullRefreshState,
+                            isRefreshing = isRefreshing,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = if (measuredHeaderHeightDp > 0.dp) measuredHeaderHeightDp else zee5HeaderClearance),
+                            containerColor = Color(0xFF1A1A1A),
+                            color = AppRed
+                        )
+                    }
+                ) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -223,6 +245,7 @@ fun Zee5Screen(
                             }
                         }
                     }
+                }
                 }
             }
 

@@ -49,6 +49,25 @@ class HomeViewModel @Inject constructor(
         loadNotification()
     }
 
+    fun refresh() {
+        if (_uiState.value.isRefreshing) return
+        _uiState.update { it.copy(isRefreshing = true) }
+        loadAllContent()
+        viewModelScope.launch {
+            delay(400)
+            val deadline = System.currentTimeMillis() + 20_000
+            while (System.currentTimeMillis() < deadline) {
+                val s = _uiState.value
+                val busy = s.isSliderLoading || s.isTrendingLoading || s.isNewIndiaLoading ||
+                    s.isNewUsLoading || s.isLiveChannelsLoading || s.isAllTabLoading ||
+                    s.isSeriesLoading || s.isMyFeedLoading
+                if (!busy) break
+                delay(120)
+            }
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
     init {
         viewModelScope.launch {
             NetworkMonitor.refreshCounter.collect {
@@ -271,6 +290,7 @@ class HomeViewModel @Inject constructor(
 }
 
 data class HomeUiState(
+    val isRefreshing: Boolean = false,
     val sliderMovies: List<Movie> = emptyList(),
     val isSliderLoading: Boolean = false,
     val sliderError: String? = null,

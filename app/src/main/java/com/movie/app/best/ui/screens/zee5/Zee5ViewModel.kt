@@ -119,6 +119,34 @@ class Zee5ViewModel @Inject constructor(
         }
     }
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh() {
+        if (_isRefreshing.value) return
+        val tab = _currentTab.value
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                resetPagination()
+                val result = when (tab) {
+                    Zee5Tab.ALL -> loadAllBuckets()
+                    Zee5Tab.TV_SHOWS -> loadCollection(TV_SHOWS_COLLECTION)
+                    Zee5Tab.MOVIES -> loadCollection(MOVIES_COLLECTION)
+                }
+                loadedBuckets.clear()
+                loadedBuckets.addAll(result)
+                _uiState.value = Zee5UiState.Success(
+                    buckets = result,
+                    hasMore = tab == Zee5Tab.ALL && hasMoreBuckets
+                )
+            } catch (_: Exception) {
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     fun loadMore() {
         if (isLoadingMore || !hasMoreBuckets) return
         if (_currentTab.value != Zee5Tab.ALL) return
