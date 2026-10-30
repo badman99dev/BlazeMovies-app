@@ -88,14 +88,14 @@ fun LiveChatStrip(
                                 scaleX = 0.45f + halo
                                 scaleY = 0.45f + halo
                             }
-                            .background(Color(0xFF22C55E), CircleShape)
+                            .background(Color(0xFFFF3B30), CircleShape)
                     )
                 }
                 Box(
                     modifier = Modifier
                         .size(6.dp)
                         .background(
-                            if (isConnected) Color(0xFF22C55E) else Color(0xFF6B7280),
+                            if (isConnected) Color(0xFFFF3B30) else Color(0xFF6B7280),
                             CircleShape
                         )
                 )

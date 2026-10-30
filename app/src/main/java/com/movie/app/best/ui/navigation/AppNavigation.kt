@@ -463,9 +463,7 @@ fun AppNavigation(
                         category = ch.category,
                         logo = ch.logoUrl
                     )
-                ) {
-                    launchSingleTop = true
-                }
+                )
             }
             LiveTvWatchScreen(
                 onBackClick = { navController.popBackStack() },

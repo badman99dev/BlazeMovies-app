@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -651,14 +652,17 @@ private fun ChannelInfoCard(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .background(Color(0xFFFF0000), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                    .offset(y = 3.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFFFF0000))
+                    .padding(horizontal = 8.dp, vertical = 1.5.dp)
             ) {
                 Text(
                     text = "LIVE",
                     color = Color.White,
                     fontSize = 8.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.6.sp
                 )
             }
         }

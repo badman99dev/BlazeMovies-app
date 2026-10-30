@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.movie.app.best.data.chat.ChatMessage
 import com.movie.app.best.data.chat.ChatReaction
 import com.movie.app.best.data.chat.LiveChatState
+import com.movie.app.best.ui.screens.player.ui.icons.PersonOutlined
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -463,16 +464,34 @@ private fun YouTubeChatHeader(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = when {
-                            isConnected && onlineCount > 0 -> "👥 $onlineCount"
-                            isConnecting -> "Connecting..."
-                            else -> "Live"
-                        },
-                        color = if (isConnected) Color(0xFF22C55E) else Color(0xFFA1A1AA),
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    if (isConnected && onlineCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(Color(0xFFFF3B30), CircleShape)
+                        )
+                        Spacer(Modifier.width(5.dp))
+                        Icon(
+                            imageVector = PersonOutlined,
+                            contentDescription = "Viewers",
+                            tint = Color(0xFFFF3B30).copy(alpha = 0.9f),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(Modifier.width(3.dp))
+                        Text(
+                            text = "$onlineCount",
+                            color = Color(0xFFFF3B30),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    } else {
+                        Text(
+                            text = if (isConnecting) "Connecting..." else "Live",
+                            color = if (isConnected) Color(0xFFFF3B30) else Color(0xFFA1A1AA),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 
