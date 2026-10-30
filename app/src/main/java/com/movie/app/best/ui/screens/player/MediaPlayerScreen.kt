@@ -179,8 +179,8 @@ fun MediaPlayerScreen(
         brightnessState = brightnessState,
         enableVolumeGesture = !isInline,
         enableBrightnessGesture = !isInline,
-        volumeGestureSensitivity = 0.5f,
-        brightnessGestureSensitivity = 0.5f,
+        volumeGestureSensitivity = 1.25f,
+        brightnessGestureSensitivity = 1.25f,
     )
 
     LaunchedEffect(tapGestureState.isLongPressGestureInAction) {
@@ -439,7 +439,7 @@ fun MediaPlayerScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.38f))
+                                .background(Color.Black.copy(alpha = 0.7f))
                                 .clickable { overlayView = null }
                         )
                         when (overlayView) {
