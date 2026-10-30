@@ -263,11 +263,16 @@ fun MediaPlayerScreen(
                     enter = fadeIn(),
                     exit = fadeOut(),
                 ) {
-                    Surface(shape = CircleShape) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF141416).copy(alpha = 0.5f),
+                        contentColor = Color.White,
+                    ) {
                         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                             Text(
                                 text = "${tapGestureState.longPressSpeed}x speed",
                                 style = MaterialTheme.typography.labelLarge,
+                                color = Color.White,
                             )
                         }
                     }
