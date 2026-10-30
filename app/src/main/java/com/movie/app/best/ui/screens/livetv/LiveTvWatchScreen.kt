@@ -9,7 +9,6 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -93,6 +92,7 @@ import com.movie.app.best.data.settings.PlayerRotationSettings
 import com.movie.app.best.ui.components.LoginRequiredDialog
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
 import com.movie.app.best.ui.screens.player.PlayerFactory
+import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
 import com.movie.app.best.ui.screens.sports.components.LiveChatSheet
 import com.movie.app.best.ui.screens.sports.components.LiveChatStrip
 import com.movie.app.best.ui.theme.AppBlack
@@ -416,7 +416,7 @@ fun LiveTvWatchScreen(
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 )
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = isFullscreenChatOpen,
                     enter = slideInVertically(
                         initialOffsetY = { it },
@@ -592,7 +592,7 @@ fun LiveTvWatchScreen(
                         }
                     }
 
-                    AnimatedVisibility(
+                    androidx.compose.animation.AnimatedVisibility(
                         visible = isChatSheetOpen,
                         enter = slideInVertically(
                             initialOffsetY = { it },
