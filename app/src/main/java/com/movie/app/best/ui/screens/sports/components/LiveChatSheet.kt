@@ -205,6 +205,15 @@ fun LiveChatSheet(
                     }
                 }
 
+                // Empty state: community guidelines instead of a blank panel
+                if (state.messages.isEmpty()) {
+                    EmptyChatGuidelines(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 18.dp, end = 54.dp, top = 14.dp, bottom = 62.dp)
+                    )
+                }
+
                 // Floating Reactions Animation Layer (Right edge rising up)
                 ReactionParticlesLayer(
                     particles = particles,
@@ -271,6 +280,79 @@ fun LiveChatSheet(
                 onSend = sendAction
             )
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty chat → community guidelines
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun EmptyChatGuidelines(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Live chat is quiet right now",
+            color = TextWhite,
+            fontSize = 13.5.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Say hi and get the conversation started.",
+            color = TextWhite.copy(alpha = 0.55f),
+            fontSize = 12.sp
+        )
+        Spacer(Modifier.height(14.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(SurfaceInput)
+                .border(1.dp, Hairline, RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
+            Column {
+                Text(
+                    text = "Community guidelines",
+                    color = TextWhite,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+                GuidelineLine("Be respectful. No abusive language, hate speech or harassment.")
+                GuidelineLine("Never share personal information such as phone numbers, addresses, emails or passwords.")
+                GuidelineLine("No spam, ads or self-promotion.")
+                GuidelineLine("Keep the chat relevant to the stream.")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Messages that break these rules may be removed and can get you banned.",
+                    color = TextWhite.copy(alpha = 0.45f),
+                    fontSize = 10.5.sp,
+                    lineHeight = 14.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuidelineLine(text: String) {
+    Row(modifier = Modifier.padding(vertical = 3.dp)) {
+        Text(
+            text = "\u2022",
+            color = TextWhite.copy(alpha = 0.6f),
+            fontSize = 11.5.sp
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = text,
+            color = TextWhite.copy(alpha = 0.7f),
+            fontSize = 11.5.sp,
+            lineHeight = 15.sp
+        )
     }
 }
 
