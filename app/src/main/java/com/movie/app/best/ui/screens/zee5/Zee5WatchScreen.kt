@@ -572,3 +572,141 @@ fun Zee5WatchScreen(
         }
     }
 }
+
+@Composable
+fun Zee5WatchEpisodeCard(
+    episode: Zee5Item,
+    isPlaying: Boolean,
+    onPlayClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        label = "watch_ep_press"
+    )
+
+    val titleColor = if (isPlaying) AppRed else Color.White
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onPlayClick
+                )
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(140.dp)
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(CardDark)
+            ) {
+                val thumbUrl = episode.effectiveLandscapeUrl ?: episode.effectiveImageUrl
+                if (thumbUrl != null) {
+                    AsyncImage(
+                        model = thumbUrl,
+                        contentDescription = episode.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Brush.verticalGradient(colors = listOf(Color(0xFF1A1A2E), Color(0xFF16213E)))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "E${episode.episodeNumber ?: "?"}",
+                            color = Color.White.copy(alpha = 0.4f),
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+
+                if (isPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(AppRed)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text("NOW PLAYING", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+
+                episode.duration?.let { duration ->
+                    if (duration > 0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(6.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.Black.copy(alpha = 0.7f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "${duration / 60} min",
+                                color = Color.White,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                val titleText = episode.episodeNumber?.let { "$it. ${episode.title ?: "Untitled"}" } ?: (episode.title ?: "Untitled")
+                Text(
+                    text = titleText,
+                    color = titleColor,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                val meta = buildList {
+                    episode.episodeNumber?.let { add("Episode $it") }
+                    episode.duration?.let { if (it > 0) add("${it / 60} min") }
+                    episode.releaseDate?.let { try { add(java.text.SimpleDateFormat("yyyy", java.util.Locale.US).format(java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(it) ?: return@let)) } catch (_: Exception) {} }
+                }.joinToString(" · ")
+
+                if (meta.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(meta, color = SecondaryText, fontSize = 12.sp)
+                }
+
+                if (!episode.description.isNullOrBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = episode.description,
+                        color = Color.White.copy(alpha = 0.65f),
+                        fontSize = 13.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = Color.White.copy(alpha = 0.06f),
+            thickness = 0.5.dp
+        )
+    }
+}
