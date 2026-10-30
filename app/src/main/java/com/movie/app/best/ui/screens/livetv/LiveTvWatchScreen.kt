@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -656,19 +657,19 @@ private fun SimilarChannelCard(
 ) {
     Column(
         modifier = modifier
-            .height(96.dp)
+            .height(92.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(CardDark)
             .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .size(54.dp)
+                .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.06f)),
             contentAlignment = Alignment.Center
         ) {
@@ -679,7 +680,8 @@ private fun SimilarChannelCard(
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(4.dp)
+                        .padding(6.dp)
+                        .clip(CircleShape)
                 )
             } else {
                 Text(
