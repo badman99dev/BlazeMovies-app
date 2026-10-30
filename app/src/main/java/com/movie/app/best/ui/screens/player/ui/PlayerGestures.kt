@@ -37,6 +37,7 @@ fun PlayerGestures(
                         },
                         onDoubleTap = {
                             if (controlsVisibilityState.controlsLocked) return@detectTapGestures
+                            controlsVisibilityState.hideControls()
                             tapGestureState.handleDoubleTap(offset = it, size = size)
                         },
                         onPress = {
@@ -52,7 +53,10 @@ fun PlayerGestures(
                 .pointerInput(controlsVisibilityState.controlsLocked) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     detectCustomHorizontalDragGestures(
-                        onDragStart = seekGestureState::onDragStart,
+                        onDragStart = {
+                            seekGestureState.onDragStart(it)
+                            if (seekGestureState.isSeeking) controlsVisibilityState.hideControls()
+                        },
                         onHorizontalDrag = seekGestureState::onDrag,
                         onDragCancel = seekGestureState::onDragEnd,
                         onDragEnd = seekGestureState::onDragEnd,
@@ -61,7 +65,10 @@ fun PlayerGestures(
                 .pointerInput(controlsVisibilityState.controlsLocked) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     detectCustomVerticalDragGestures(
-                        onDragStart = { volumeAndBrightnessGestureState.onDragStart(it, size) },
+                        onDragStart = {
+                            controlsVisibilityState.hideControls()
+                            volumeAndBrightnessGestureState.onDragStart(it, size)
+                        },
                         onVerticalDrag = volumeAndBrightnessGestureState::onDrag,
                         onDragCancel = volumeAndBrightnessGestureState::onDragEnd,
                         onDragEnd = volumeAndBrightnessGestureState::onDragEnd,
@@ -69,9 +76,15 @@ fun PlayerGestures(
                 }
                 .pointerInput(controlsVisibilityState.controlsLocked) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
+                    var zoomGestureControlsHidden = false
                     detectCustomTransformGestures(
+                        onGestureStart = { zoomGestureControlsHidden = false },
                         onGesture = { _, panChange, zoomChange, _ ->
                             if (tapGestureState.isLongPressGestureInAction) return@detectCustomTransformGestures
+                            if (!zoomGestureControlsHidden) {
+                                zoomGestureControlsHidden = true
+                                controlsVisibilityState.hideControls()
+                            }
                             videoZoomAndContentScaleState.onZoomPanGesture(
                                 constraints = this@BoxWithConstraints.constraints,
                                 panChange = panChange,
@@ -79,6 +92,7 @@ fun PlayerGestures(
                             )
                         },
                         onGestureEnd = {
+                            zoomGestureControlsHidden = false
                             videoZoomAndContentScaleState.onZoomPanGestureEnd()
                         },
                     )
