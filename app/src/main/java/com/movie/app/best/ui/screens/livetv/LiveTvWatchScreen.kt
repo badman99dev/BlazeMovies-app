@@ -56,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -612,28 +613,52 @@ private fun ChannelInfoCard(
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(9.dp))
-                .background(Color.White.copy(alpha = 0.06f)),
-            contentAlignment = Alignment.Center
-        ) {
-            if (logoUrl.isNotBlank()) {
-                AsyncImage(
-                    model = logoUrl,
-                    contentDescription = name,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(4.dp)
-                )
-            } else {
+        Box(modifier = Modifier.size(54.dp), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .border(
+                        width = 1.5.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(Color(0xFFFF0000), Color(0xFFFF4081))
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (logoUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = logoUrl,
+                        contentDescription = name,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(5.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Text(
+                        text = name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "TV",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .background(Color(0xFFFF0000), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            ) {
                 Text(
-                    text = name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "TV",
+                    text = "LIVE",
                     color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.ExtraBold
                 )
             }
         }
