@@ -3,11 +3,14 @@ package com.movie.app.best.ui.screens.player
 import android.view.ViewGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +34,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.outlined.SettingsBrightness
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -91,7 +96,7 @@ import com.movie.app.best.ui.screens.player.ui.QualitySelectorView
 import com.movie.app.best.ui.screens.player.ui.ServerSourceSelectorView
 import com.movie.app.best.ui.screens.player.ui.ShutterView
 import com.movie.app.best.data.settings.PlayerRotationSettings
-import com.movie.app.best.ui.screens.player.ui.VerticalProgressView
+import com.movie.app.best.ui.screens.player.ui.VerticalGestureIndicator
 import com.movie.app.best.ui.screens.player.ui.VideoContentScaleSelectorView
 import com.movie.app.best.ui.screens.player.ui.controls.ControlsBottomView
 import com.movie.app.best.ui.screens.player.ui.controls.ControlsTopView
@@ -385,34 +390,40 @@ fun MediaPlayerScreen(
                 }
 
                 val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
                         .displayCutoutPadding()
                         .padding(start = systemBarsPadding.calculateLeftPadding(androidx.compose.ui.platform.LocalLayoutDirection.current), end = systemBarsPadding.calculateRightPadding(androidx.compose.ui.platform.LocalLayoutDirection.current), top = 0.dp, bottom = 0.dp)
-                        .padding(24.dp),
+                        .padding(horizontal = 22.dp),
                 ) {
+                    val gestureBarHeight = minOf(170.dp, maxHeight * 0.42f)
                     AnimatedVisibility(
                         modifier = Modifier.align(Alignment.CenterStart),
                         visible = volumeAndBrightnessGestureState.activeGesture == VerticalGesture.VOLUME,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
+                        enter = fadeIn() + slideInHorizontally { -it / 4 },
+                        exit = fadeOut() + slideOutHorizontally { -it / 4 },
                     ) {
-                        VerticalProgressView(
+                        VerticalGestureIndicator(
                             value = volumeState.volumePercentage,
-                            icon = Icons.Default.VolumeUp,
+                            label = "Volume",
+                            icon = if (volumeState.volumePercentage <= 0) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            barHeight = gestureBarHeight,
+                            labelOnRight = true,
                         )
                     }
 
                     AnimatedVisibility(
                         modifier = Modifier.align(Alignment.CenterEnd),
                         visible = volumeAndBrightnessGestureState.activeGesture == VerticalGesture.BRIGHTNESS,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
+                        enter = fadeIn() + slideInHorizontally { it / 4 },
+                        exit = fadeOut() + slideOutHorizontally { it / 4 },
                     ) {
-                        VerticalProgressView(
+                        VerticalGestureIndicator(
                             value = brightnessState.brightnessPercentage,
-                            icon = Icons.Default.Brightness6,
+                            label = "Brightness",
+                            icon = Icons.Outlined.SettingsBrightness,
+                            barHeight = gestureBarHeight,
                         )
                     }
                 }
