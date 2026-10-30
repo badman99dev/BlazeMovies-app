@@ -35,7 +35,7 @@ import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.outlined.SettingsBrightness
+import com.movie.app.best.ui.screens.player.ui.icons.BrightnessMediumOutlined
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -423,7 +423,7 @@ fun MediaPlayerScreen(
                         VerticalGestureIndicator(
                             percent = brightnessState.brightnessPercentage.toFloat(),
                             label = "Brightness",
-                            icon = Icons.Outlined.SettingsBrightness,
+                            icon = BrightnessMediumOutlined,
                             barHeight = gestureBarHeight,
                         )
                     }
