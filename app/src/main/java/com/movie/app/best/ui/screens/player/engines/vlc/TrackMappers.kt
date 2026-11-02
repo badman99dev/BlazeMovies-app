@@ -32,7 +32,7 @@ internal object VlcTrackMappers {
         val textIds = LinkedHashMap<TrackGroup, Int>()
         val videoIds = LinkedHashMap<TrackGroup, Int>()
 
-        mediaPlayer.getAudioTracks()?.forEach { track ->
+        mediaPlayer.getAudioTracks()?.filter { it.isRealTrack() }?.forEach { track ->
             val group = TrackGroup(
                 Format.Builder()
                     .setId("vlc-audio-${track.id}")
@@ -50,7 +50,7 @@ internal object VlcTrackMappers {
             }
         }
 
-        mediaPlayer.getVideoTracks()?.forEach { track ->
+        mediaPlayer.getVideoTracks()?.filter { it.isRealTrack() }?.forEach { track ->
             val group = TrackGroup(
                 Format.Builder()
                     .setId("vlc-video-${track.id}")
@@ -68,7 +68,7 @@ internal object VlcTrackMappers {
             }
         }
 
-        mediaPlayer.getSpuTracks()?.forEach { track ->
+        mediaPlayer.getSpuTracks()?.filter { it.isRealTrack() }?.forEach { track ->
             val group = TrackGroup(
                 Format.Builder()
                     .setId("vlc-text-${track.id}")
@@ -88,4 +88,12 @@ internal object VlcTrackMappers {
 
         return VlcTrackMapping(Tracks(groups), audioIds, textIds, videoIds)
     }
+
+    /**
+     * libVLC exposes a synthetic "Disable" pseudo-track (negative id) in its track description
+     * arrays. It must stay out of the media3 track model: otherwise it reports `isSelected=true`
+     * while subtitles are OFF, which breaks the CC single-tap toggle (it would always disable).
+     */
+    private fun MediaPlayer.TrackDescription.isRealTrack(): Boolean =
+        id >= 0 && !name.equals("Disable", ignoreCase = true) && !name.equals("None", ignoreCase = true)
 }
