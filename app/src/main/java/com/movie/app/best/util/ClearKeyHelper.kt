@@ -55,8 +55,8 @@ object ClearKeyHelper {
 
     class StaticClearKeyCallback(private val responseJson: String) : MediaDrmCallback {
         private val responseBytes = responseJson.toByteArray(Charsets.UTF_8)
-        override fun executeProvisionRequest(uuid: UUID, request: androidx.media3.exoplayer.drm.ExoMediaDrm.ProvisionRequest): ByteArray = ByteArray(0)
-        override fun executeKeyRequest(uuid: UUID, request: androidx.media3.exoplayer.drm.ExoMediaDrm.KeyRequest): ByteArray = responseBytes
+        override fun executeProvisionRequest(uuid: UUID, request: androidx.media3.exoplayer.drm.ExoMediaDrm.ProvisionRequest): MediaDrmCallback.Response = MediaDrmCallback.Response(ByteArray(0))
+        override fun executeKeyRequest(uuid: UUID, request: androidx.media3.exoplayer.drm.ExoMediaDrm.KeyRequest): MediaDrmCallback.Response = MediaDrmCallback.Response(responseBytes)
     }
 
     fun buildDrmSessionManager(keyPairString: String): DrmSessionManager? {
