@@ -55,6 +55,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -147,6 +151,9 @@ dependencies {
     implementation(libs.media3.exoplayer.dash)
     implementation(libs.media3.session)
     implementation(libs.media3.datasource.okhttp)
+
+    // LibVLC "Advance Decoder" engine (used for local/downloaded playback)
+    implementation(libs.libvlc.all)
     
     // Ketch Download Manager (WorkManager-based)
     implementation("com.github.khushpanchal:Ketch:2.0.6")

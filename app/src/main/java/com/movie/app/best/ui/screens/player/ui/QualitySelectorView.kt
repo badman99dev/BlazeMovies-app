@@ -19,6 +19,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Tracks
 import com.movie.app.best.data.settings.VideoQualitySettings
+import com.movie.app.best.ui.screens.player.engines.media3.Media3TrackMappers
 
 @Composable
 fun BoxScope.QualitySelectorView(
@@ -65,18 +66,7 @@ fun BoxScope.QualitySelectorView(
                 },
             )
 
-            val groups = player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
-            val seenHeights = mutableSetOf<Int>()
-            val sortedHeights = mutableListOf<Int>()
-            for (group in groups) {
-                for (i in 0 until group.length) {
-                    val fmt = group.getTrackFormat(i)
-                    if (fmt.height > 0 && seenHeights.add(fmt.height)) {
-                        sortedHeights.add(fmt.height)
-                    }
-                }
-            }
-            sortedHeights.sortedDescending().forEach { height ->
+            Media3TrackMappers.videoHeights(player).forEach { height ->
                 RadioButtonRow(
                     selected = selectedHeight == height,
                     text = "${height}p",
@@ -132,14 +122,5 @@ private fun computeSelectedHeight(player: Player): Int {
             !VideoQualitySettings.isDataSaving()
     if (isAuto) return 0
 
-    val groups = player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
-    for (group in groups) {
-        for (i in 0 until group.length) {
-            if (group.isTrackSelected(i)) {
-                val fmt = group.getTrackFormat(i)
-                if (fmt.height > 0) return fmt.height
-            }
-        }
-    }
-    return 0
+    return Media3TrackMappers.selectedVideoHeight(player)
 }

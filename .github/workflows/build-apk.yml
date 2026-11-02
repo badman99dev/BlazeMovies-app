@@ -138,6 +138,8 @@ jobs:
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
           APK_NAME=$(basename "$APK_PATH")
+          APK_SIZE=$(stat -c%s "$APK_PATH")
+          echo "APK: $APK_NAME ($APK_SIZE bytes)"
           RESP=$(curl -s -X POST \
             https://tempserv.cmdnode.xyz/api/upload \
             -F "mode=file" \
@@ -145,7 +147,15 @@ jobs:
             -F "paths=[\"$APK_NAME\"]" \
             -F "files=@$APK_PATH")
           echo "TEMPSERV_RESPONSE=$RESP"
-          DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "PARSE_ERROR")
+          DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "")
+
+          if [ -z "$DL_LINK" ]; then
+            echo "⚠️ tempserv upload failed — falling back to file.kiwi"
+            KIWI_OUTPUT=$(npx --yes @file-kiwi/node "$APK_PATH" 2>&1 | tr '\r' '\n')
+            echo "$KIWI_OUTPUT"
+            DL_LINK=$(echo "$KIWI_OUTPUT" | grep -oE 'https://file\.kiwi/[^[:space:]]+' | tail -1)
+          fi
+
           echo "===APK_LINK=== $DL_LINK"
 
       # ──────────────────────────────────────────────
@@ -237,7 +247,15 @@ jobs:
             -F "paths=[\"blazemovies.apk\"]" \
             -F "files=@blazemovies.apk")
           echo "TEMPSERV_RESPONSE=$RESP"
-          DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "PARSE_ERROR")
+          DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "")
+
+          if [ -z "$DL_LINK" ]; then
+            echo "⚠️ tempserv upload failed — falling back to file.kiwi"
+            KIWI_OUTPUT=$(npx --yes @file-kiwi/node blazemovies.apk 2>&1 | tr '\r' '\n')
+            echo "$KIWI_OUTPUT"
+            DL_LINK=$(echo "$KIWI_OUTPUT" | grep -oE 'https://file\.kiwi/[^[:space:]]+' | tail -1)
+          fi
+
           echo "===APK_LINK=== $DL_LINK"
 
       - name: Get git SHA

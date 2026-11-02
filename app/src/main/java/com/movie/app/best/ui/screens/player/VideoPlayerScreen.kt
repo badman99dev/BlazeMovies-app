@@ -32,19 +32,16 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.okhttp.OkHttpDataSource
-import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.movie.app.best.ui.screens.player.engines.EngineRouter
+import com.movie.app.best.ui.screens.player.engines.media3.Media3EngineFactory
+import com.movie.app.best.ui.screens.player.engines.media3.Media3PlayerEvents
+import com.movie.app.best.ui.screens.player.engines.vlc.VlcEngineFactory
 import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
-import com.movie.app.best.data.debug.DebugInterceptor
-import com.movie.app.best.data.debug.Zee5False404Interceptor
 import com.movie.app.best.util.FullscreenPlayerState
 import com.movie.app.best.util.ImmersiveMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import okhttp3.OkHttpClient
 
 private const val MAX_AUTO_RETRIES = 5
 private const val AUTO_RETRY_DELAY_MS = 2000L
@@ -107,38 +104,24 @@ fun VideoPlayerScreen(
         PlayerFactory.trackSelector(context)
     }
 
-    val exoPlayer = remember(effectiveUrl) {
+    // Owned by the router: local/downloaded -> LibVLC "Advance Decoder" (VlcEngine),
+    // everything streamed -> Media3 (Media3Engine). Both are plain media3 Players, so the rest of
+    // this screen and the shared player UI are engine-agnostic.
+    val engine: Player? = remember(effectiveUrl) {
         if (effectiveUrl.isEmpty()) return@remember null
-
-        val okHttpClient = OkHttpClient.Builder()
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .addInterceptor(Zee5False404Interceptor())
-            .addInterceptor(DebugInterceptor())
-            .build()
-
-        val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
-            .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
-            .setDefaultRequestProperties(mapOf(
-                "Referer" to com.movie.app.best.data.config.RemoteConfig.playerReferer(),
-                "Accept" to "*/*"
-            ))
-
-        val dataSourceFactory = DefaultDataSource.Factory(context, okHttpFactory)
-        val mediaSourceFactory = if (isHls)
-            HlsMediaSource.Factory(dataSourceFactory)
-        else
-            DefaultMediaSourceFactory(dataSourceFactory)
-
-        PlayerFactory.build(
-            context = context,
-            trackSelector = trackSelector,
-            mediaSourceFactory = mediaSourceFactory
-        )
+        if (EngineRouter.isLocal(effectiveUrl)) {
+            VlcEngineFactory.create(context)
+        } else {
+            Media3EngineFactory.create(
+                context = context,
+                isHls = isHls,
+                trackSelector = trackSelector,
+            )
+        }
     }
 
     LaunchedEffect(effectiveUrl) {
-        if (effectiveUrl.isNotEmpty() && exoPlayer != null) {
+        if (effectiveUrl.isNotEmpty() && engine != null) {
             val mediaItem = if (isLive) {
                 val liveConfig = MediaItem.LiveConfiguration.Builder()
                     .setTargetOffsetMs(8000L)
@@ -150,8 +133,8 @@ fun VideoPlayerScreen(
             } else {
                 MediaItem.fromUri(effectiveUrl)
             }
-            exoPlayer.setMediaItem(mediaItem)
-            exoPlayer.prepare()
+            engine.setMediaItem(mediaItem)
+            engine.prepare()
         }
         activity?.let { ImmersiveMode.enter(it) }
     }
@@ -181,55 +164,57 @@ fun VideoPlayerScreen(
     }
 
     LaunchedEffect(resumePos) {
-        if (resumePos > 0 && !hasResumed && exoPlayer != null) {
-            if (exoPlayer.playbackState == Player.STATE_READY) {
+        if (resumePos > 0 && !hasResumed && engine != null) {
+            if (engine.playbackState == Player.STATE_READY) {
                 hasResumed = true
                 val seekTo = resumePos
                 resumePos = 0L
-                exoPlayer.seekTo(seekTo)
+                engine.seekTo(seekTo)
             }
         }
     }
 
-    DisposableEffect(exoPlayer) {
+    // Resume the saved position once the engine is ready.
+    DisposableEffect(engine) {
         val listener = object : Player.Listener {
-            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
-                if (isLive && !timeline.isEmpty && !hasInitialLiveSynced) {
-                    val window = androidx.media3.common.Timeline.Window()
-                    timeline.getWindow(0, window)
-                    if (window.isLive()) {
-                        hasInitialLiveSynced = true
-                        val dur = window.durationMs
-                        if (dur > 8000L) {
-                            exoPlayer?.seekTo(dur - 8000L)
-                        }
-                    }
-                }
-            }
-
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY && resumePos > 0 && !hasResumed) {
                     hasResumed = true
                     val seekTo = resumePos
                     resumePos = 0L
-                    exoPlayer?.seekTo(seekTo)
+                    engine?.seekTo(seekTo)
                 }
             }
         }
-        exoPlayer?.addListener(listener)
+        engine?.addListener(listener)
         onDispose {
-            exoPlayer?.removeListener(listener)
+            engine?.removeListener(listener)
         }
     }
 
-    LaunchedEffect(exoPlayer) {
-        if (exoPlayer == null) return@LaunchedEffect
+    // Media3-only: jump to the live edge on the first live window (see Media3PlayerEvents).
+    DisposableEffect(engine, isLive) {
+        if (!isLive) return@DisposableEffect onDispose { }
+        val liveListener = Media3PlayerEvents.liveEdgeSyncListener(
+            isLive = isLive,
+            hasSynced = { hasInitialLiveSynced },
+            markSynced = { hasInitialLiveSynced = true },
+            onSeekTo = { target -> engine?.seekTo(target) },
+        )
+        engine?.addListener(liveListener)
+        onDispose {
+            engine?.removeListener(liveListener)
+        }
+    }
+
+    LaunchedEffect(engine) {
+        if (engine == null) return@LaunchedEffect
         if (isLocalFile && effectiveUrl.isEmpty()) return@LaunchedEffect
         if (!isLocalFile && slug.isEmpty()) return@LaunchedEffect
         while (true) {
             delay(10_000)
-            val pos = exoPlayer.currentPosition
-            val dur = exoPlayer.duration
+            val pos = engine.currentPosition
+            val dur = engine.duration
             if (pos > 0 && dur > 0) {
                 if (isLocalFile) {
                     firebaseRepository.saveLocalFileProgress(effectiveUrl, title, pos, dur)
@@ -245,7 +230,7 @@ fun VideoPlayerScreen(
     var isAutoRetrying by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    DisposableEffect(exoPlayer) {
+    DisposableEffect(engine) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
                 if (error.isTransient() && autoRetryCount < MAX_AUTO_RETRIES) {
@@ -254,7 +239,7 @@ fun VideoPlayerScreen(
                     coroutineScope.launch {
                         delay(AUTO_RETRY_DELAY_MS)
                         try {
-                            exoPlayer?.let { player ->
+                            engine?.let { player ->
                                 player.setMediaItem(MediaItem.fromUri(effectiveUrl))
                                 player.prepare()
                                 player.playWhenReady = true
@@ -274,20 +259,20 @@ fun VideoPlayerScreen(
                     isAutoRetrying = false
                 }
                 activity?.let {
-                    val state = exoPlayer?.playbackState ?: Player.STATE_IDLE
+                    val state = engine?.playbackState ?: Player.STATE_IDLE
                     ImmersiveMode.keepScreenOn(it, isPlaying || state == Player.STATE_BUFFERING)
                 }
             }
             override fun onPlaybackStateChanged(state: Int) {
                 activity?.let {
-                    val playing = exoPlayer?.isPlaying == true
+                    val playing = engine?.isPlaying == true
                     ImmersiveMode.keepScreenOn(it, playing || state == Player.STATE_BUFFERING)
                 }
             }
         }
-        exoPlayer?.addListener(listener)
+        engine?.addListener(listener)
         onDispose {
-            exoPlayer?.removeListener(listener)
+            engine?.removeListener(listener)
             activity?.let { ImmersiveMode.keepScreenOn(it, false) }
         }
     }
@@ -295,9 +280,9 @@ fun VideoPlayerScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> exoPlayer?.pause()
+                Lifecycle.Event.ON_PAUSE -> engine?.pause()
                 Lifecycle.Event.ON_RESUME -> {
-                    if (exoPlayer?.playbackState == Player.STATE_READY) exoPlayer.play()
+                    if (engine?.playbackState == Player.STATE_READY) engine.play()
                 }
                 else -> {}
             }
@@ -305,8 +290,8 @@ fun VideoPlayerScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            val pos = exoPlayer?.currentPosition ?: 0
-            val dur = exoPlayer?.duration ?: 0
+            val pos = engine?.currentPosition ?: 0
+            val dur = engine?.duration ?: 0
             if (pos > 0 && dur > 0) {
                 if (isLocalFile) {
                     firebaseRepository.saveLocalFileProgress(effectiveUrl, title, pos, dur)
@@ -319,7 +304,7 @@ fun VideoPlayerScreen(
                     }.start()
                 }
             }
-            exoPlayer?.release()
+            engine?.release()
             activity?.resetScreenBrightness()
             activity?.let { ImmersiveMode.exit(it) }
             activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -333,9 +318,9 @@ fun VideoPlayerScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        if (exoPlayer != null && playerError == null) {
+        if (engine != null && playerError == null) {
             MediaPlayerScreen(
-                player = exoPlayer,
+                player = engine,
                 onBackClick = onBackClick,
                 onPlayInBackgroundClick = { },
                 title = title,
@@ -363,7 +348,7 @@ fun VideoPlayerScreen(
                     playerError = null
                     autoRetryCount = 0
                     isAutoRetrying = false
-                    exoPlayer?.let { player ->
+                    engine?.let { player ->
                         player.setMediaItem(MediaItem.fromUri(effectiveUrl))
                         player.prepare()
                         player.playWhenReady = true

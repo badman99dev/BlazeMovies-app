@@ -1,6 +1,5 @@
 package com.movie.app.best.ui.screens.player
 
-import android.view.ViewGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
@@ -59,16 +58,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import com.movie.app.best.ui.screens.player.extensions.switchTrack
 import com.movie.app.best.ui.screens.player.state.rememberTracksState
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
-import androidx.compose.ui.graphics.graphicsLayer
+import com.movie.app.best.ui.screens.player.engines.EngineVideoSurface
 import com.movie.app.best.ui.screens.player.buttons.PlayerButton
-import com.movie.app.best.ui.screens.player.extensions.toResizeMode
 import com.movie.app.best.ui.screens.player.model.DoubleTapGesture
 import com.movie.app.best.ui.screens.player.model.VideoContentScale
 import com.movie.app.best.ui.screens.player.state.ControlsVisibilityState
@@ -206,30 +201,12 @@ fun MediaPlayerScreen(
             Box(
                 modifier = modifier.fillMaxSize().background(Color.Black),
             ) {
-                AndroidView(
-                    factory = { context ->
-                        PlayerView(context).apply {
-                            useController = false
-                            this.player = player
-                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                            )
-                        }
-                    },
-                    update = { view ->
-                        view.player = player
-                        view.resizeMode = videoZoomAndContentScaleState.videoContentScale.toResizeMode()
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = videoZoomAndContentScaleState.zoom
-                            scaleY = videoZoomAndContentScaleState.zoom
-                            translationX = videoZoomAndContentScaleState.offset.x
-                            translationY = videoZoomAndContentScaleState.offset.y
-                        },
+                EngineVideoSurface(
+                    player = player,
+                    contentScale = videoZoomAndContentScaleState.videoContentScale,
+                    zoom = videoZoomAndContentScaleState.zoom,
+                    offset = videoZoomAndContentScaleState.offset,
+                    modifier = Modifier.fillMaxSize(),
                 )
 
                 PlayerGestures(

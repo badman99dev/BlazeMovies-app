@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Tracks
+import com.movie.app.best.ui.screens.player.engines.media3.Media3TrackMappers
 import com.movie.app.best.ui.screens.player.extensions.switchTrack
 
 @Composable
@@ -40,6 +41,6 @@ class TracksState(private val player: Player, private val trackType: @C.TrackTyp
     fun switchTrack(index: Int) { player.switchTrack(trackType, index) }
 
     fun updateTracks() {
-        tracks = player.currentTracks.groups.filter { it.type == trackType && it.isSupported }
+        tracks = Media3TrackMappers.supportedGroups(player, trackType)
     }
 }
