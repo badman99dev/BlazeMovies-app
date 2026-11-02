@@ -168,7 +168,9 @@ class VlcEngine(
         startIndex: Int,
         startPositionMs: Long,
     ): ListenableFuture<*> {
-        val item = mediaItems.getOrNull(startIndex)
+        // setMediaItem() reaches us with startIndex == C.INDEX_UNSET (-1); that means "first item".
+        val resolvedIndex = if (startIndex == C.INDEX_UNSET) 0 else startIndex
+        val item = mediaItems.getOrNull(resolvedIndex)
         state.mediaItem = item
         state.durationMs = C.TIME_UNSET
         state.positionMs = if (startPositionMs == C.TIME_UNSET) 0L else startPositionMs
