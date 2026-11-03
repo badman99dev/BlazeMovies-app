@@ -54,14 +54,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.movie.app.best.data.settings.LocalPlaybackSettings
 import coil.compose.AsyncImage
 import com.movie.app.best.data.settings.PlayerRotationSettings
 import com.movie.app.best.ui.screens.player.extensions.resetScreenBrightness
 import com.movie.app.best.ui.screens.player.MediaPlayerScreen
-import com.movie.app.best.ui.screens.player.PlayerFactory
+import com.movie.app.best.ui.screens.player.engines.vlc.VlcEngineFactory
 import com.movie.app.best.ui.theme.AppBlack
 import com.movie.app.best.ui.theme.CardDark
 import com.movie.app.best.ui.theme.AppRed
@@ -106,12 +104,20 @@ fun ExtractedSeriesScreen(
     val episodes = remember(extractPath) { scanExtractedVideos(extractPath) }
 
     var currentEpisode by remember { mutableStateOf<ExtractedEpisode?>(null) }
-    var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
+    var engine by remember { mutableStateOf<Player?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
 
-    val trackSelector = remember {
-        PlayerFactory.trackSelector(context)
+    val currentFileUrl = currentEpisode?.let { "file://${it.filePath}" } ?: ""
+
+    // Per-file decoder preference (same as the main player screen).
+    var decoderMode by remember(currentEpisode) {
+        mutableStateOf(
+            if (currentFileUrl.isEmpty()) LocalPlaybackSettings.Mode.HW_PLUS
+            else LocalPlaybackSettings.modeFor(context, currentFileUrl)
+        )
     }
+    // Decoder switch pe playback position preserve karne ke liye.
+    var pendingSeekMs by remember(currentEpisode) { mutableStateOf(0L) }
 
     LaunchedEffect(isFullscreen) {
         FullscreenPlayerState.isActive = isFullscreen
@@ -126,27 +132,35 @@ fun ExtractedSeriesScreen(
         }
     }
 
-    LaunchedEffect(currentEpisode) {
+    // Local extracted episode → libVLC (HW+ / HW / SW). VLC ka demuxer seek bhi
+    // sambhalta hai, isliye broken-SeekHead MKV me bhi seekbar chalta hai.
+    LaunchedEffect(currentEpisode, decoderMode) {
         val ep = currentEpisode ?: return@LaunchedEffect
-        exoPlayer?.release()
+        engine?.release()
 
-        val dataSourceFactory = DefaultDataSource.Factory(context)
-        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
-
-        val player = PlayerFactory.build(
-            context = context,
-            trackSelector = trackSelector,
-            mediaSourceFactory = mediaSourceFactory
-        )
-
+        val player = VlcEngineFactory.create(context, decoderMode)
         player.setMediaItem(MediaItem.fromUri("file://${ep.filePath}"))
         player.prepare()
         player.playWhenReady = true
-        exoPlayer = player
+
+        if (pendingSeekMs > 0) {
+            val target = pendingSeekMs
+            val listener = object : Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    if (state == Player.STATE_READY) {
+                        player.seekTo(target)
+                        pendingSeekMs = 0L
+                        player.removeListener(this)
+                    }
+                }
+            }
+            player.addListener(listener)
+        }
+        engine = player
     }
 
-    DisposableEffect(exoPlayer) {
-        val player = exoPlayer ?: return@DisposableEffect onDispose {}
+    DisposableEffect(engine) {
+        val player = engine ?: return@DisposableEffect onDispose {}
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 activity?.let {
@@ -165,16 +179,16 @@ fun ExtractedSeriesScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> exoPlayer?.pause()
-                Lifecycle.Event.ON_RESUME -> { if (exoPlayer?.playbackState == Player.STATE_READY) exoPlayer?.play() }
+                Lifecycle.Event.ON_PAUSE -> engine?.pause()
+                Lifecycle.Event.ON_RESUME -> { if (engine?.playbackState == Player.STATE_READY) engine?.play() }
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            exoPlayer?.release()
-            exoPlayer = null
+            engine?.release()
+            engine = null
             activity?.let { ImmersiveMode.exit(it) }
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
@@ -206,20 +220,28 @@ fun ExtractedSeriesScreen(
         }
     }
 
-    if (isFullscreen && exoPlayer != null) {
+    if (isFullscreen && engine != null) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
             MediaPlayerScreen(
-                player = exoPlayer,
+                player = engine,
                 modifier = Modifier.fillMaxSize(),
                 onBackClick = { exitFullscreen() },
                 onPlayInBackgroundClick = {},
                 onFullscreenClick = { exitFullscreen() },
                 isInline = false,
                 title = currentEpisode?.fileName ?: "",
+                decoderMode = decoderMode,
+                onDecoderModeSelected = { mode ->
+                    if (mode != decoderMode) {
+                        pendingSeekMs = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
+                        LocalPlaybackSettings.setMode(context, currentFileUrl, mode)
+                        decoderMode = mode
+                    }
+                },
             )
         }
         return
@@ -244,9 +266,9 @@ fun ExtractedSeriesScreen(
                 .background(Color.Black)
                 .zIndex(1f)
         ) {
-            if (exoPlayer != null) {
+            if (engine != null) {
                 MediaPlayerScreen(
-                    player = exoPlayer,
+                    player = engine,
                     modifier = Modifier.fillMaxSize(),
                     onBackClick = {
                         activity?.let { ImmersiveMode.exit(it) }
@@ -257,6 +279,14 @@ fun ExtractedSeriesScreen(
                     onFullscreenClick = { enterFullscreen() },
                     isInline = true,
                     title = currentEpisode?.fileName ?: "",
+                    decoderMode = decoderMode,
+                    onDecoderModeSelected = { mode ->
+                        if (mode != decoderMode) {
+                            pendingSeekMs = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
+                            LocalPlaybackSettings.setMode(context, currentFileUrl, mode)
+                            decoderMode = mode
+                        }
+                    },
                 )
             } else {
                 Box(
