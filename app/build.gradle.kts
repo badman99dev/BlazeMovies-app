@@ -40,6 +40,10 @@ fun encodeUrlChecked(key: String): String {
 val primaryBaseEnc = encodeUrlChecked("primary.base")
 val secondaryBaseEnc = encodeUrlChecked("secondary.base")
 
+// When set (-ParmUniversal), splits are off and a single ARM-only universal APK is built
+// (arm64-v8a + armeabi-v7a) — the "one APK for all phones" build.
+val armUniversalBuild = project.hasProperty("armUniversal")
+
 android {
     namespace = "com.movie.app.best"
     compileSdk = 35
@@ -56,16 +60,21 @@ android {
             useSupportLibrary = true
         }
 
+        if (armUniversalBuild) {
+            ndk {
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            }
         }
+    }
 
-    // Emit per-ABI APKs (device + emulator) plus a universal APK.
-    // Outputs: app-arm64-v8a, app-armeabi-v7a, app-x86, app-x86_64, app-universal.
+    // Per-ABI APKs (device + emulator). The ARM-only universal is built by a second
+    // Gradle run with -ParmUniversal (see above), not by the all-ABI universal flag.
     splits {
         abi {
-            isEnable = true
+            isEnable = !armUniversalBuild
             reset()
             include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-            isUniversalApk = true
+            isUniversalApk = false
         }
     }
 

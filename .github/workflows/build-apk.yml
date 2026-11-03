@@ -121,22 +121,31 @@ jobs:
       # ──────────────────────────────────────────────
       #  MODE: TEST (default — bump + build, NO release)
       # ──────────────────────────────────────────────
-      - name: Build Debug APK (test mode)
+      - name: Build Debug APKs (per-ABI)
         if: ${{ github.event.inputs.build_mode == 'test' || github.event.inputs.build_mode == '' || github.event_name == 'push' }}
         run: ./gradlew assembleDebug --no-daemon
+
+      - name: Build ARM universal APK (test mode)
+        if: ${{ github.event.inputs.build_mode == 'test' || github.event.inputs.build_mode == '' || github.event_name == 'push' }}
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/*.apk dist/
+          ./gradlew assembleDebug -ParmUniversal --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk dist/app-universal-arm-debug.apk
+          ls -lh dist/
 
       - name: Upload APK as Artifact (test)
         if: ${{ github.event.inputs.build_mode == 'test' || github.event.inputs.build_mode == '' || github.event_name == 'push' }}
         uses: actions/upload-artifact@v4
         with:
           name: BlazeMovies-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: dist/*.apk
           retention-days: 30
 
       - name: Upload APK to tempserv (test)
         if: ${{ github.event.inputs.build_mode == 'test' || github.event.inputs.build_mode == '' || github.event_name == 'push' }}
         run: |
-          for APK_PATH in $(find app/build/outputs/apk/debug -name "*.apk" | sort); do
+          for APK_PATH in $(find dist -name "*.apk" | sort); do
             APK_NAME=$(basename "$APK_PATH")
             APK_SIZE=$(stat -c%s "$APK_PATH")
             echo "APK: $APK_NAME ($APK_SIZE bytes)"
@@ -221,27 +230,35 @@ jobs:
           printf '%s\n' "$WN" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Build Release APK (minor/major)
+      - name: Build Release APKs (per-ABI)
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: Rename APK to blazemovies.apk
+      - name: Build ARM universal APK (release)
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         run: |
-          find app/build/outputs/apk/release -name "*.apk" -printf "%f  %s bytes\n" | sort
+          mkdir -p dist
+          cp app/build/outputs/apk/release/*.apk dist/
+          ./gradlew assembleRelease -ParmUniversal --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk dist/app-universal-arm-release.apk
+          ls -lh dist/
+
+      - name: List APKs (minor/major)
+        if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
+        run: ls -lh dist/*.apk
 
       - name: Upload APK as Artifact (minor/major)
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         uses: actions/upload-artifact@v4
         with:
           name: blazemovies-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: dist/*.apk
           retention-days: 30
 
       - name: Upload APK to tempserv (minor/major)
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         run: |
-          for APK_PATH in $(find app/build/outputs/apk/release -name "*.apk" | sort); do
+          for APK_PATH in $(find dist -name "*.apk" | sort); do
             APK_NAME=$(basename "$APK_PATH")
             echo "===APK_FILE=== $APK_NAME"
 
@@ -327,7 +344,7 @@ jobs:
           echo "Release created: ID=$RELEASE_ID, Tag=$TAG"
 
           # Upload every per-ABI + universal APK as its own release asset
-          for APK_PATH in $(find app/build/outputs/apk/release -name "*.apk" | sort); do
+          for APK_PATH in $(find dist -name "*.apk" | sort); do
             APK_NAME=$(basename "$APK_PATH")
             echo "Uploading $APK_NAME ..."
             curl -s -X POST \
