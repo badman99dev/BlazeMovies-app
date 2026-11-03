@@ -12,7 +12,7 @@ import androidx.media3.exoplayer.ExoPlayer
 
 @Composable
 fun rememberPlaybackParametersState(player: Player): PlaybackParametersState {
-    val state = remember { PlaybackParametersState(player) }
+    val state = remember(player) { PlaybackParametersState(player) }
     LaunchedEffect(player) {
         state.speed = player.playbackParameters.speed
         state.skipSilenceEnabled = (player as? ExoPlayer)?.skipSilenceEnabled ?: false

@@ -25,7 +25,7 @@ fun rememberControlsVisibilityState(
 ): ControlsVisibilityState {
     val activity = LocalActivity.current
     val coroutineScope = rememberCoroutineScope()
-    val controlsVisibilityState = remember { ControlsVisibilityState(player, hideAfter, coroutineScope) }
+    val controlsVisibilityState = remember(player, hideAfter) { ControlsVisibilityState(player, hideAfter, coroutineScope) }
     LaunchedEffect(player) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {

@@ -14,7 +14,7 @@ import com.movie.app.best.ui.screens.player.extensions.switchTrack
 
 @Composable
 fun rememberTracksState(player: Player, trackType: @C.TrackType Int): TracksState {
-    val state = remember { TracksState(player, trackType) }
+    val state = remember(player, trackType) { TracksState(player, trackType) }
     LaunchedEffect(player) {
         state.updateTracks()
         val listener = object : Player.Listener {

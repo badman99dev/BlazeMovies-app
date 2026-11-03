@@ -27,7 +27,7 @@ fun rememberVideoZoomAndContentScaleState(
     enablePanGesture: Boolean,
 ): VideoZoomAndContentScaleState {
     val coroutineScope = rememberCoroutineScope()
-    return remember {
+    return remember(player, enableZoomGesture, enablePanGesture) {
         VideoZoomAndContentScaleState(
             player = player,
             initialContentScale = initialContentScale,

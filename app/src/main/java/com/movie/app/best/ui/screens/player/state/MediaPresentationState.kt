@@ -16,7 +16,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun rememberMediaPresentationState(player: Player, isLive: Boolean = false): MediaPresentationState {
-    val state = remember { MediaPresentationState(player, isLive) }
+    val state = remember(player, isLive) { MediaPresentationState(player, isLive) }
     LaunchedEffect(isLive) {
         state.isLive = isLive
     }
