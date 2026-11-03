@@ -29,7 +29,10 @@ fun PlayerGestures(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
+                // Gesture coroutines state objects capture karte hain — inhe key karna
+                // zaroori hai, warna engine swap (decoder change) ke baad purane state
+                // pe toggle hota rehta hai (tap se controls wapas nahi aate).
+                .pointerInput(controlsVisibilityState, tapGestureState) {
                     detectTapGestures(
                         onTap = {
                             if (tapGestureState.seekMillis != 0L) return@detectTapGestures
@@ -50,7 +53,7 @@ fun PlayerGestures(
                         },
                     )
                 }
-                .pointerInput(controlsVisibilityState.controlsLocked) {
+                .pointerInput(controlsVisibilityState, seekGestureState) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     detectCustomHorizontalDragGestures(
                         onDragStart = {
@@ -62,7 +65,7 @@ fun PlayerGestures(
                         onDragEnd = seekGestureState::onDragEnd,
                     )
                 }
-                .pointerInput(controlsVisibilityState.controlsLocked) {
+                .pointerInput(controlsVisibilityState, volumeAndBrightnessGestureState) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     detectCustomVerticalDragGestures(
                         onDragStart = {
@@ -74,7 +77,7 @@ fun PlayerGestures(
                         onDragEnd = volumeAndBrightnessGestureState::onDragEnd,
                     )
                 }
-                .pointerInput(controlsVisibilityState.controlsLocked) {
+                .pointerInput(controlsVisibilityState, videoZoomAndContentScaleState) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     var zoomGestureControlsHidden = false
                     detectCustomTransformGestures(

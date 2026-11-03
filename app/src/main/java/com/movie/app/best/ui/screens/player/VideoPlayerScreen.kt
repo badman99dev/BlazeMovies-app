@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
@@ -140,6 +141,11 @@ fun VideoPlayerScreen(
         }
     }
 
+    // Effects jo engine pe keyed nahi hain (lifecycle/pause-resume, progress save) unke
+    // liye latest engine — warna decoder switch ke baad purane released player pe
+    // signal jata hai.
+    val currentEngine = rememberUpdatedState(engine)
+
     // Har engine ka apna cleanup: decoder switch / screen exit dono pe current player
     // release hota hai. (Pehle release lifecycleOwner effect me tha, isliye switch ke
     // baad purana engine release hota tha aur naya background me bajta rehta tha.)
@@ -191,7 +197,7 @@ fun VideoPlayerScreen(
         }
     }
 
-    LaunchedEffect(resumePos) {
+    LaunchedEffect(resumePos, engine) {
         if (resumePos > 0 && !hasResumed && engine != null) {
             if (engine.playbackState == Player.STATE_READY) {
                 hasResumed = true
@@ -331,10 +337,11 @@ fun VideoPlayerScreen(
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            val active = currentEngine.value
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> engine?.pause()
+                Lifecycle.Event.ON_PAUSE -> active?.pause()
                 Lifecycle.Event.ON_RESUME -> {
-                    if (engine?.playbackState == Player.STATE_READY) engine.play()
+                    if (active?.playbackState == Player.STATE_READY) active.play()
                 }
                 else -> {}
             }
@@ -342,8 +349,9 @@ fun VideoPlayerScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            val pos = engine?.currentPosition ?: 0
-            val dur = engine?.duration ?: 0
+            val active = currentEngine.value
+            val pos = active?.currentPosition ?: 0
+            val dur = active?.duration ?: 0
             if (pos > 0 && dur > 0) {
                 if (isLocalFile) {
                     firebaseRepository.saveLocalFileProgress(effectiveUrl, title, pos, dur)
