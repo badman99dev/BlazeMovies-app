@@ -3,6 +3,7 @@ package com.movie.app.best.ui.screens.player.engines.media3
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -22,7 +23,8 @@ fun Media3VideoSurface(
     offset: Offset,
     modifier: Modifier = Modifier,
 ) {
-    AndroidView(
+    key(exo) {
+        AndroidView(
         factory = { context ->
             PlayerView(context).apply {
                 useController = false
@@ -46,5 +48,6 @@ fun Media3VideoSurface(
                 translationX = offset.x
                 translationY = offset.y
             },
-    )
+        )
+    }
 }

@@ -3,6 +3,7 @@ package com.movie.app.best.ui.screens.player.engines.vlc
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -19,7 +20,11 @@ fun VlcVideoSurface(
     offset: Offset,
     modifier: Modifier = Modifier,
 ) {
-    AndroidView(
+    // engine badla (decoder switch) to surface bhi naya chahiye — warna AndroidView
+    // purana VLCVideoLayout reuse kar leta hai aur naya engine attach hi nahi hota
+    // (audio chalta hai, picture freeze rehti hai).
+    key(engine) {
+        AndroidView(
         factory = { context ->
             VLCVideoLayout(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -39,5 +44,6 @@ fun VlcVideoSurface(
                 translationX = offset.x
                 translationY = offset.y
             },
-    )
+        )
+    }
 }

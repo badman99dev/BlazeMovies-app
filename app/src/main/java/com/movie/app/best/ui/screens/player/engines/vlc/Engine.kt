@@ -122,6 +122,8 @@ class VlcEngine(
     fun attachSurface(layout: VLCVideoLayout) {
         if (released) return
         mediaPlayer.attachViews(layout, null, true, false)
+        // Agar media pehle se set tha to surfaces dobara bind karo.
+        runCatching { mediaPlayer.updateVideoSurfaces() }
     }
 
     fun detachSurface() {
