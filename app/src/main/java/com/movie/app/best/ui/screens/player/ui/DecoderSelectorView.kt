@@ -68,10 +68,16 @@ fun BoxScope.DecoderSelectorView(
                 )
             }
             Text(
-                text = "Changing the decoder restarts this video.",
+                text = "Now playing: ${selected.label} · libVLC",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.45f),
+                color = Color.White.copy(alpha = 0.6f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
+            )
+            Text(
+                text = "Switching reloads the video and resumes at the same position.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.4f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
             )
         }
     }

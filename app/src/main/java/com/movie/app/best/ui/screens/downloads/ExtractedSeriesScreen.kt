@@ -240,6 +240,9 @@ fun ExtractedSeriesScreen(
                         pendingSeekMs = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
                         LocalPlaybackSettings.setMode(context, currentFileUrl, mode)
                         decoderMode = mode
+                        android.widget.Toast
+                            .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+                            .show()
                     }
                 },
             )
@@ -285,6 +288,9 @@ fun ExtractedSeriesScreen(
                             pendingSeekMs = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
                             LocalPlaybackSettings.setMode(context, currentFileUrl, mode)
                             decoderMode = mode
+                            android.widget.Toast
+                                .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+                                .show()
                         }
                     },
                 )

@@ -262,6 +262,9 @@ fun VideoPlayerScreen(
         autoRetryCount = 0
         isAutoRetrying = false
         android.util.Log.w("VideoPlayerScreen", "switching decoder to ${mode.key}: $reason")
+        android.widget.Toast
+            .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+            .show()
     }
 
     DisposableEffect(engine) {
@@ -375,6 +378,9 @@ fun VideoPlayerScreen(
                             runCatching { engine?.release() }
                             LocalPlaybackSettings.setMode(context, effectiveUrl, mode)
                             decoderMode = mode
+                            android.widget.Toast
+                                .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+                                .show()
                             // Naya engine isi jagah se shuru ho.
                             resumePos = resumeAt
                             hasResumed = resumeAt <= 0L
