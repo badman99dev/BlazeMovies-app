@@ -136,27 +136,30 @@ jobs:
       - name: Upload APK to tempserv (test)
         if: ${{ github.event.inputs.build_mode == 'test' || github.event.inputs.build_mode == '' || github.event_name == 'push' }}
         run: |
-          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
-          APK_NAME=$(basename "$APK_PATH")
-          APK_SIZE=$(stat -c%s "$APK_PATH")
-          echo "APK: $APK_NAME ($APK_SIZE bytes)"
-          RESP=$(curl -s -X POST \
-            https://tempserv.cmdnode.xyz/api/upload \
-            -F "mode=file" \
-            -F "expiry=6hr" \
-            -F "paths=[\"$APK_NAME\"]" \
-            -F "files=@$APK_PATH")
-          echo "TEMPSERV_RESPONSE=$RESP"
-          DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "")
+          for APK_PATH in $(find app/build/outputs/apk/debug -name "*.apk" | sort); do
+            APK_NAME=$(basename "$APK_PATH")
+            APK_SIZE=$(stat -c%s "$APK_PATH")
+            echo "APK: $APK_NAME ($APK_SIZE bytes)"
+            echo "===APK_FILE=== $APK_NAME"
 
-          if [ -z "$DL_LINK" ]; then
-            echo "⚠️ tempserv upload failed — falling back to file.kiwi"
-            KIWI_OUTPUT=$(npx --yes @file-kiwi/node "$APK_PATH" 2>&1 | tr '\r' '\n')
-            echo "$KIWI_OUTPUT"
-            DL_LINK=$(echo "$KIWI_OUTPUT" | grep -oE 'https://file\.kiwi/[^[:space:]]+' | tail -1)
-          fi
+            RESP=$(curl -s -X POST \
+              https://tempserv.cmdnode.xyz/api/upload \
+              -F "mode=file" \
+              -F "expiry=6hr" \
+              -F "paths=[\"$APK_NAME\"]" \
+              -F "files=@$APK_PATH")
+            echo "TEMPSERV_RESPONSE=$RESP"
+            DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "")
 
-          echo "===APK_LINK=== $DL_LINK"
+            if [ -z "$DL_LINK" ]; then
+              echo "⚠️ tempserv failed for $APK_NAME — file.kiwi fallback"
+              KIWI_OUTPUT=$(npx --yes @file-kiwi/node "$APK_PATH" 2>&1 | tr '\r' '\n')
+              echo "$KIWI_OUTPUT"
+              DL_LINK=$(echo "$KIWI_OUTPUT" | grep -oE 'https://file\.kiwi/[^[:space:]]+' | tail -1)
+            fi
+
+            echo "===APK_LINK=== $APK_NAME $DL_LINK"
+          done
 
       # ──────────────────────────────────────────────
       #  MODE: MINOR / MAJOR (version bump + release)
@@ -225,38 +228,41 @@ jobs:
       - name: Rename APK to blazemovies.apk
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         run: |
-          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
-          cp "$APK_PATH" blazemovies.apk
-          ls -la blazemovies.apk
+          find app/build/outputs/apk/release -name "*.apk" -printf "%f  %s bytes\n" | sort
 
       - name: Upload APK as Artifact (minor/major)
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         uses: actions/upload-artifact@v4
         with:
           name: blazemovies-apk
-          path: blazemovies.apk
+          path: app/build/outputs/apk/release/*.apk
           retention-days: 30
 
       - name: Upload APK to tempserv (minor/major)
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
         run: |
-          RESP=$(curl -s -X POST \
-            https://tempserv.cmdnode.xyz/api/upload \
-            -F "mode=file" \
-            -F "expiry=6hr" \
-            -F "paths=[\"blazemovies.apk\"]" \
-            -F "files=@blazemovies.apk")
-          echo "TEMPSERV_RESPONSE=$RESP"
-          DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "")
+          for APK_PATH in $(find app/build/outputs/apk/release -name "*.apk" | sort); do
+            APK_NAME=$(basename "$APK_PATH")
+            echo "===APK_FILE=== $APK_NAME"
 
-          if [ -z "$DL_LINK" ]; then
-            echo "⚠️ tempserv upload failed — falling back to file.kiwi"
-            KIWI_OUTPUT=$(npx --yes @file-kiwi/node blazemovies.apk 2>&1 | tr '\r' '\n')
-            echo "$KIWI_OUTPUT"
-            DL_LINK=$(echo "$KIWI_OUTPUT" | grep -oE 'https://file\.kiwi/[^[:space:]]+' | tail -1)
-          fi
+            RESP=$(curl -s -X POST \
+              https://tempserv.cmdnode.xyz/api/upload \
+              -F "mode=file" \
+              -F "expiry=6hr" \
+              -F "paths=[\"$APK_NAME\"]" \
+              -F "files=@$APK_PATH")
+            echo "TEMPSERV_RESPONSE=$RESP"
+            DL_LINK=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','') or d.get('slug',''))" 2>/dev/null || echo "")
 
-          echo "===APK_LINK=== $DL_LINK"
+            if [ -z "$DL_LINK" ]; then
+              echo "⚠️ tempserv failed for $APK_NAME — file.kiwi fallback"
+              KIWI_OUTPUT=$(npx --yes @file-kiwi/node "$APK_PATH" 2>&1 | tr '\r' '\n')
+              echo "$KIWI_OUTPUT"
+              DL_LINK=$(echo "$KIWI_OUTPUT" | grep -oE 'https://file\.kiwi/[^[:space:]]+' | tail -1)
+            fi
+
+            echo "===APK_LINK=== $APK_NAME $DL_LINK"
+          done
 
       - name: Get git SHA
         if: ${{ github.event.inputs.build_mode == 'minor' || github.event.inputs.build_mode == 'major' }}
@@ -320,12 +326,17 @@ jobs:
 
           echo "Release created: ID=$RELEASE_ID, Tag=$TAG"
 
-          # Upload blazemovies.apk
-          curl -s -X POST \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary @blazemovies.apk \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=blazemovies.apk"
+          # Upload every per-ABI + universal APK as its own release asset
+          for APK_PATH in $(find app/build/outputs/apk/release -name "*.apk" | sort); do
+            APK_NAME=$(basename "$APK_PATH")
+            echo "Uploading $APK_NAME ..."
+            curl -s -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: application/vnd.android.package-archive" \
+              --data-binary "@$APK_PATH" \
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$APK_NAME"
+            echo
+          done
 
           # Upload release.json
           curl -s -X POST \
@@ -334,4 +345,4 @@ jobs:
             --data-binary @release.json \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=release.json"
 
-          echo "✅ Release $TAG created with blazemovies.apk + release.json"
+          echo "✅ Release $TAG created with all APKs + release.json"

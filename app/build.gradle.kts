@@ -56,8 +56,16 @@ android {
             useSupportLibrary = true
         }
 
-        ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+
+    // Emit per-ABI APKs (device + emulator) plus a universal APK.
+    // Outputs: app-arm64-v8a, app-armeabi-v7a, app-x86, app-x86_64, app-universal.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            isUniversalApk = true
         }
     }
 
