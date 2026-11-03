@@ -511,6 +511,8 @@ fun MediaPlayerScreen(
                     serverOptions = serverOptions,
                     selectedServerOptionId = selectedServerOptionId,
                     onServerOptionSelected = onServerOptionSelected,
+                    decoderMode = decoderMode,
+                    onDecoderModeSelected = onDecoderModeSelected,
                 )
             }
         }

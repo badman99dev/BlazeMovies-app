@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.media3.common.Player
+import com.movie.app.best.data.settings.LocalPlaybackSettings
 import com.movie.app.best.ui.screens.player.extensions.noRippleClickable
 import com.movie.app.best.ui.screens.player.model.VideoContentScale
 
@@ -21,6 +22,8 @@ fun BoxScope.OverlayShowView(
     serverOptions: List<com.movie.app.best.data.model.PlaybackOption>? = null,
     selectedServerOptionId: String? = null,
     onServerOptionSelected: ((String) -> Unit)? = null,
+    decoderMode: LocalPlaybackSettings.Mode? = null,
+    onDecoderModeSelected: ((LocalPlaybackSettings.Mode) -> Unit)? = null,
 ) {
     Box(
         modifier = Modifier
@@ -57,6 +60,15 @@ fun BoxScope.OverlayShowView(
         player = player,
         onDismiss = onDismiss,
     )
+
+    if (decoderMode != null && onDecoderModeSelected != null) {
+        DecoderSelectorView(
+            show = overlayView == OverlayViewType.DECODER_SELECTOR,
+            selected = decoderMode,
+            onSelect = onDecoderModeSelected,
+            onDismiss = onDismiss,
+        )
+    }
 
     if (!serverOptions.isNullOrEmpty()) {
         ServerSourceSelectorView(
