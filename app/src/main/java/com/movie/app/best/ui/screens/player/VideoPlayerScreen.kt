@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,9 +52,6 @@ import kotlinx.coroutines.runBlocking
 
 private const val MAX_AUTO_RETRIES = 5
 private const val AUTO_RETRY_DELAY_MS = 2000L
-
-/** HW (Media3) me aane wali file-specific problems. */
-private enum class HwIssue { UNSEEKABLE, UNSUPPORTED }
 
 private fun PlaybackException.isTransient(): Boolean = when (errorCode) {
     PlaybackException.ERROR_CODE_TIMEOUT,
@@ -127,17 +123,13 @@ fun VideoPlayerScreen(
             }
         )
     }
-    // HW (Media3) me seek/codec problem? Silent switch nahi — dialog + HW+ offer.
-    var hwIssueDialog by remember(effectiveUrl) { mutableStateOf<HwIssue?>(null) }
 
-    val useVlc = EngineRouter.isLocal(effectiveUrl) && LocalPlaybackSettings.usesVlc(decoderMode)
-
-    // Owned by the router: local + HW+/SW -> libVLC "Advance Decoder" (VlcEngine),
-    // local + HW aur saare streams -> Media3 (Media3Engine). Both are plain media3 Players, so the
-    // rest of this screen and the shared player UI are engine-agnostic.
+    // Router: local/downloaded → libVLC "Advance Decoder" (HW+ / HW / SW — demuxer VLC ka,
+    // isliye seek har mode me chalta hai), streams → Media3. Both are plain media3 Players,
+    // so the rest of this screen and the shared player UI are engine-agnostic.
     val engine: Player? = remember(effectiveUrl, decoderMode) {
         if (effectiveUrl.isEmpty()) return@remember null
-        if (useVlc) {
+        if (EngineRouter.isLocal(effectiveUrl)) {
             VlcEngineFactory.create(context, decoderMode)
         } else {
             Media3EngineFactory.create(
@@ -258,28 +250,28 @@ fun VideoPlayerScreen(
     var isAutoRetrying by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    /** HW+ (libVLC) pe switch — position preserve, aur us file ke liye pin. */
-    fun switchToHwPlus(reason: String) {
+    /** Decoder switch — engine recreate + same position, aur us file ke liye pin. */
+    fun switchDecoder(mode: LocalPlaybackSettings.Mode, reason: String) {
         val resumeAt = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
         runCatching { engine?.release() }
-        LocalPlaybackSettings.setMode(context, effectiveUrl, LocalPlaybackSettings.Mode.HW_PLUS)
+        LocalPlaybackSettings.setMode(context, effectiveUrl, mode)
+        decoderMode = mode
         resumePos = resumeAt
         hasResumed = resumeAt <= 0L
-        decoderMode = LocalPlaybackSettings.Mode.HW_PLUS
-        hwIssueDialog = null
         playerError = null
         autoRetryCount = 0
         isAutoRetrying = false
-        android.util.Log.w("VideoPlayerScreen", "switching to HW+ (libVLC): $reason")
+        android.util.Log.w("VideoPlayerScreen", "switching decoder to ${mode.key}: $reason")
     }
 
     DisposableEffect(engine) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
                 android.util.Log.e("VideoPlayerScreen", "player error: ${error.errorCodeName}", error)
-                // HW (Media3) me codec/container support nahi → friendly dialog (raw error nahi).
-                if (isLocalFile && decoderMode == LocalPlaybackSettings.Mode.HW && !error.isTransient()) {
-                    hwIssueDialog = HwIssue.UNSUPPORTED
+                // Local file me decoder fail (jaise HW force + unsupported codec) →
+                // friendly error screen, jahan HW+/SW switch ke buttons hain.
+                if (isLocalFile && !error.isTransient()) {
+                    playerError = "decode"
                     return
                 }
                 if (error.isTransient() && autoRetryCount < MAX_AUTO_RETRIES) {
@@ -316,19 +308,6 @@ fun VideoPlayerScreen(
                 activity?.let {
                     val playing = engine?.isPlaying == true
                     ImmersiveMode.keepScreenOn(it, playing || state == Player.STATE_BUFFERING)
-                }
-                // Chained-SeekHead waale MKV me Media3 ka SeekMap unseekable hota hai
-                // (seek → 0:00). Thoda wait karke check karo, ho to VLC pe switch.
-                if (state == Player.STATE_READY && isLocalFile &&
-                    decoderMode == LocalPlaybackSettings.Mode.HW
-                ) {
-                    coroutineScope.launch {
-                        delay(1200)
-                        val current = engine ?: return@launch
-                        if (!current.isCurrentMediaItemSeekable) {
-                            hwIssueDialog = HwIssue.UNSEEKABLE
-                        }
-                    }
                 }
             }
         }
@@ -396,7 +375,6 @@ fun VideoPlayerScreen(
                             runCatching { engine?.release() }
                             LocalPlaybackSettings.setMode(context, effectiveUrl, mode)
                             decoderMode = mode
-                            hwIssueDialog = null
                             // Naya engine isi jagah se shuru ho.
                             resumePos = resumeAt
                             hasResumed = resumeAt <= 0L
@@ -437,14 +415,26 @@ fun VideoPlayerScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Local file → HW+ (VLC) pe switch ka option.
+                // Local file → doosra decoder try karne ke options (VLC hi rehta hai).
                 if (isLocalFile && decoderMode != LocalPlaybackSettings.Mode.HW_PLUS) {
                     Button(
-                        onClick = { switchToHwPlus("error screen") },
+                        onClick = { switchDecoder(LocalPlaybackSettings.Mode.HW_PLUS, "error screen") },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Switch to HW+ (VLC)", color = Color.White)
+                        Text("Switch to HW+ (hardware + software)", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+                if (isLocalFile && decoderMode != LocalPlaybackSettings.Mode.SW) {
+                    Button(
+                        onClick = { switchDecoder(LocalPlaybackSettings.Mode.SW, "error screen") },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White.copy(alpha = 0.12f),
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Switch to SW (software)", color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                 }
@@ -476,52 +466,5 @@ fun VideoPlayerScreen(
             }
         }
 
-        // HW (Media3) ki file-specific problem → friendly dialog + HW+ switch.
-        hwIssueDialog?.let { issue ->
-            AlertDialog(
-                onDismissRequest = { hwIssueDialog = null },
-                containerColor = Color(0xFF141416),
-                title = {
-                    Text(
-                        text = when (issue) {
-                            HwIssue.UNSEEKABLE -> "Seeking won't work in HW"
-                            HwIssue.UNSUPPORTED -> "Can't play this file in HW"
-                        },
-                        color = Color.White,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    )
-                },
-                text = {
-                    Text(
-                        text = when (issue) {
-                            HwIssue.UNSEEKABLE ->
-                                "This file's index is damaged, so the hardware (Media3) player can't seek properly — it jumps back to 0:00."
-                            HwIssue.UNSUPPORTED ->
-                                "This file's format or codec isn't supported by the hardware (Media3) decoder on this device."
-                        } + "\n\nSwitch to HW+ (VLC) — it decodes in hardware and falls back to software when needed.",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 14.sp,
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = { switchToHwPlus("hw issue: $issue") }) {
-                        Text("Switch to HW+", color = Color(0xFFE50914))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        // Unsupported file pe close karte hi friendly error screen dikhe
-                        // (wahan bhi "Switch to HW+" button hai).
-                        if (issue == HwIssue.UNSUPPORTED) playerError = "unsupported"
-                        hwIssueDialog = null
-                    }) {
-                        Text(
-                            text = if (issue == HwIssue.UNSUPPORTED) "Close" else "Keep HW",
-                            color = Color.White.copy(alpha = 0.7f),
-                        )
-                    }
-                },
-            )
-        }
     }
 }

@@ -6,14 +6,15 @@ import java.security.MessageDigest
 /**
  * Local (downloaded / device) playback ke decoder modes.
  *
- * - [Mode.HW_PLUS] (default) libVLC — hardware decode + software fallback
- *                  (`:codec=mediacodec,all`). Broken-SeekHead MKV bhi seek karte hain.
- * - [Mode.HW]      Media3 (ExoPlayer) — sirf MediaCodec, koi software fallback nahi.
- *                  Sirf tab jab user khud sheet se force kare.
- * - [Mode.SW]      libVLC — pure software (ffmpeg), sabse compatible.
+ * Teeno modes libVLC pe chalte hain (demuxer VLC ka hi rehta hai, isliye
+ * chained-SeekHead waale MKV me bhi seek bar sahi chalta hai):
+ *
+ * - [Mode.HW_PLUS] (default) hardware decode + software fallback
+ *                  (`:codec=mediacodec,all`)
+ * - [Mode.HW]      force MediaCodec only — koi software fallback nahi
+ * - [Mode.SW]      pure software (ffmpeg), sabse compatible
  *
  * Preference per-file cache hoti hai — jo last time chala wahi agli baar khulega.
- * HW me seek/codec problem aaye to UI dialog dikha kar HW+ offer karta hai.
  */
 object LocalPlaybackSettings {
 
@@ -21,7 +22,7 @@ object LocalPlaybackSettings {
     private const val KEY_PREFIX = "mode:"
 
     enum class Mode(val key: String, val label: String, val description: String) {
-        HW("hw", "HW", "Hardware only · Media3 (may break seeking)"),
+        HW("hw", "HW", "Force MediaCodec · no software fallback"),
         HW_PLUS("hw_plus", "HW+", "Hardware + software fallback · VLC"),
         SW("sw", "SW", "Software decoder · VLC (most compatible)"),
         ;
@@ -31,11 +32,9 @@ object LocalPlaybackSettings {
         }
     }
 
-    /** HW = Media3, baaki dono libVLC. */
-    fun usesVlc(mode: Mode): Boolean = mode != Mode.HW
-
-    /** LibVLC instance level options for a VLC mode. */
+    /** LibVLC instance level options for the chosen decoder. */
     fun libVlcOptions(mode: Mode): List<String> = when (mode) {
+        Mode.HW -> listOf("--avcodec-hw=mediacodec")
         Mode.SW -> listOf("--avcodec-hw=none")
         else -> emptyList()
     }

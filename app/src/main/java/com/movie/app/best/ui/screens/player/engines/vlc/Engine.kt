@@ -195,8 +195,13 @@ class VlcEngine(
                 // HW   -> sirf mediacodec (koi fallback nahi)
                 // SW   -> pure software (":no-hw-dec")
                 when (decoderMode) {
+                    // HW: sirf MediaCodec — `:codec=mediacodec` me ",all" nahi hai,
+                    // isliye koi software fallback nahi hota (fail = error).
+                    // setHWDecoderEnabled(true, true) nahi use karte: wo legacy
+                    // iomx + "all" fallback add kar deta hai.
+                    LocalPlaybackSettings.Mode.HW -> media.addOption(":codec=mediacodec")
                     LocalPlaybackSettings.Mode.SW -> media.setHWDecoderEnabled(false, false)
-                    // HW+ (aur HW galti se VLC pe aaya ho to) → hardware + software fallback
+                    // HW+: hardware pehle, na chale to software.
                     else -> media.setHWDecoderEnabled(true, false)
                 }
                 mediaPlayer.setMedia(media)
