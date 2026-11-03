@@ -241,7 +241,7 @@ fun ExtractedSeriesScreen(
                         LocalPlaybackSettings.setMode(context, currentFileUrl, mode)
                         decoderMode = mode
                         android.widget.Toast
-                            .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+                            .makeText(context, "Decoder: ${mode.label}", android.widget.Toast.LENGTH_SHORT)
                             .show()
                     }
                 },
@@ -289,7 +289,7 @@ fun ExtractedSeriesScreen(
                             LocalPlaybackSettings.setMode(context, currentFileUrl, mode)
                             decoderMode = mode
                             android.widget.Toast
-                                .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+                                .makeText(context, "Decoder: ${mode.label}", android.widget.Toast.LENGTH_SHORT)
                                 .show()
                         }
                     },

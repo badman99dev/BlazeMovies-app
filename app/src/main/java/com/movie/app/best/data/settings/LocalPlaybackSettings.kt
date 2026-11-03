@@ -21,10 +21,10 @@ object LocalPlaybackSettings {
     private const val PREFS_NAME = "app_local_playback"
     private const val KEY_PREFIX = "mode:"
 
-    enum class Mode(val key: String, val label: String, val description: String) {
-        HW("hw", "HW", "Force MediaCodec · no software fallback"),
-        HW_PLUS("hw_plus", "HW+", "Hardware + software fallback · VLC"),
-        SW("sw", "SW", "Software decoder · VLC (most compatible)"),
+    enum class Mode(val key: String, val label: String) {
+        HW("hw", "HW"),
+        HW_PLUS("hw_plus", "HW+"),
+        SW("sw", "SW"),
         ;
 
         companion object {

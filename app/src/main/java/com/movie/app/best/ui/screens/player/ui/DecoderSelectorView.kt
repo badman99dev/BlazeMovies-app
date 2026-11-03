@@ -38,8 +38,8 @@ fun LocalPlaybackSettings.Mode.icon(): ImageVector = when (this) {
 
 /**
  * Local playback ka decoder chooser — quality sheet ka hi look & feel.
- * HW = Media3, HW+ / SW = libVLC. Switching pe engine recreate hota hai
- * (libVLC options per-instance hote hain), position same rehti hai.
+ * Teeno modes libVLC ke hain. Switching pe engine recreate hota hai (options
+ * per-instance hote hain), position same rehti hai.
  */
 @Composable
 fun BoxScope.DecoderSelectorView(
@@ -68,16 +68,10 @@ fun BoxScope.DecoderSelectorView(
                 )
             }
             Text(
-                text = "Now playing: ${selected.label} · libVLC",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.6f),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
-            )
-            Text(
-                text = "Switching reloads the video and resumes at the same position.",
+                text = "Changing decoder reloads the video.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.4f),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
             )
         }
     }
@@ -104,22 +98,14 @@ private fun DecoderRow(
             tint = Color.White.copy(alpha = if (selected) 0.95f else 0.65f),
             modifier = Modifier.size(24.dp),
         )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = mode.label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = if (selected) 1f else 0.85f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = mode.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.45f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        Text(
+            text = mode.label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = if (selected) 1f else 0.85f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
         Spacer(modifier = Modifier.width(4.dp))
         RadioButton(selected = selected, onClick = null)
     }

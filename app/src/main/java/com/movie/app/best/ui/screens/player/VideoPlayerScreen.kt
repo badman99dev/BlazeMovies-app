@@ -113,7 +113,7 @@ fun VideoPlayerScreen(
 
     // Local playback ka decoder mode (quality button ki jagah decoder button).
     // Per-file preference: jo last time us file pe chala wahi mode dobara khulta hai.
-    // HW = Media3 (battery / pure hardware), HW+ aur SW = libVLC.
+    // Teeno modes libVLC (HW+ / HW / SW) — demuxer VLC ka, isliye seek har mode me chalta hai.
     var decoderMode by remember(effectiveUrl) {
         mutableStateOf(
             if (EngineRouter.isLocal(effectiveUrl)) {
@@ -263,7 +263,7 @@ fun VideoPlayerScreen(
         isAutoRetrying = false
         android.util.Log.w("VideoPlayerScreen", "switching decoder to ${mode.key}: $reason")
         android.widget.Toast
-            .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+            .makeText(context, "Decoder: ${mode.label}", android.widget.Toast.LENGTH_SHORT)
             .show()
     }
 
@@ -379,7 +379,7 @@ fun VideoPlayerScreen(
                             LocalPlaybackSettings.setMode(context, effectiveUrl, mode)
                             decoderMode = mode
                             android.widget.Toast
-                                .makeText(context, "Decoder: ${mode.label} (libVLC)", android.widget.Toast.LENGTH_SHORT)
+                                .makeText(context, "Decoder: ${mode.label}", android.widget.Toast.LENGTH_SHORT)
                                 .show()
                             // Naya engine isi jagah se shuru ho.
                             resumePos = resumeAt
@@ -411,9 +411,9 @@ fun VideoPlayerScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = if (isLocalFile) {
-                        "The player couldn't start this video. Try another decoder, or retry."
+                        "This video couldn't be played."
                     } else {
-                        "Something went wrong while starting the stream. Please retry."
+                        "Something went wrong. Please retry."
                     },
                     color = Color.White.copy(alpha = 0.55f),
                     fontSize = 14.sp,
@@ -428,7 +428,7 @@ fun VideoPlayerScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Switch to HW+ (hardware + software)", color = Color.White)
+                        Text("Try HW+", color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                 }
@@ -440,7 +440,7 @@ fun VideoPlayerScreen(
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Switch to SW (software)", color = Color.White)
+                        Text("Try SW", color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                 }
