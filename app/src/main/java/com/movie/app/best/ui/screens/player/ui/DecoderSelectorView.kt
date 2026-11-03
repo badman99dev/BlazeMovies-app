@@ -26,26 +26,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.movie.app.best.data.settings.VlcDecoderSettings
+import com.movie.app.best.data.settings.LocalPlaybackSettings
 import com.movie.app.best.ui.screens.player.icons.DecoderIcons
 
 /** Decoder mode → icon (state ke hisaab se badalta hai, captions icon jaisa). */
-fun VlcDecoderSettings.Mode.icon(): ImageVector = when (this) {
-    VlcDecoderSettings.Mode.HW_PLUS -> DecoderIcons.HwPlus
-    VlcDecoderSettings.Mode.HW -> DecoderIcons.Hw
-    VlcDecoderSettings.Mode.SW -> DecoderIcons.Sw
+fun LocalPlaybackSettings.Mode.icon(): ImageVector = when (this) {
+    LocalPlaybackSettings.Mode.HW -> DecoderIcons.Hw
+    LocalPlaybackSettings.Mode.HW_PLUS -> DecoderIcons.HwPlus
+    LocalPlaybackSettings.Mode.SW -> DecoderIcons.Sw
 }
 
 /**
  * Local playback ka decoder chooser — quality sheet ka hi look & feel.
- * Switching se engine recreate hota hai (LibVLC options per-instance hote hain).
+ * HW = Media3, HW+ / SW = libVLC. Switching pe engine recreate hota hai
+ * (libVLC options per-instance hote hain), position same rehti hai.
  */
 @Composable
 fun BoxScope.DecoderSelectorView(
     modifier: Modifier = Modifier,
     show: Boolean,
-    selected: VlcDecoderSettings.Mode,
-    onSelect: (VlcDecoderSettings.Mode) -> Unit,
+    selected: LocalPlaybackSettings.Mode,
+    onSelect: (LocalPlaybackSettings.Mode) -> Unit,
     onDismiss: () -> Unit,
 ) {
     OverlayView(modifier = modifier, show = show, title = "Decoder") {
@@ -56,7 +57,7 @@ fun BoxScope.DecoderSelectorView(
                 .padding(horizontal = 24.dp)
                 .selectableGroup(),
         ) {
-            VlcDecoderSettings.Mode.entries.forEach { mode ->
+            LocalPlaybackSettings.Mode.entries.forEach { mode ->
                 DecoderRow(
                     mode = mode,
                     selected = mode == selected,
@@ -78,7 +79,7 @@ fun BoxScope.DecoderSelectorView(
 
 @Composable
 private fun DecoderRow(
-    mode: VlcDecoderSettings.Mode,
+    mode: LocalPlaybackSettings.Mode,
     selected: Boolean,
     onClick: () -> Unit,
 ) {

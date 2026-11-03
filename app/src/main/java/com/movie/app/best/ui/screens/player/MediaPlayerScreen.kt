@@ -90,7 +90,7 @@ import com.movie.app.best.ui.screens.player.ui.PlayerGestures
 import com.movie.app.best.ui.screens.player.ui.QualitySelectorView
 import com.movie.app.best.ui.screens.player.ui.DecoderSelectorView
 import com.movie.app.best.ui.screens.player.ui.icon
-import com.movie.app.best.data.settings.VlcDecoderSettings
+import com.movie.app.best.data.settings.LocalPlaybackSettings
 import com.movie.app.best.ui.screens.player.ui.ServerSourceSelectorView
 import com.movie.app.best.ui.screens.player.ui.ShutterView
 import com.movie.app.best.data.settings.PlayerRotationSettings
@@ -121,8 +121,8 @@ fun MediaPlayerScreen(
     selectedServerOptionId: String? = null,
     onServerOptionSelected: ((String) -> Unit)? = null,
     // Local (libVLC) playback: quality button ki jagah decoder button + sheet.
-    decoderMode: VlcDecoderSettings.Mode? = null,
-    onDecoderModeSelected: ((VlcDecoderSettings.Mode) -> Unit)? = null,
+    decoderMode: LocalPlaybackSettings.Mode? = null,
+    onDecoderModeSelected: ((LocalPlaybackSettings.Mode) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = context as? android.app.Activity

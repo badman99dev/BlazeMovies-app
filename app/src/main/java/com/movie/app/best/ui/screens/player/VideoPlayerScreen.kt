@@ -32,7 +32,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import com.movie.app.best.data.settings.VlcDecoderSettings
+import com.movie.app.best.data.settings.LocalPlaybackSettings
 import com.movie.app.best.ui.screens.player.engines.EngineRouter
 import com.movie.app.best.ui.screens.player.engines.media3.Media3EngineFactory
 import com.movie.app.best.ui.screens.player.engines.media3.Media3PlayerEvents
@@ -106,15 +106,30 @@ fun VideoPlayerScreen(
     }
 
     // Local playback ka decoder mode (quality button ki jagah decoder button).
-    // LibVLC options instance-level hote hain, isliye mode badalne pe engine recreate hota hai.
-    var decoderMode by remember { mutableStateOf(VlcDecoderSettings.getMode(context)) }
+    // Per-file preference: jo last time us file pe chala wahi mode dobara khulta hai.
+    // HW = Media3 (battery / pure hardware), HW+ aur SW = libVLC.
+    var decoderMode by remember(effectiveUrl) {
+        mutableStateOf(
+            if (EngineRouter.isLocal(effectiveUrl)) {
+                LocalPlaybackSettings.modeFor(context, effectiveUrl)
+            } else {
+                LocalPlaybackSettings.Mode.HW
+            }
+        )
+    }
+    // HW (Media3) fail hua to ek hi baar VLC pe switch — dobara loop nahi.
+    var autoFallbackUsed by remember(effectiveUrl) { mutableStateOf(false) }
+    // User ne sheet se manually mode chuna to us session me auto-fallback band.
+    var userPinnedMode by remember(effectiveUrl) { mutableStateOf(false) }
 
-    // Owned by the router: local/downloaded -> LibVLC "Advance Decoder" (VlcEngine),
-    // everything streamed -> Media3 (Media3Engine). Both are plain media3 Players, so the rest of
-    // this screen and the shared player UI are engine-agnostic.
+    val useVlc = EngineRouter.isLocal(effectiveUrl) && LocalPlaybackSettings.usesVlc(decoderMode)
+
+    // Owned by the router: local + HW+/SW -> libVLC "Advance Decoder" (VlcEngine),
+    // local + HW aur saare streams -> Media3 (Media3Engine). Both are plain media3 Players, so the
+    // rest of this screen and the shared player UI are engine-agnostic.
     val engine: Player? = remember(effectiveUrl, decoderMode) {
         if (effectiveUrl.isEmpty()) return@remember null
-        if (EngineRouter.isLocal(effectiveUrl)) {
+        if (useVlc) {
             VlcEngineFactory.create(context, decoderMode)
         } else {
             Media3EngineFactory.create(
@@ -235,9 +250,37 @@ fun VideoPlayerScreen(
     var isAutoRetrying by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
+    /**
+     * HW (Media3) is file pe kaam nahi kar raha (unseekable MKV / unsupported codec)?
+     * Ek hi baar HW+ (libVLC) pe switch karo, position preserve karke, aur us file ke
+     * liye HW+ pin kar do — agli baar seedha VLC khulega.
+     */
+    fun fallbackToVlc(reason: String) {
+        val current = engine ?: return
+        if (!isLocalFile) return
+        if (decoderMode != LocalPlaybackSettings.Mode.HW) return
+        if (autoFallbackUsed || userPinnedMode) return
+
+        autoFallbackUsed = true
+        val resumeAt = runCatching { current.currentPosition }.getOrDefault(0L)
+        runCatching { current.release() }
+        LocalPlaybackSettings.setMode(context, effectiveUrl, LocalPlaybackSettings.Mode.HW_PLUS)
+        resumePos = resumeAt
+        hasResumed = resumeAt <= 0L
+        decoderMode = LocalPlaybackSettings.Mode.HW_PLUS
+        android.util.Log.w("VideoPlayerScreen", "HW (Media3) -> HW+ (libVLC): $reason")
+    }
+
     DisposableEffect(engine) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
+                // Codec/container Media3 me support nahi → VLC pe fallback (retry se pehle).
+                if (isLocalFile && decoderMode == LocalPlaybackSettings.Mode.HW &&
+                    !autoFallbackUsed && !userPinnedMode && !error.isTransient()
+                ) {
+                    fallbackToVlc("player error: ${error.errorCodeName}")
+                    return
+                }
                 if (error.isTransient() && autoRetryCount < MAX_AUTO_RETRIES) {
                     autoRetryCount++
                     isAutoRetrying = true
@@ -272,6 +315,20 @@ fun VideoPlayerScreen(
                 activity?.let {
                     val playing = engine?.isPlaying == true
                     ImmersiveMode.keepScreenOn(it, playing || state == Player.STATE_BUFFERING)
+                }
+                // Chained-SeekHead waale MKV me Media3 ka SeekMap unseekable hota hai
+                // (seek → 0:00). Thoda wait karke check karo, ho to VLC pe switch.
+                if (state == Player.STATE_READY && isLocalFile &&
+                    decoderMode == LocalPlaybackSettings.Mode.HW &&
+                    !autoFallbackUsed && !userPinnedMode
+                ) {
+                    coroutineScope.launch {
+                        delay(1200)
+                        val current = engine ?: return@launch
+                        if (!autoFallbackUsed && !current.isCurrentMediaItemSeekable) {
+                            fallbackToVlc("unseekable (chained SeekHead?)")
+                        }
+                    }
                 }
             }
         }
@@ -335,10 +392,12 @@ fun VideoPlayerScreen(
                     { mode ->
                         if (mode != decoderMode) {
                             val resumeAt = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
+                            // Purana engine release karo (libVLC instance leak na ho).
+                            runCatching { engine?.release() }
+                            LocalPlaybackSettings.setMode(context, effectiveUrl, mode)
+                            userPinnedMode = true
+                            autoFallbackUsed = false
                             decoderMode = mode
-                            VlcDecoderSettings.setMode(context, mode)
-                            // Purane LibVLC instance ko release karo, warna leak.
-                            engine?.release()
                             // Naya engine isi jagah se shuru ho.
                             resumePos = resumeAt
                             hasResumed = resumeAt <= 0L
