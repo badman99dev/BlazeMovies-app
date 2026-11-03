@@ -6,14 +6,14 @@ import java.security.MessageDigest
 /**
  * Local (downloaded / device) playback ke decoder modes.
  *
+ * - [Mode.HW_PLUS] (default) libVLC — hardware decode + software fallback
+ *                  (`:codec=mediacodec,all`). Broken-SeekHead MKV bhi seek karte hain.
  * - [Mode.HW]      Media3 (ExoPlayer) — sirf MediaCodec, koi software fallback nahi.
- *                  Battery/performance ke liye best.
- * - [Mode.HW_PLUS] libVLC — hardware decode + software fallback (`:codec=mediacodec,all`).
+ *                  Sirf tab jab user khud sheet se force kare.
  * - [Mode.SW]      libVLC — pure software (ffmpeg), sabse compatible.
  *
- * HW (Media3) pe ek file chal na paaye (unseekable MKV / unsupported codec) to player
- * automatically HW+ (libVLC) pe switch karta hai aur us file ke liye HW+ pin ho jata hai.
  * Preference per-file cache hoti hai — jo last time chala wahi agli baar khulega.
+ * HW me seek/codec problem aaye to UI dialog dikha kar HW+ offer karta hai.
  */
 object LocalPlaybackSettings {
 
@@ -21,13 +21,13 @@ object LocalPlaybackSettings {
     private const val KEY_PREFIX = "mode:"
 
     enum class Mode(val key: String, val label: String, val description: String) {
-        HW("hw", "HW", "Hardware only · Media3 (battery saver)"),
+        HW("hw", "HW", "Hardware only · Media3 (may break seeking)"),
         HW_PLUS("hw_plus", "HW+", "Hardware + software fallback · VLC"),
         SW("sw", "SW", "Software decoder · VLC (most compatible)"),
         ;
 
         companion object {
-            fun fromKey(key: String?): Mode = entries.firstOrNull { it.key == key } ?: HW
+            fun fromKey(key: String?): Mode = entries.firstOrNull { it.key == key } ?: HW_PLUS
         }
     }
 
@@ -41,7 +41,7 @@ object LocalPlaybackSettings {
     }
 
     fun modeFor(context: Context, fileUrl: String): Mode {
-        if (fileUrl.isEmpty()) return Mode.HW
+        if (fileUrl.isEmpty()) return Mode.HW_PLUS
         val raw = prefs(context).getString(KEY_PREFIX + fileKey(fileUrl), null)
         return Mode.fromKey(raw)
     }
