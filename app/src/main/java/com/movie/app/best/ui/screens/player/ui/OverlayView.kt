@@ -114,6 +114,7 @@ fun BoxScope.OverlayView(
 enum class OverlayViewType {
     AUDIO_SELECTOR,
     QUALITY_SELECTOR,
+    DECODER_SELECTOR,
     PLAYBACK_SPEED,
     VIDEO_CONTENT_SCALE,
     SUBTITLE_SELECTOR,

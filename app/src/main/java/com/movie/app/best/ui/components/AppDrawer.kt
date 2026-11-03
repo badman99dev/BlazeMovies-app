@@ -42,9 +42,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.Category
-import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.data.settings.ModerationSettings
+import com.movie.app.best.data.update.UpdateState
 import com.movie.app.best.ui.screens.categories.CategoriesViewModel
+import com.movie.app.best.ui.screens.settings.UpdateViewModel
 import com.movie.app.best.ui.theme.AppBg
 import com.movie.app.best.ui.theme.CardDark
 import com.movie.app.best.ui.theme.AppDivider
@@ -57,7 +58,8 @@ fun AppDrawerContent(
     onCategoryClick: (slug: String, name: String) -> Unit,
     onAllCategoriesClick: () -> Unit = {},
     onUpdateClick: () -> Unit = {},
-    viewModel: CategoriesViewModel = hiltViewModel()
+    viewModel: CategoriesViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -85,7 +87,8 @@ fun AppDrawerContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val updateResp = PrefetchCache.updateResponse
+            val availability by updateViewModel.availability.collectAsState()
+            val updateResp = (availability as? UpdateState.Ready)?.data
             val updateAvailable = updateResp != null &&
                     updateResp.updateAvailable &&
                     !updateResp.forceUpdate

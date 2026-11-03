@@ -1,6 +1,7 @@
 package com.movie.app.best.ui.screens.player.engines.vlc
 
 import android.content.Context
+import com.movie.app.best.data.settings.VlcDecoderSettings
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.MediaPlayer
 
@@ -18,10 +19,17 @@ object VlcEngineFactory {
 
     fun create(
         context: Context,
+        mode: VlcDecoderSettings.Mode = VlcDecoderSettings.Mode.HW_PLUS,
         options: List<String> = DEFAULT_OPTIONS,
     ): VlcEngine {
-        val libVlc = LibVLC(context.applicationContext, ArrayList(options))
+        // Decoder options LibVLC instance ke saath fix hote hain — mode badalne pe
+        // player recreate karna padta hai (UI wahi karta hai).
+        val merged = ArrayList(options)
+        VlcDecoderSettings.libVlcOptions(mode)
+            .filterNot { merged.contains(it) }
+            .forEach { merged.add(it) }
+        val libVlc = LibVLC(context.applicationContext, merged)
         val mediaPlayer = MediaPlayer(libVlc)
-        return VlcEngine(libVlc, mediaPlayer)
+        return VlcEngine(libVlc, mediaPlayer, mode)
     }
 }

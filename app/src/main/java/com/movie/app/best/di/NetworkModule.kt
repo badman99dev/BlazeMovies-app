@@ -69,6 +69,11 @@ object NetworkModule {
                 .header("Accept-Language", "en-US,en;q=0.9")
                 .header("X-App-Version-Code", com.movie.app.best.BuildConfig.VERSION_CODE.toString())
                 .header("X-App-Version-Name", com.movie.app.best.BuildConfig.VERSION_NAME)
+                .header("X-App-Abi", com.movie.app.best.data.update.DeviceAbi.primary)
+                .header("X-App-Abi-List", com.movie.app.best.data.update.DeviceAbi.list)
+                .header("X-App-Abi-Bits", com.movie.app.best.data.update.DeviceAbi.bits.toString())
+                .header("X-App-Sdk", com.movie.app.best.data.update.DeviceAbi.sdk.toString())
+                .header("X-App-Device", com.movie.app.best.data.update.DeviceAbi.device)
                 .build()
             chain.proceed(request)
         }

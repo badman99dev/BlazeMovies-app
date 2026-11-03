@@ -3,12 +3,11 @@ package com.movie.app.best.ui.screens.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.movie.app.best.BuildConfig
-import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.UpdateResponse
 import com.movie.app.best.data.repository.ApkUpdateRepository
 import com.movie.app.best.data.repository.ApkUpdateState
-import com.movie.app.best.data.repository.MovieRepository
+import com.movie.app.best.data.update.UpdateManager
+import com.movie.app.best.data.update.UpdateState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,9 +18,12 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UpdateViewModel @Inject constructor(
-    private val repository: MovieRepository,
-    private val apkRepo: ApkUpdateRepository
+    private val apkRepo: ApkUpdateRepository,
+    private val updateManager: UpdateManager
 ) : ViewModel() {
+
+    /** App-wide availability (boot / resume / manual sab isi ko update karte hain). */
+    val availability: StateFlow<UpdateState> = updateManager.state
 
     private val _state = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
     val state: StateFlow<UpdateUiState> = _state.asStateFlow()
@@ -31,22 +33,21 @@ class UpdateViewModel @Inject constructor(
     fun checkForUpdate() {
         _state.value = UpdateUiState.Checking
         viewModelScope.launch {
-            when (val result = repository.checkForUpdate(BuildConfig.VERSION_CODE)) {
-                is Resource.Success -> {
-                    val data = result.data!!
-                    if (data.updateAvailable) {
-                        _state.value = UpdateUiState.UpdateAvailable(data)
-                    } else {
-                        _state.value = UpdateUiState.UpToDate
-                    }
-                }
-                is Resource.Error -> {
-                    _state.value = UpdateUiState.Error(result.error ?: "Unknown error")
-                }
-                is Resource.Loading -> {}
+            val data = updateManager.check("settings", force = true)
+            _state.value = when {
+                data == null -> UpdateUiState.Error("Update check failed")
+                data.updateAvailable || data.forceUpdate -> UpdateUiState.UpdateAvailable(data)
+                else -> UpdateUiState.UpToDate
             }
         }
     }
+
+    /** Auto-prompt throttle manager me hai — UI sirf mark karta hai. */
+    fun markPrompted(versionCode: Int) = updateManager.markPrompted(versionCode)
+
+    fun checkIfStale() = updateManager.checkIfStale("resume")
+
+    fun resetAvailability() = updateManager.resetAvailability()
 
     fun startDownload(context: Context, url: String) {
         apkRepo.cleanupOldApk(context)

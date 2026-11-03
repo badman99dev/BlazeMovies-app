@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import com.movie.app.best.data.settings.VlcDecoderSettings
 import com.movie.app.best.ui.screens.player.engines.EngineRouter
 import com.movie.app.best.ui.screens.player.engines.media3.Media3EngineFactory
 import com.movie.app.best.ui.screens.player.engines.media3.Media3PlayerEvents
@@ -104,13 +105,17 @@ fun VideoPlayerScreen(
         PlayerFactory.trackSelector(context)
     }
 
+    // Local playback ka decoder mode (quality button ki jagah decoder button).
+    // LibVLC options instance-level hote hain, isliye mode badalne pe engine recreate hota hai.
+    var decoderMode by remember { mutableStateOf(VlcDecoderSettings.getMode(context)) }
+
     // Owned by the router: local/downloaded -> LibVLC "Advance Decoder" (VlcEngine),
     // everything streamed -> Media3 (Media3Engine). Both are plain media3 Players, so the rest of
     // this screen and the shared player UI are engine-agnostic.
-    val engine: Player? = remember(effectiveUrl) {
+    val engine: Player? = remember(effectiveUrl, decoderMode) {
         if (effectiveUrl.isEmpty()) return@remember null
         if (EngineRouter.isLocal(effectiveUrl)) {
-            VlcEngineFactory.create(context)
+            VlcEngineFactory.create(context, decoderMode)
         } else {
             Media3EngineFactory.create(
                 context = context,
@@ -120,7 +125,7 @@ fun VideoPlayerScreen(
         }
     }
 
-    LaunchedEffect(effectiveUrl) {
+    LaunchedEffect(effectiveUrl, engine) {
         if (effectiveUrl.isNotEmpty() && engine != null) {
             val mediaItem = if (isLive) {
                 val liveConfig = MediaItem.LiveConfiguration.Builder()
@@ -325,6 +330,21 @@ fun VideoPlayerScreen(
                 onPlayInBackgroundClick = { },
                 title = title,
                 isLive = isLive,
+                decoderMode = if (isLocalFile) decoderMode else null,
+                onDecoderModeSelected = if (isLocalFile) {
+                    { mode ->
+                        if (mode != decoderMode) {
+                            val resumeAt = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
+                            decoderMode = mode
+                            VlcDecoderSettings.setMode(context, mode)
+                            // Purane LibVLC instance ko release karo, warna leak.
+                            engine?.release()
+                            // Naya engine isi jagah se shuru ho.
+                            resumePos = resumeAt
+                            hasResumed = resumeAt <= 0L
+                        }
+                    }
+                } else null,
             )
             if (isAutoRetrying) {
                 CircularProgressIndicator(

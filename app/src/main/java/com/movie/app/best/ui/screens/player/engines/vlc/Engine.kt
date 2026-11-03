@@ -18,6 +18,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.movie.app.best.ui.screens.player.engines.PlayerEngine
 import com.movie.app.best.ui.screens.player.model.VideoContentScale
+import com.movie.app.best.data.settings.VlcDecoderSettings
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -39,6 +40,7 @@ import org.videolan.libvlc.util.VLCVideoLayout
 class VlcEngine(
     private val libVlc: LibVLC,
     private val mediaPlayer: MediaPlayer,
+    private val decoderMode: VlcDecoderSettings.Mode = VlcDecoderSettings.Mode.HW_PLUS,
 ) : SimpleBasePlayer(Looper.getMainLooper()), PlayerEngine {
 
     private companion object {
@@ -189,7 +191,14 @@ class VlcEngine(
         if (uri != null && !released) {
             runCatching {
                 val media = Media(libVlc, uri)
-                media.setHWDecoderEnabled(true, false)
+                // HW+  -> mediacodec try karo, warna SW (":codec=mediacodec,all")
+                // HW   -> sirf mediacodec (koi fallback nahi)
+                // SW   -> pure software (":no-hw-dec")
+                when (decoderMode) {
+                    VlcDecoderSettings.Mode.HW_PLUS -> media.setHWDecoderEnabled(true, false)
+                    VlcDecoderSettings.Mode.HW -> media.addOption(":codec=mediacodec")
+                    VlcDecoderSettings.Mode.SW -> media.setHWDecoderEnabled(false, false)
+                }
                 mediaPlayer.setMedia(media)
                 media.release()
                 applyTrackSelection(state.trackSelectionParameters)

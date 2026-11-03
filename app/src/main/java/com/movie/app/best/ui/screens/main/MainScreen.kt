@@ -92,7 +92,6 @@ import androidx.navigation.compose.rememberNavController
 import com.movie.app.best.FcmService
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.model.UpdateResponse
-import com.movie.app.best.data.repository.PrefetchCache
 import com.movie.app.best.ui.components.AppDrawerContent
 import com.movie.app.best.ui.navigation.AppNavigation
 import com.movie.app.best.ui.navigation.BottomNavigationBar
@@ -103,6 +102,7 @@ import com.movie.app.best.ui.screens.notification.NotificationRefreshBus
 import com.movie.app.best.ui.screens.splash.SplashScreen
 import com.movie.app.best.ui.screens.settings.UpdateViewModel
 import com.movie.app.best.ui.screens.settings.UpdateUiState
+import com.movie.app.best.data.update.UpdateState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -146,15 +146,30 @@ fun MainScreen() {
             notificationPermissionGranted = true
         }
 
-        val updateResp = PrefetchCache.updateResponse
+        // Single source of truth: boot check (splash) + resume check + manual sab yahin aate hain.
+        val availability by updateViewModel.availability.collectAsState()
+        val updateResp = (availability as? UpdateState.Ready)?.data
         var showUpdateDialog by remember { mutableStateOf(false) }
+
+        // Long sessions: resume pe 6h+ ho gaye to chup-chaap refresh (force/maintenance
+        // bhi tab hi pakde jate hain).
+        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner) {
+            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    updateViewModel.checkIfStale()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
 
         if (updateResp != null && updateResp.maintenance) {
             MaintenanceScreen(
                 message = updateResp.maintenanceMessage.ifBlank { "Server under maintenance. Please try again later." },
                 onRetry = {
                     splashScreenFinished = false
-                    PrefetchCache.clear()
+                    updateViewModel.resetAvailability()
                 }
             )
         } else if (updateResp != null && updateResp.forceUpdate) {
@@ -164,14 +179,11 @@ fun MainScreen() {
                 context = context
             )
         } else if (updateResp != null && updateResp.updateAvailable) {
-            val prefs = remember { context.getSharedPreferences("update_cache", android.content.Context.MODE_PRIVATE) }
-            val lastShown = remember { prefs.getLong("last_prompt_time", 0L) }
-            val shouldShow = remember { (System.currentTimeMillis() - lastShown) >= 24 * 60 * 60 * 1000 }
-
-            // Auto-prompt once per 24h on app open (existing throttle behaviour).
-            LaunchedEffect(Unit) {
-                if (shouldShow) {
-                    prefs.edit().putLong("last_prompt_time", System.currentTimeMillis()).apply()
+            // 24h throttle manager ke andar (per versionCode) — UI me prefs nahi.
+            LaunchedEffect(updateResp.versionCode, availability) {
+                val ready = availability as? UpdateState.Ready
+                if (ready?.promptNow == true) {
+                    updateViewModel.markPrompted(updateResp.versionCode)
                     showUpdateDialog = true
                 }
             }
@@ -213,12 +225,6 @@ fun MainScreen() {
 
             MainContent(onUpdateClick = { showUpdateDialog = true })
         } else {
-            if (updateResp != null && !updateResp.updateAvailable) {
-                val prefs = remember { context.getSharedPreferences("update_cache", android.content.Context.MODE_PRIVATE) }
-                LaunchedEffect(Unit) {
-                    prefs.edit().remove("last_prompt_time").apply()
-                }
-            }
             MainContent(onUpdateClick = { showUpdateDialog = true })
         }
     }
@@ -702,7 +708,7 @@ private fun ForceUpdateScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "v${data.version}  ${data.downloadSizeMb} MB",
+                        "v${data.version}${if (data.abi.isBlank()) "" else " · ${data.abi}"}  ${data.downloadSizeMb} MB",
                         color = Color(0xFFE50914),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
@@ -779,7 +785,7 @@ private fun NormalUpdateDialog(
                     Column {
                         Text("Update Available", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Text(
-                            "v${data.version} · ${data.downloadSizeMb} MB",
+                            "v${data.version}${if (data.abi.isBlank()) "" else " · ${data.abi}"} · ${data.downloadSizeMb} MB",
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 13.sp
                         )

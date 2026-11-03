@@ -557,7 +557,7 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                    text = "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE}) · ${com.movie.app.best.data.update.DeviceAbi.primary}",
                     color = Color.White.copy(alpha = 0.35f),
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
@@ -1146,7 +1146,7 @@ private fun UpdateAvailableDialog(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "v${data.version} • ${data.downloadSizeMb} MB",
+                            text = "v${data.version}${if (data.abi.isBlank()) "" else " • ${data.abi}"} • ${data.downloadSizeMb} MB",
                             color = Color(0xFFFF5252),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold

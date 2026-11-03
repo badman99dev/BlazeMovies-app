@@ -37,6 +37,10 @@ fun ControlsTopView(
     isInline: Boolean = false,
     onAudioClick: () -> Unit = {},
     onQualityClick: () -> Unit = {},
+    onDecoderClick: () -> Unit = {},
+    showDecoderButton: Boolean = false,
+    decoderIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    decoderContentDescription: String = "Decoder",
     onPlaybackSpeedClick: () -> Unit = {},
     onSubtitleClick: () -> Unit = {},
     onSubtitleLongClick: (() -> Unit)? = null,
@@ -75,8 +79,19 @@ fun ControlsTopView(
                 PlayerButton(onClick = onAudioClick) {
                     Icon(imageVector = Icons.Default.Audiotrack, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = 0.85f))
                 }
-                PlayerButton(onClick = onQualityClick) {
-                    Icon(imageVector = Icons.Default.HighQuality, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = 0.85f))
+                if (showDecoderButton) {
+                    PlayerButton(onClick = onDecoderClick) {
+                        Icon(
+                            imageVector = decoderIcon ?: Icons.Default.HighQuality,
+                            contentDescription = decoderContentDescription,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                } else {
+                    PlayerButton(onClick = onQualityClick) {
+                        Icon(imageVector = Icons.Default.HighQuality, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = 0.85f))
+                    }
                 }
                 if (showServerButton) {
                     PlayerButton(onClick = onServerClick) {
@@ -126,8 +141,17 @@ fun ControlsTopView(
                 PlayerButton(onClick = onAudioClick) {
                     Icon(imageVector = Icons.Default.Audiotrack, contentDescription = null)
                 }
-                PlayerButton(onClick = onQualityClick) {
-                    Icon(imageVector = Icons.Default.HighQuality, contentDescription = null)
+                if (showDecoderButton) {
+                    PlayerButton(onClick = onDecoderClick) {
+                        Icon(
+                            imageVector = decoderIcon ?: Icons.Default.HighQuality,
+                            contentDescription = decoderContentDescription
+                        )
+                    }
+                } else {
+                    PlayerButton(onClick = onQualityClick) {
+                        Icon(imageVector = Icons.Default.HighQuality, contentDescription = null)
+                    }
                 }
                 if (showServerButton) {
                     PlayerButton(onClick = onServerClick) {

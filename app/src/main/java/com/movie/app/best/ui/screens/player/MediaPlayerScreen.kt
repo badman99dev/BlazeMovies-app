@@ -88,6 +88,9 @@ import com.movie.app.best.ui.screens.player.ui.OverlayViewType
 import com.movie.app.best.ui.screens.player.ui.PlaybackSpeedSelectorView
 import com.movie.app.best.ui.screens.player.ui.PlayerGestures
 import com.movie.app.best.ui.screens.player.ui.QualitySelectorView
+import com.movie.app.best.ui.screens.player.ui.DecoderSelectorView
+import com.movie.app.best.ui.screens.player.ui.icon
+import com.movie.app.best.data.settings.VlcDecoderSettings
 import com.movie.app.best.ui.screens.player.ui.ServerSourceSelectorView
 import com.movie.app.best.ui.screens.player.ui.ShutterView
 import com.movie.app.best.data.settings.PlayerRotationSettings
@@ -117,6 +120,9 @@ fun MediaPlayerScreen(
     serverOptions: List<com.movie.app.best.data.model.PlaybackOption>? = null,
     selectedServerOptionId: String? = null,
     onServerOptionSelected: ((String) -> Unit)? = null,
+    // Local (libVLC) playback: quality button ki jagah decoder button + sheet.
+    decoderMode: VlcDecoderSettings.Mode? = null,
+    onDecoderModeSelected: ((VlcDecoderSettings.Mode) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = context as? android.app.Activity
@@ -285,6 +291,13 @@ fun MediaPlayerScreen(
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayViewType.QUALITY_SELECTOR
                                     },
+                                    showDecoderButton = decoderMode != null && onDecoderModeSelected != null,
+                                    decoderIcon = decoderMode?.icon(),
+                                    decoderContentDescription = decoderMode?.label ?: "Decoder",
+                                    onDecoderClick = {
+                                        controlsVisibilityState.hideControls()
+                                        overlayView = OverlayViewType.DECODER_SELECTOR
+                                    },
                                     onPlaybackSpeedClick = {
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayViewType.PLAYBACK_SPEED
@@ -445,6 +458,18 @@ fun MediaPlayerScreen(
                                 player = player,
                                 onDismiss = { overlayView = null }
                             )
+                            OverlayViewType.DECODER_SELECTOR -> {
+                                val mode = decoderMode
+                                val onSelect = onDecoderModeSelected
+                                if (mode != null && onSelect != null) {
+                                    DecoderSelectorView(
+                                        show = true,
+                                        selected = mode,
+                                        onSelect = { onSelect(it) },
+                                        onDismiss = { overlayView = null }
+                                    )
+                                }
+                            }
                             OverlayViewType.QUALITY_SELECTOR -> QualitySelectorView(
                                 show = true,
                                 player = player,
