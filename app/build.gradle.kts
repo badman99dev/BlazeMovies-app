@@ -67,14 +67,14 @@ android {
         }
     }
 
-    // Per-ABI APKs (device + emulator). The ARM-only universal is built by a second
-    // Gradle run with -ParmUniversal (see above), not by the all-ABI universal flag.
+    // Per-ABI APKs (device + emulator) + the "real" all-ABI universal APK.
+    // The ARM-only universal is an additional build via -ParmUniversal (see above).
     splits {
         abi {
             isEnable = !armUniversalBuild
             reset()
             include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-            isUniversalApk = false
+            isUniversalApk = true
         }
     }
 
