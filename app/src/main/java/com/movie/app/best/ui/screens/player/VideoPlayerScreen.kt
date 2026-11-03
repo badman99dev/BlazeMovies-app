@@ -140,6 +140,14 @@ fun VideoPlayerScreen(
         }
     }
 
+    // Har engine ka apna cleanup: decoder switch / screen exit dono pe current player
+    // release hota hai. (Pehle release lifecycleOwner effect me tha, isliye switch ke
+    // baad purana engine release hota tha aur naya background me bajta rehta tha.)
+    DisposableEffect(engine) {
+        val current = engine
+        onDispose { runCatching { current?.release() } }
+    }
+
     LaunchedEffect(effectiveUrl, engine) {
         if (effectiveUrl.isNotEmpty() && engine != null) {
             val mediaItem = if (isLive) {
@@ -253,7 +261,7 @@ fun VideoPlayerScreen(
     /** Decoder switch — engine recreate + same position, aur us file ke liye pin. */
     fun switchDecoder(mode: LocalPlaybackSettings.Mode, reason: String) {
         val resumeAt = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
-        runCatching { engine?.release() }
+        runCatching { engine?.pause() }
         LocalPlaybackSettings.setMode(context, effectiveUrl, mode)
         decoderMode = mode
         resumePos = resumeAt
@@ -348,7 +356,6 @@ fun VideoPlayerScreen(
                     }.start()
                 }
             }
-            engine?.release()
             activity?.resetScreenBrightness()
             activity?.let { ImmersiveMode.exit(it) }
             activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -356,6 +363,9 @@ fun VideoPlayerScreen(
     }
 
     BackHandler {
+        // Back pe turant audio band — disposal ka wait nahi.
+        runCatching { engine?.pause() }
+        runCatching { engine?.stop() }
         activity?.let { ImmersiveMode.exit(it) }
         activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         onBackClick()
@@ -374,8 +384,7 @@ fun VideoPlayerScreen(
                     { mode ->
                         if (mode != decoderMode) {
                             val resumeAt = runCatching { engine?.currentPosition ?: 0L }.getOrDefault(0L)
-                            // Purana engine release karo (libVLC instance leak na ho).
-                            runCatching { engine?.release() }
+                            runCatching { engine?.pause() }
                             LocalPlaybackSettings.setMode(context, effectiveUrl, mode)
                             decoderMode = mode
                             android.widget.Toast

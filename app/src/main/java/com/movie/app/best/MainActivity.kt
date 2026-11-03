@@ -18,6 +18,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // "Open with" / share se aaya video.
+        com.movie.app.best.util.ExternalVideoOpen.handle(this, intent)
         setContent {
             MovieAppTheme {
                 Surface(
@@ -33,5 +35,6 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        com.movie.app.best.util.ExternalVideoOpen.handle(this, intent)
     }
 }

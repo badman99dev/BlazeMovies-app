@@ -18,6 +18,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.movie.app.best.ui.screens.player.engines.PlayerEngine
 import com.movie.app.best.ui.screens.player.model.VideoContentScale
+import android.content.Context
 import com.movie.app.best.data.settings.LocalPlaybackSettings
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
@@ -40,6 +41,7 @@ import org.videolan.libvlc.util.VLCVideoLayout
 class VlcEngine(
     private val libVlc: LibVLC,
     private val mediaPlayer: MediaPlayer,
+    private val appContext: Context,
     private val decoderMode: LocalPlaybackSettings.Mode = LocalPlaybackSettings.Mode.HW_PLUS,
 ) : SimpleBasePlayer(Looper.getMainLooper()), PlayerEngine {
 
@@ -82,6 +84,29 @@ class VlcEngine(
     private var trackMapping: VlcTrackMapping = VlcTrackMapping.EMPTY
     private var pendingUri: Uri? = null
     private var released = false
+
+    // content:// (share/"open with") ke liye FD khud open karke dete hain — libVLC
+    // content URI string nahi kholta. Playback ke dauraan open rehta hai.
+    private var contentPfd: android.os.ParcelFileDescriptor? = null
+
+    private fun closeContentFd() {
+        runCatching { contentPfd?.close() }
+        contentPfd = null
+    }
+
+    private fun createMedia(uri: android.net.Uri): Media {
+        closeContentFd()
+        if (uri.scheme == "content") {
+            val pfd = runCatching {
+                appContext.contentResolver.openFileDescriptor(uri, "r")
+            }.getOrNull()
+            if (pfd != null) {
+                contentPfd = pfd
+                return Media(libVlc, pfd.fileDescriptor)
+            }
+        }
+        return Media(libVlc, uri)
+    }
     private var userSelectedText = false
 
     private val eventListener = VlcPlayerEvents { event -> onVlcEvent(event) }
@@ -190,7 +215,7 @@ class VlcEngine(
         val uri = pendingUri
         if (uri != null && !released) {
             runCatching {
-                val media = Media(libVlc, uri)
+                val media = createMedia(uri)
                 // HW+  -> mediacodec try karo, warna SW (":codec=mediacodec,all")
                 // HW   -> sirf mediacodec (koi fallback nahi)
                 // SW   -> pure software (":no-hw-dec")
@@ -317,6 +342,7 @@ class VlcEngine(
         runCatching { mediaPlayer.stop() }
         runCatching { mediaPlayer.release() }
         runCatching { libVlc.release() }
+        closeContentFd()
         return Futures.immediateVoidFuture()
     }
 

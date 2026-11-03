@@ -136,7 +136,7 @@ fun ExtractedSeriesScreen(
     // sambhalta hai, isliye broken-SeekHead MKV me bhi seekbar chalta hai.
     LaunchedEffect(currentEpisode, decoderMode) {
         val ep = currentEpisode ?: return@LaunchedEffect
-        engine?.release()
+        runCatching { engine?.pause() }
 
         val player = VlcEngineFactory.create(context, decoderMode)
         player.setMediaItem(MediaItem.fromUri("file://${ep.filePath}"))
@@ -157,6 +157,12 @@ fun ExtractedSeriesScreen(
             player.addListener(listener)
         }
         engine = player
+    }
+
+    // Current engine ka cleanup (decoder switch / screen exit).
+    DisposableEffect(engine) {
+        val current = engine
+        onDispose { runCatching { current?.release() } }
     }
 
     DisposableEffect(engine) {
@@ -187,8 +193,6 @@ fun ExtractedSeriesScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            engine?.release()
-            engine = null
             activity?.let { ImmersiveMode.exit(it) }
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
@@ -214,6 +218,8 @@ fun ExtractedSeriesScreen(
         if (isFullscreen) {
             exitFullscreen()
         } else {
+            runCatching { engine?.pause() }
+            runCatching { engine?.stop() }
             activity?.let { ImmersiveMode.exit(it) }
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             onBackClick()

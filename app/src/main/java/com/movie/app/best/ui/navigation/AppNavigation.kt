@@ -14,6 +14,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -42,6 +43,7 @@ import com.movie.app.best.ui.screens.serieswatch.SeriesWatchScreen
 import com.movie.app.best.ui.screens.moviewatch.MovieWatchScreen
 import java.net.URLEncoder
 import com.movie.app.best.ui.screens.player.VideoPlayerScreen
+import com.movie.app.best.util.ExternalVideoOpen
 import com.movie.app.best.ui.screens.movies.MoviesScreen
 import com.movie.app.best.ui.screens.settings.SettingsScreen
 import com.movie.app.best.ui.screens.trending.TrendingScreen
@@ -154,6 +156,21 @@ fun AppNavigation(
     onMenuClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // Bahar se aaya video ("Open with" / share) → seedha local player me.
+    val pendingExternal = ExternalVideoOpen.pending
+    LaunchedEffect(pendingExternal) {
+        val ext = pendingExternal ?: return@LaunchedEffect
+        ExternalVideoOpen.consume()
+        navController.navigate(
+            Screen.VideoPlayer.createRoute(
+                playerUrl = ext.uri,
+                streamUrl = "",
+                title = ext.title,
+                youtubeId = "",
+            )
+        )
+    }
+
     fun navigateToContent(slug: String, isSeries: Boolean, imdbId: String = "") {
         if (isSeries) {
             navController.navigate(Screen.SeriesDetail.createRoute(slug, imdbId))

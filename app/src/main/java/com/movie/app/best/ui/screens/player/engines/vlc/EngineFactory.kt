@@ -30,6 +30,6 @@ object VlcEngineFactory {
             .forEach { merged.add(it) }
         val libVlc = LibVLC(context.applicationContext, merged)
         val mediaPlayer = MediaPlayer(libVlc)
-        return VlcEngine(libVlc, mediaPlayer, mode)
+        return VlcEngine(libVlc, mediaPlayer, context.applicationContext, mode)
     }
 }
