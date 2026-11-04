@@ -9,8 +9,8 @@ import com.movie.app.best.data.model.OffsetResult
 import com.movie.app.best.data.model.CategoryOffsetResult
 import com.movie.app.best.data.model.HomeFeedResponse
 import com.movie.app.best.data.model.ContentModerationResponse
-import com.movie.app.best.data.model.BroadcastResponse
 import com.movie.app.best.data.model.TvStreamResponse
+import com.movie.app.best.data.model.LiveChannelDetail
 import com.movie.app.best.data.model.TvStreamCategoriesResponse
 import com.movie.app.best.data.model.TvStreamCategory
 import com.movie.app.best.data.model.UpdateResponse
@@ -129,9 +129,6 @@ interface MovieApiService {
         @Query("imdb_id") imdbId: String
     ): ApiResponse<OffsetResult>
 
-    @GET("broadcast")
-    suspend fun getBroadcasts(): ApiResponse<BroadcastResponse>
-
     // ── Live TV streams (served by v1 API; auto-refreshed every 6h) ──
     @GET("tv-stream")
     suspend fun getTvStreams(
@@ -139,6 +136,11 @@ interface MovieApiService {
         @Query("limit") limit: Int = 70,
         @Query("offset") offset: Int = 0
     ): ApiResponse<TvStreamResponse>
+
+    @GET("tv-stream/detail")
+    suspend fun getTvStreamDetail(
+        @Query("slug") slug: String
+    ): ApiResponse<LiveChannelDetail>
 
     @GET("tv-stream/categories")
     suspend fun getTvStreamCategories(): ApiResponse<TvStreamCategoriesResponse>

@@ -123,10 +123,8 @@ fun HomeScreen(
                         onChannelClick = { channel ->
                             navController.navigate(
                                 com.movie.app.best.ui.navigation.Screen.LiveTvWatch.createRoute(
-                                    channelId = channel.id.toString(),
+                                    slug = channel.slug,
                                     name = channel.name,
-                                    url = channel.streamUrl,
-                                    category = channel.category,
                                     logo = channel.logoUrl
                                 )
                             )

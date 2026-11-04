@@ -12,8 +12,7 @@ import com.movie.app.best.data.model.CelebsResult
 import com.movie.app.best.data.model.HomeFeedResponse
 import com.movie.app.best.data.model.SearchResult
 import com.movie.app.best.data.model.SliderResult
-import com.movie.app.best.data.model.BroadcastResponse
-import com.movie.app.best.data.model.LiveChannel
+import com.movie.app.best.data.model.LiveChannelDetail
 import com.movie.app.best.data.model.TvStreamResponse
 import com.movie.app.best.data.model.TvStreamCategoriesResponse
 import com.movie.app.best.data.model.UnifiedChannel
@@ -121,35 +120,6 @@ class MovieRepository @Inject constructor(
         emit(safeApiCall { apiService.getCategories() })
     }
 
-    fun getBroadcasts(): Flow<Resource<List<LiveChannel>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.getBroadcasts()
-            if (response.status == "success" && response.data != null) {
-                Resource.Success(response.data.channels)
-            } else {
-                Resource.Error(response.message ?: "Unknown error")
-            }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Network error")
-        }.also { emit(it) }
-    }
-
-    /** Broadcast channels normalized to UnifiedChannel (premium, third-party source) */
-    fun getBroadcastsUnified(): Flow<Resource<List<UnifiedChannel>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.getBroadcasts()
-            if (response.status == "success" && response.data != null) {
-                Resource.Success(response.data.channels.mapIndexed { idx, ch -> ch.toUnified(idx) })
-            } else {
-                Resource.Error(response.message ?: "Unknown error")
-            }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Network error")
-        }.also { emit(it) }
-    }
-
     /** Live TV channels — paginated, category-filtered (v1 API) */
     fun getTvStreams(
         category: String? = null,
@@ -173,6 +143,21 @@ class MovieRepository @Inject constructor(
                 Resource.Success(
                     response.data.channels.mapIndexed { idx, ch -> ch.toUnified(idx, offset) }
                 )
+            } else {
+                Resource.Error(response.message ?: "Unknown error")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Network error")
+        }.also { emit(it) }
+    }
+
+    /** One channel + every alternate server, looked up by slug */
+    fun getLiveChannelDetail(slug: String): Flow<Resource<LiveChannelDetail>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getTvStreamDetail(slug)
+            if (response.status == "success" && response.data != null) {
+                Resource.Success(response.data)
             } else {
                 Resource.Error(response.message ?: "Unknown error")
             }

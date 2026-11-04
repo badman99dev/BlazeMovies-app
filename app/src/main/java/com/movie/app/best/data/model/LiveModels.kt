@@ -2,28 +2,12 @@ package com.movie.app.best.data.model
 
 import com.google.gson.annotations.SerializedName
 
-data class LiveChannel(
-    val id: Int,
-    val name: String,
-    @SerializedName("logoUrl") val logoUrl: String,
-    val category: String,
-    @SerializedName("streamUrl") val streamUrl: String,
-)
-
-data class BroadcastResponse(
-    val channels: List<LiveChannel>
-)
-
-// TVStream API response (v1 API)
+// TVStream API response (v1 API) — list payload is slug-based and carries no stream URLs.
+// The client asks for a channel's servers with /tv-stream/detail?slug=<slug>.
 data class TvStreamChannel(
-    val id: String = "",
+    val slug: String = "",
     val name: String = "",
     val logo: String = "",
-    val category: String = "",
-    val quality: String = "",
-    val country: String = "",
-    @SerializedName("stream_url") val streamUrl: String = "",
-    @SerializedName("stream_urls") val streamUrls: List<String> = emptyList(),
 )
 
 data class TvStreamResponse(
@@ -44,51 +28,46 @@ data class TvStreamCategoriesResponse(
     val total: Int = 0
 )
 
-// ── Unified channel model (normalizes BOTH broadcast + tv-stream sources) ──
-enum class ChannelSource { BROADCAST, TV_STREAM }
-
-data class UnifiedChannel(
-    val id: String,
-    val name: String,
-    val logoUrl: String,
-    val category: String,
-    val streamUrl: String,
+// ── Channel detail (all alternate servers for one slug) ──
+data class LiveStreamSource(
+    val id: Int = 0,
+    val url: String = "",
+    val label: String = "",
+    val language: String = "",
+    val host: String = "",
     val quality: String = "",
-    val source: ChannelSource = ChannelSource.TV_STREAM,
-    val uniqueKey: String = ""
 )
 
-// Broadcast — ids already globally unique Int (1..44), not paginated.
-// indexInBatch provides extra armor so even same-channel + same-url (impossible per backend)
-// would produce a different key per list slot.
-fun LiveChannel.toUnified(indexInBatch: Int = 0): UnifiedChannel {
-    val streamHash = streamUrl.hashCode().toUInt().toString(16).padStart(8, '0')
-    return UnifiedChannel(
-        id = id.toString(),
-        name = name,
-        logoUrl = logoUrl,
-        category = category,
-        streamUrl = streamUrl,
-        quality = "",
-        source = ChannelSource.BROADCAST,
-        uniqueKey = "bc_${id}__${streamHash}_idx$indexInBatch"
-    )
-}
+data class LiveChannelDetail(
+    val slug: String = "",
+    val name: String = "",
+    val logo: String = "",
+    val category: String = "",
+    val country: String = "",
+    val quality: String = "",
+    @SerializedName("stream_count") val streamCount: Int = 0,
+    @SerializedName("stream_url") val streamUrl: String = "",
+    @SerializedName("stream_urls") val streamUrls: List<String> = emptyList(),
+    val streams: List<LiveStreamSource> = emptyList(),
+)
+
+// ── Unified channel model used by Home / Live TV / Search lists ──
+data class UnifiedChannel(
+    val slug: String,
+    val name: String,
+    val logoUrl: String,
+    val uniqueKey: String = ""
+)
 
 // IPTV channel — ids can repeat (same channel, multiple stream URLs).
 // batchOffset is the pagination offset; (indexInBatch + batchOffset) yields a globally unique
 // position across pages, guaranteeing no Compose key collisions even across paged loads.
 fun TvStreamChannel.toUnified(indexInBatch: Int = 0, batchOffset: Int = 0): UnifiedChannel {
-    val safeId = id.ifEmpty { name.ifEmpty { "_noname" } }
-    val streamHash = streamUrl.hashCode().toUInt().toString(16).padStart(8, '0')
+    val safeSlug = slug.ifEmpty { name.ifEmpty { "_noname" } }
     return UnifiedChannel(
-        id = safeId,
+        slug = safeSlug,
         name = name,
         logoUrl = logo,
-        category = category,
-        streamUrl = streamUrl,
-        quality = quality,
-        source = ChannelSource.TV_STREAM,
-        uniqueKey = "uc_${safeId}__${streamHash}_idx${indexInBatch + batchOffset}"
+        uniqueKey = "uc_${safeSlug}_idx${indexInBatch + batchOffset}"
     )
 }

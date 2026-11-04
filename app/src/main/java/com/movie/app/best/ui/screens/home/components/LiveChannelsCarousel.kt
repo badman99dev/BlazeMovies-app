@@ -29,42 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.LiveChannel
 import com.movie.app.best.data.model.UnifiedChannel
-
-@Composable
-fun LiveChannelsCarousel(
-    channels: List<LiveChannel>,
-    onChannelClick: (LiveChannel) -> Unit,
-    onMoreClick: (() -> Unit)? = null,
-) {
-    val listState = rememberLazyListState()
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val headerClearance = statusBarTop + 48.dp
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = headerClearance, bottom = 12.dp)  // hugs AppHeader bottom
-    ) {
-        LiveTvSectionHeader(onMoreClick = onMoreClick)
-
-        LazyRow(
-            state = listState,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) {
-            items(channels, key = { "lc_${it.id}" }) { channel ->
-                ChannelCircle(
-                    logoUrl = channel.logoUrl,
-                    name = channel.name,
-                    onClick = { onChannelClick(channel) }
-                )
-            }
-        }
-    }
-}
 
 // Overload for UnifiedChannel — used by SearchScreen (and any future viewer of merged channels)
 @Composable

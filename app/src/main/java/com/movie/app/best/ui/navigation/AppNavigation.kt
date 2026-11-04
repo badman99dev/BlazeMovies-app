@@ -127,9 +127,9 @@ sealed class Screen(val route: String) {
             return "movieWatch/${Uri.encode(slug)}?imdbId=${URLEncoder.encode(imdbId, "UTF-8")}&title=${Uri.encode(title)}&movieId=${URLEncoder.encode(movieId, "UTF-8")}&hasStream=$hasStream&playerUrl=${URLEncoder.encode(playerUrl, "UTF-8")}&posterUrl=${URLEncoder.encode(posterUrl, "UTF-8")}&cast=${Uri.encode(cast)}&director=${Uri.encode(director)}&description=${Uri.encode(description)}&genres=${Uri.encode(genres)}"
         }
     }
-    object LiveTvWatch : Screen("liveTvWatch/{channelId}?name={name}&url={url}&category={category}&logo={logo}") {
-        fun createRoute(channelId: String, name: String, url: String, category: String = "", logo: String = ""): String {
-            return "liveTvWatch/${Uri.encode(channelId.ifBlank { name })}?name=${Uri.encode(name)}&url=${URLEncoder.encode(url, "UTF-8")}&category=${Uri.encode(category)}&logo=${URLEncoder.encode(logo, "UTF-8")}"
+    object LiveTvWatch : Screen("liveTvWatch/{slug}?name={name}&logo={logo}") {
+        fun createRoute(slug: String, name: String, logo: String = ""): String {
+            return "liveTvWatch/${Uri.encode(slug.ifBlank { name })}?name=${Uri.encode(name)}&logo=${URLEncoder.encode(logo, "UTF-8")}"
         }
     }
     object VideoPlayer : Screen("videoPlayer?playerUrl={playerUrl}&streamUrl={streamUrl}&title={title}&youtubeId={youtubeId}&movieId={movieId}&slug={slug}&isLive={isLive}&contentSource={contentSource}") {
@@ -421,10 +421,8 @@ fun AppNavigation(
                 onTvChannelClick = { channel ->
                     navController.navigate(
                         Screen.LiveTvWatch.createRoute(
-                            channelId = channel.id,
+                            slug = channel.slug,
                             name = channel.name,
-                            url = channel.streamUrl,
-                            category = channel.category,
                             logo = channel.logoUrl
                         )
                     )
@@ -447,10 +445,8 @@ fun AppNavigation(
                 onChannelClick = { channel ->
                     navController.navigate(
                         Screen.LiveTvWatch.createRoute(
-                            channelId = channel.id,
+                            slug = channel.slug,
                             name = channel.name,
-                            url = channel.streamUrl,
-                            category = channel.category,
                             logo = channel.logoUrl
                         )
                     )
@@ -462,10 +458,8 @@ fun AppNavigation(
         composable(
             route = Screen.LiveTvWatch.route,
             arguments = listOf(
-                navArgument("channelId") { type = NavType.StringType },
+                navArgument("slug") { type = NavType.StringType },
                 navArgument("name") { type = NavType.StringType; defaultValue = "" },
-                navArgument("url") { type = NavType.StringType; defaultValue = "" },
-                navArgument("category") { type = NavType.StringType; defaultValue = "" },
                 navArgument("logo") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
@@ -474,10 +468,8 @@ fun AppNavigation(
             val openChannel = { ch: com.movie.app.best.data.model.UnifiedChannel ->
                 navController.navigate(
                     Screen.LiveTvWatch.createRoute(
-                        channelId = ch.id,
+                        slug = ch.slug,
                         name = ch.name,
-                        url = ch.streamUrl,
-                        category = ch.category,
                         logo = ch.logoUrl
                     )
                 )

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -112,6 +113,7 @@ fun LiveTvWatchScreen(
     val liveChatState by viewModel.liveChatState.collectAsState()
     val chatHandle by viewModel.chatHandle.collectAsState()
     val similarChannels by viewModel.similarChannels.collectAsState()
+    val watchState by viewModel.uiState.collectAsState()
 
     var isFullscreen by remember { mutableStateOf(false) }
     var isChatSheetOpen by remember { mutableStateOf(false) }
@@ -148,6 +150,12 @@ fun LiveTvWatchScreen(
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         }
         activity?.let { ImmersiveMode.enter(it) }
+    }
+
+    // Playback died (all servers failed) while in fullscreen → drop back so the
+    // inline error card (with Retry) is visible.
+    LaunchedEffect(watchState.error) {
+        if (watchState.error != null && isFullscreen) exitFullscreen()
     }
 
     LaunchedEffect(isFullscreen) {
@@ -252,12 +260,12 @@ fun LiveTvWatchScreen(
         }
     }
 
-    LaunchedEffect(viewModel.streamUrl) {
-        val url = viewModel.streamUrl
+    LaunchedEffect(watchState.playToken, watchState.currentStream?.url) {
+        val url = watchState.currentStream?.url.orEmpty()
+        val optionId = watchState.selectedOptionId
         exoPlayer?.release()
         exoPlayer = null
         if (url.isBlank()) {
-            playerError = "Channel stream is unavailable"
             isPlayerBuffering = false
             return@LaunchedEffect
         }
@@ -341,9 +349,10 @@ fun LiveTvWatchScreen(
                         }
                     }, AUTO_RETRY_DELAY_MS)
                 } else {
+                    // This server is dead → move to the next one silently.
                     consecutiveErrors = 0
                     isPlayerBuffering = false
-                    playerError = error.message ?: "Stream connection error"
+                    viewModel.advanceFrom(optionId)
                 }
             }
 
@@ -399,7 +408,10 @@ fun LiveTvWatchScreen(
                         onFullscreenClick = { exitFullscreen() },
                         isInline = false,
                         isLive = true,
-                        title = viewModel.channelName,
+                        title = watchState.channel?.name ?: viewModel.channelName,
+                        serverOptions = watchState.serverOptions,
+                        selectedServerOptionId = watchState.selectedOptionId,
+                        onServerOptionSelected = { viewModel.selectServer(it) },
                     )
                 }
                 androidx.compose.animation.AnimatedVisibility(
@@ -455,11 +467,29 @@ fun LiveTvWatchScreen(
                             onFullscreenClick = { enterFullscreen() },
                             isInline = true,
                             isLive = true,
-                            title = viewModel.channelName,
+                            title = watchState.channel?.name ?: viewModel.channelName,
+                            serverOptions = watchState.serverOptions,
+                            selectedServerOptionId = watchState.selectedOptionId,
+                            onServerOptionSelected = { viewModel.selectServer(it) },
                         )
                     }
 
-                    if (playerError != null) {
+                    if (watchState.isLoading && exoPlayer == null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = AppRed,
+                                modifier = Modifier.size(30.dp),
+                                strokeWidth = 3.dp
+                            )
+                        }
+                    }
+
+                    if (playerError != null || watchState.error != null) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -468,32 +498,26 @@ fun LiveTvWatchScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = playerError ?: "Stream connection error",
+                                    text = playerError ?: watchState.error ?: "Stream connection error",
                                     color = Color.White.copy(alpha = 0.85f),
                                     fontSize = 13.sp
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
-                                Button(
-                                    onClick = {
-                                        playerError = null
-                                        consecutiveErrors = 0
-                                        isPlayerBuffering = true
-                                        exoPlayer?.let { player ->
-                                            try {
-                                                val dur = player.duration
-                                                if (dur > 6000L) player.seekTo(dur - 6000L) else player.seekToDefaultPosition()
-                                                player.prepare()
-                                                player.play()
-                                            } catch (_: Exception) {
-                                            }
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = AppRed),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Retry", color = Color.White, fontSize = 13.sp)
+                                if (watchState.canRetry) {
+                                    Button(
+                                        onClick = {
+                                            playerError = null
+                                            consecutiveErrors = 0
+                                            isPlayerBuffering = true
+                                            viewModel.retry()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = AppRed),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Retry", color = Color.White, fontSize = 13.sp)
+                                    }
                                 }
                             }
                         }
@@ -515,8 +539,8 @@ fun LiveTvWatchScreen(
                             .navigationBarsPadding()
                     ) {
                         ChannelInfoCard(
-                            name = viewModel.channelName,
-                            logoUrl = viewModel.logoUrl
+                            name = watchState.channel?.name ?: viewModel.channelName,
+                            logoUrl = watchState.channel?.logo ?: viewModel.logoUrl
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
