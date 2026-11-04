@@ -49,11 +49,15 @@ class LiveTvWatchViewModel @Inject constructor(
 
     val displayName: String get() = channelName
 
-    /** One chat room per channel, same convention as sports_<slug>. */
-    val chatRoomId: String = "livetv_" + (slug.ifBlank { channelName })
-        .trim()
-        .replace("/", "_")
-        .replace(" ", "_")
+    /** Backend-assigned room (same convention as sports_<slug>); local fallback if absent. */
+    private var backendChatRid: String? = null
+
+    val chatRoomId: String
+        get() = backendChatRid?.takeIf { it.isNotBlank() }
+            ?: ("livetv_" + (slug.ifBlank { channelName })
+                .trim()
+                .replace("/", "_")
+                .replace(" ", "_"))
 
     val liveChatState: StateFlow<LiveChatState> = chatManager.chatState
     val floatingReactions = chatManager.floatingReactions
@@ -128,6 +132,7 @@ class LiveTvWatchViewModel @Inject constructor(
                             }
                             return@collect
                         }
+                        backendChatRid = detail.chatRid
                         val options = buildOptions(detail.streams)
                         val firstOption = options.firstOrNull()
                         _uiState.update {

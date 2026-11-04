@@ -45,6 +45,7 @@ data class LiveChannelDetail(
     val category: String = "",
     val country: String = "",
     val quality: String = "",
+    @SerializedName("chat_rid") val chatRid: String? = null,
     @SerializedName("stream_count") val streamCount: Int = 0,
     @SerializedName("stream_url") val streamUrl: String = "",
     @SerializedName("stream_urls") val streamUrls: List<String> = emptyList(),
