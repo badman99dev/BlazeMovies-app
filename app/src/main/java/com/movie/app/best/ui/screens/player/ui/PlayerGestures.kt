@@ -29,10 +29,10 @@ fun PlayerGestures(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                // Gesture coroutines state objects capture karte hain — inhe key karna
-                // zaroori hai, warna engine swap (decoder change) ke baad purane state
-                // pe toggle hota rehta hai (tap se controls wapas nahi aate).
-                .pointerInput(controlsVisibilityState, tapGestureState) {
+                // Keys: state objects (warna engine swap ke baad purane state pe signal
+                // jata hai) + locked flag (warna lock toggle pe gesture detector restart
+                // nahi hota aur lock hone ke bawajood drag-to-seek chalta rehta hai).
+                .pointerInput(controlsVisibilityState, controlsVisibilityState.controlsLocked, tapGestureState) {
                     detectTapGestures(
                         onTap = {
                             if (tapGestureState.seekMillis != 0L) return@detectTapGestures
@@ -53,7 +53,7 @@ fun PlayerGestures(
                         },
                     )
                 }
-                .pointerInput(controlsVisibilityState, seekGestureState) {
+                .pointerInput(controlsVisibilityState, controlsVisibilityState.controlsLocked, seekGestureState) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     detectCustomHorizontalDragGestures(
                         onDragStart = {
@@ -65,7 +65,7 @@ fun PlayerGestures(
                         onDragEnd = seekGestureState::onDragEnd,
                     )
                 }
-                .pointerInput(controlsVisibilityState, volumeAndBrightnessGestureState) {
+                .pointerInput(controlsVisibilityState, controlsVisibilityState.controlsLocked, volumeAndBrightnessGestureState) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     detectCustomVerticalDragGestures(
                         onDragStart = {
@@ -77,7 +77,7 @@ fun PlayerGestures(
                         onDragEnd = volumeAndBrightnessGestureState::onDragEnd,
                     )
                 }
-                .pointerInput(controlsVisibilityState, videoZoomAndContentScaleState) {
+                .pointerInput(controlsVisibilityState, controlsVisibilityState.controlsLocked, videoZoomAndContentScaleState) {
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     var zoomGestureControlsHidden = false
                     detectCustomTransformGestures(
