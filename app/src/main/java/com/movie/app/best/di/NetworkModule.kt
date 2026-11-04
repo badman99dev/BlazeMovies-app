@@ -67,13 +67,6 @@ object NetworkModule {
                 .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
                 .header("Accept", "application/json")
                 .header("Accept-Language", "en-US,en;q=0.9")
-                .header("X-App-Version-Code", com.movie.app.best.BuildConfig.VERSION_CODE.toString())
-                .header("X-App-Version-Name", com.movie.app.best.BuildConfig.VERSION_NAME)
-                .header("X-App-Abi", com.movie.app.best.data.update.DeviceAbi.primary)
-                .header("X-App-Abi-List", com.movie.app.best.data.update.DeviceAbi.list)
-                .header("X-App-Abi-Bits", com.movie.app.best.data.update.DeviceAbi.bits.toString())
-                .header("X-App-Sdk", com.movie.app.best.data.update.DeviceAbi.sdk.toString())
-                .header("X-App-Device", com.movie.app.best.data.update.DeviceAbi.device)
                 .build()
             chain.proceed(request)
         }
@@ -128,13 +121,17 @@ object NetworkModule {
             .build()
     }
 
+    /** Build/device headers only on our own backends (see [AppInfoInterceptor]). */
+    private fun OkHttpClient.withAppInfo(): OkHttpClient =
+        newBuilder().addInterceptor(com.movie.app.best.data.remote.AppInfoInterceptor).build()
+
     @Provides
     @Singleton
     @Named("main")
     fun provideRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(com.movie.app.best.data.config.RemoteConfig.apiBootstrap())
-            .client(okHttpClient)
+            .client(okHttpClient.withAppInfo())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
@@ -162,7 +159,7 @@ object NetworkModule {
     fun provideImdxRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(com.movie.app.best.data.config.RemoteConfig.imdbBackup())
-            .client(okHttpClient)
+            .client(okHttpClient.withAppInfo())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
@@ -197,7 +194,7 @@ object NetworkModule {
     fun provideZee5Retrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(com.movie.app.best.data.config.RemoteConfig.zee5Api())
-            .client(okHttpClient)
+            .client(okHttpClient.withAppInfo())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
@@ -243,7 +240,7 @@ object NetworkModule {
     fun provideSportsRetrofit(okHttpClient: OkHttpClient, gson: com.google.gson.Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(com.movie.app.best.data.config.RemoteConfig.sports())
-            .client(okHttpClient)
+            .client(okHttpClient.withAppInfo())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }

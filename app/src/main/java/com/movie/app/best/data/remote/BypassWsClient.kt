@@ -66,6 +66,7 @@ class BypassWsClient @Inject constructor(private val gson: Gson) {
 
     private val executorBase = OkHttpClient.Builder()
         .cookieJar(cookieJar)
+        .addInterceptor(AppInfoInterceptor)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
@@ -85,6 +86,7 @@ class BypassWsClient @Inject constructor(private val gson: Gson) {
     private val wsClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
+        .addInterceptor(AppInfoInterceptor)
         .build()
 
     private val wsUrl: String
