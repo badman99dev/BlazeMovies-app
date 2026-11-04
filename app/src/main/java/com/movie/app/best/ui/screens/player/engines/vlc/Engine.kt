@@ -121,7 +121,12 @@ class VlcEngine(
 
     fun attachSurface(layout: VLCVideoLayout) {
         if (released) return
-        mediaPlayer.attachViews(layout, null, true, false)
+        // Foreground aane par (recents / screen off-on) dobara call hota hai: system surface
+        // destroy karte hi libVLC khud detachViews kar deta hai aur video track disable kar
+        // deta hai (audio chalta rehta, picture black). Pehle detachViews() — warna
+        // "already attached" IllegalStateException.
+        runCatching { mediaPlayer.detachViews() }
+        runCatching { mediaPlayer.attachViews(layout, null, true, false) }
         // Agar media pehle se set tha to surfaces dobara bind karo.
         runCatching { mediaPlayer.updateVideoSurfaces() }
     }
