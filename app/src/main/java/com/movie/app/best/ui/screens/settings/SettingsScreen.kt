@@ -102,6 +102,7 @@ import java.net.URLEncoder
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit = {},
+    autoCheckUpdate: Boolean = false,
     updateViewModel: UpdateViewModel = hiltViewModel()
 ) {
     var debugEnabled by remember { mutableStateOf(NetworkLogger.isEnabled()) }
@@ -119,6 +120,12 @@ fun SettingsScreen(
 
     LaunchedEffect(debugEnabled) {
         NetworkLogger.setEnabled(debugEnabled)
+    }
+
+    // Deep link (app://settings/check-for-update) se aane par seedha "Check for
+    // Updates" trigger — wahi dialog flow chalega jo button tap pe chalta hai.
+    LaunchedEffect(autoCheckUpdate) {
+        if (autoCheckUpdate) updateViewModel.checkForUpdate()
     }
 
     if (showLogs) {

@@ -101,6 +101,7 @@ sealed class Screen(val route: String) {
         fun createRoute(type: String) = "playlist/${Uri.encode(type)}"
     }
     object Settings : Screen("settings")
+    object SettingsCheckUpdate : Screen("settings/check-for-update")
     object Profile : Screen("profile")
     object Login : Screen("login")
     object LocalVideos : Screen("localVideos")
@@ -821,6 +822,18 @@ fun AppNavigation(
         composable(Screen.Settings.route, deepLinks = refLinks("app://settings")) {
             SettingsScreen(
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Deep link: app://settings/check-for-update — Settings kholta hai aur
+        // seedha "Check for Updates" trigger karke dialog dikhata hai.
+        composable(
+            route = Screen.SettingsCheckUpdate.route,
+            deepLinks = refLinks("app://settings/check-for-update")
+        ) {
+            SettingsScreen(
+                onBackClick = { navController.popBackStack() },
+                autoCheckUpdate = true
             )
         }
 

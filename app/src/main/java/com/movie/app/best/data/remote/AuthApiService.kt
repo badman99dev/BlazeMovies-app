@@ -56,6 +56,13 @@ interface AuthApiService {
         @Query("device") device: String,
         @Query("fcm_token") fcmToken: String,
         @Query("anon") anon: Int? = null,
+        @Query("ver") ver: String? = null,
+        @Query("vcode") vcode: Int? = null,
+        @Query("soc") soc: String? = null,
+        @Query("cores") cores: Int? = null,
+        @Query("ram") ram: Int? = null,
+        @Query("abi") abi: String? = null,
+        @Query("sdk") sdk: Int? = null,
         @Header("X-Auth-Token") authHeader: String? = null
     ): AuthResponse
 }

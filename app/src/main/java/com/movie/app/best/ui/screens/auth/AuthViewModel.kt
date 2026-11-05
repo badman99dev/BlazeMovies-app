@@ -40,13 +40,16 @@ class AuthViewModel @Inject constructor(
         refreshAuthState()
         viewModelScope.launch {
             authRepository.authEvent.collect { event ->
-                if (!event.initial) {
-                    refreshAuthState()
-                }
-                // FCM token har cold start / login / signup par Firestore mein
-                // (authEvent tab fire hota hai jab session restore ready ho — race-free)
+                // Real (resolved) auth state ka wait — initial/unresolved value pe
+                // register karne se logged-in device galti se 'anon' mark ho sakta hai.
+                if (event.initial) return@collect
+                refreshAuthState()
+                // Har cold start / login / signup / logout par device ka current
+                // status (uid/token/device/version/hardware) note hota hai.
                 if (event.isLoggedIn) {
                     firebaseRepository.registerFcmToken()
+                } else {
+                    firebaseRepository.registerFcmToken(anon = true)
                 }
             }
         }

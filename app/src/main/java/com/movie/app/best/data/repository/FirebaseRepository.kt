@@ -1,5 +1,6 @@
 package com.movie.app.best.data.repository
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
@@ -11,6 +12,7 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
+import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.FirebaseNotification
@@ -29,7 +31,7 @@ import javax.inject.Singleton
 
 @Singleton
 class FirebaseRepository @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val apiService: AuthApiService
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_library", Context.MODE_PRIVATE)
@@ -54,19 +56,51 @@ class FirebaseRepository @Inject constructor(
 
     // ── User Profile ──────────────────────────────────────────
 
+    // SoC / chipset name — SOC_MODEL (API 31+) is the marketing name,
+    // HARDWARE / BOARD are the platform codenames (always available).
+    private fun deviceCpuName(): String {
+        val soc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SOC_MODEL else ""
+        return soc.ifBlank { Build.HARDWARE }.ifBlank { Build.BOARD }
+    }
+
+    private fun deviceRamMb(): Int = try {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val mi = ActivityManager.MemoryInfo()
+        am.getMemoryInfo(mi)
+        (mi.totalMem / (1024 * 1024)).toInt()
+    } catch (_: Exception) {
+        0
+    }
+
     // FCM token binding handshake via /v1/register.php (never writes Firestore directly).
     // anon=true -> device marked "anon" (logged-out/guest), token kept for later use.
+    // Along with identity we report device facts (version, SoC, cores, RAM, ABI, SDK)
+    // so the backend can serve the right build and keep tabs on live hardware.
     suspend fun registerFcmToken(anon: Boolean = false) {
         try {
             val fid = FirebaseInstallations.getInstance().id.await()
             val token = FirebaseMessaging.getInstance().token.await()
+            val ver = BuildConfig.VERSION_NAME
+            val vcode = BuildConfig.VERSION_CODE
+            val soc = deviceCpuName()
+            val cores = Runtime.getRuntime().availableProcessors()
+            val ram = deviceRamMb()
+            val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: ""
+            val sdk = Build.VERSION.SDK_INT
             if (anon) {
                 apiService.registerDevice(
                     uid = null,
                     fid = fid,
                     device = Build.MODEL,
                     fcmToken = token,
-                    anon = 1
+                    anon = 1,
+                    ver = ver,
+                    vcode = vcode,
+                    soc = soc,
+                    cores = cores,
+                    ram = ram,
+                    abi = abi,
+                    sdk = sdk
                 )
                 return
             }
@@ -77,7 +111,14 @@ class FirebaseRepository @Inject constructor(
                 fid = fid,
                 device = Build.MODEL,
                 fcmToken = token,
-                authHeader = "Bearer $jwt"
+                authHeader = "Bearer $jwt",
+                ver = ver,
+                vcode = vcode,
+                soc = soc,
+                cores = cores,
+                ram = ram,
+                abi = abi,
+                sdk = sdk
             )
         } catch (_: Exception) {
         }
