@@ -169,7 +169,7 @@ private fun DrawerMenuRow(
             text = item.label,
             color = Color.White,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
