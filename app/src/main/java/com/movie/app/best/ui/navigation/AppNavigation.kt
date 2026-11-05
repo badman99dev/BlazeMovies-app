@@ -458,6 +458,10 @@ fun AppNavigation(
 
         composable(
             route = Screen.LiveTvWatch.route,
+            deepLinks = refLinks(
+                "app://live-tv/{slug}",
+                "app://live-tv/{slug}?name={name}&logo={logo}"
+            ),
             arguments = listOf(
                 navArgument("slug") { type = NavType.StringType },
                 navArgument("name") { type = NavType.StringType; defaultValue = "" },
