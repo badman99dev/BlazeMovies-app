@@ -93,6 +93,8 @@ import com.movie.app.best.FcmService
 import com.movie.app.best.data.debug.NetworkMonitor
 import com.movie.app.best.data.model.UpdateResponse
 import com.movie.app.best.ui.components.AppDrawerContent
+import com.movie.app.best.ui.components.DrawerLinkRouter
+import android.widget.Toast
 import com.movie.app.best.ui.navigation.AppNavigation
 import com.movie.app.best.ui.navigation.BottomNavigationBar
 import com.movie.app.best.ui.navigation.Screen
@@ -426,13 +428,12 @@ fun MainContent(
         ) && isConnected,
         drawerContent = {
             AppDrawerContent(
-                onCategoryClick = { slug, name ->
+                onItemClick = { item ->
                     scope.launch { drawerState.close() }
-                    navController.navigate(Screen.CategoryPage.createRoute(slug, name))
-                },
-                onAllCategoriesClick = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate(Screen.Categories.route)
+                    val opened = DrawerLinkRouter.open(context, navController, item.deepLink)
+                    if (!opened) {
+                        Toast.makeText(context, "Unable to open link", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 onUpdateClick = {
                     scope.launch { drawerState.close() }

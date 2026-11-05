@@ -50,6 +50,9 @@ interface MovieApiService {
     @GET("categories")
     suspend fun getCategories(): ApiResponse<List<com.movie.app.best.data.model.Category>>
 
+    @GET("drawer")
+    suspend fun getDrawerMenu(): ApiResponse<com.movie.app.best.data.model.DrawerMenuResponse>
+
     @POST("comment")
     @FormUrlEncoded
     suspend fun postComment(
