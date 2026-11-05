@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,7 +60,8 @@ fun AppDrawerContent(
         modifier = Modifier
             .fillMaxHeight()
             .width(280.dp)
-            .background(Color.Black),
+            .background(Color.Black)
+            .windowInsetsPadding(WindowInsets.systemBars),
         contentPadding = PaddingValues(bottom = 16.dp)
     ) {
         item {
