@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,12 +38,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
-import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.model.DrawerMenuItem
 import com.movie.app.best.data.update.UpdateState
 import com.movie.app.best.ui.screens.drawer.DrawerMenuViewModel
 import com.movie.app.best.ui.screens.settings.UpdateViewModel
-import com.movie.app.best.ui.theme.AppDivider
 import com.movie.app.best.ui.theme.AppRed
 
 @Composable
@@ -68,16 +65,27 @@ fun AppDrawerContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(horizontal = 20.dp, vertical = 18.dp)
             ) {
-                Text(
-                    text = "v${BuildConfig.VERSION_NAME}",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "BLAZE",
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "MOVIES",
+                        color = AppRed,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 val availability by updateViewModel.availability.collectAsState()
                 val updateResp = (availability as? UpdateState.Ready)?.data
@@ -115,9 +123,7 @@ fun AppDrawerContent(
                 }
             }
 
-            HorizontalDivider(color = AppDivider, thickness = 1.dp)
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
         }
 
         items(items, key = { it.id }) { item ->
