@@ -42,6 +42,7 @@ import com.movie.app.best.data.model.DrawerMenuItem
 import com.movie.app.best.data.update.UpdateState
 import com.movie.app.best.ui.screens.drawer.DrawerMenuViewModel
 import com.movie.app.best.ui.screens.settings.UpdateViewModel
+import com.movie.app.best.ui.theme.AppFonts
 import com.movie.app.best.ui.theme.AppRed
 
 @Composable
@@ -71,6 +72,7 @@ fun AppDrawerContent(
                     Text(
                         text = "BLAZE",
                         color = Color.White,
+                        fontFamily = AppFonts.display,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
@@ -79,6 +81,7 @@ fun AppDrawerContent(
                     Text(
                         text = "MOVIES",
                         color = AppRed,
+                        fontFamily = AppFonts.display,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp

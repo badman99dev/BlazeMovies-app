@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.movie.app.best.ui.theme.AppFonts
 import com.movie.app.best.ui.theme.AppRed
 
 @Composable
@@ -79,6 +80,7 @@ fun AppHeader(
                         append("MOVIES")
                     }
                 },
+                fontFamily = AppFonts.display,
                 fontSize = 20.sp,
                 letterSpacing = (-0.5).sp
             )

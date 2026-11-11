@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -235,15 +236,33 @@ private fun SkeletonHomeGridSection(showSeeAll: Boolean = true) {
     }
 }
 
+/** Shimmer placeholder that mirrors the AMOLED category tile (16:10, 16dp radius). */
 @Composable
-fun SkeletonCategoryCard(modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        SkeletonBox(
-            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-            shape = RoundedCornerShape(10.dp)
+fun SkeletonCategoryTile(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .aspectRatio(16f / 10f)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF0B0B0B))
+            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(shimmerBrush(baseColor = Color(0xFF111111)))
         )
-        Spacer(modifier = Modifier.height(5.dp))
-        SkeletonLine(width = 100.dp, height = 12.dp)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(12.dp)
+        ) {
+            SkeletonLine(width = 92.dp, height = 13.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+            SkeletonBox(
+                modifier = Modifier.width(78.dp).height(16.dp),
+                shape = RoundedCornerShape(999.dp)
+            )
+        }
     }
 }
 

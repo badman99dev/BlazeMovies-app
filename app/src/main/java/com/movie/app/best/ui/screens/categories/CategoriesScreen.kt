@@ -1,74 +1,64 @@
 package com.movie.app.best.ui.screens.categories
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.graphicsLayer
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import com.movie.app.best.ui.util.LocalCollapsibleBarsState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.SubcomposeAsyncImage
-import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.Category
 import com.movie.app.best.data.model.Movie
-import com.movie.app.best.data.repository.MovieRepository
-import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.components.AppHeader
 import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.components.ErrorView
-import com.movie.app.best.ui.components.MovieCard
-import com.movie.app.best.ui.components.SkeletonCategoryCard
+import com.movie.app.best.ui.components.SkeletonCategoryTile
+import com.movie.app.best.ui.screens.categories.components.CategoryTile
 import com.movie.app.best.ui.screens.home.components.movieGridItems
+import com.movie.app.best.ui.theme.AppFonts
+import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.ui.theme.SecondaryText
+import com.movie.app.best.ui.util.LocalCollapsibleBarsState
+import kotlinx.coroutines.delay
 
 @Composable
 fun CategoriesScreen(
@@ -86,11 +76,11 @@ fun CategoriesScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0D0D))
+            .background(Color.Black)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        TopGlow()
+
+        Column(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = isBarsVisible,
                 enter = slideInVertically(
@@ -116,58 +106,62 @@ fun CategoriesScreen(
                 )
             }
 
+            val context = LocalContext.current
+            val visibleCategories = remember(uiState.categories, context) {
+                com.movie.app.best.data.settings.ModerationSettings
+                    .filterCategories(context, uiState.categories)
+            }
+
+            TitleRow(count = visibleCategories.size)
+
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 8.dp),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 when {
-                    uiState.isLoading && uiState.categories.isEmpty() -> {
+                    uiState.isLoading && visibleCategories.isEmpty() -> {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 40.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(8) {
-                                SkeletonCategoryCard(modifier = Modifier.fillMaxWidth())
+                                SkeletonCategoryTile(modifier = Modifier.fillMaxWidth())
                             }
                         }
                     }
-                    uiState.error != null && uiState.categories.isEmpty() -> {
+                    uiState.error != null && visibleCategories.isEmpty() -> {
                         ErrorView(
                             error = uiState.error ?: "Unknown error",
                             onRetry = viewModel::loadCategories
                         )
                     }
-                    uiState.categories.isEmpty() -> {
+                    visibleCategories.isEmpty() -> {
                         Text(
                             text = "No categories available",
-                            color = Color.White.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodyLarge
+                            color = SecondaryText,
+                            fontFamily = AppFonts.ui,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
                         )
                     }
                     else -> {
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        val visibleCategories = remember(uiState.categories, context, ModerationSettings.changeVersion) {
-                            ModerationSettings.filterCategories(context, uiState.categories)
-                        }
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 40.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(visibleCategories, key = { it.slug }) { category ->
-                                CategoryCard(
-                                    category = category,
-                                    onClick = {
-                                        onCategoryClick(category.slug, category.categoryName)
-                                    }
-                                )
+                            itemsIndexed(visibleCategories, key = { _, c -> c.slug }) { index, category ->
+                                StaggerIn(index = index) {
+                                    CategoryTile(
+                                        category = category,
+                                        onClick = { onCategoryClick(category.slug, category.categoryName) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }
@@ -178,93 +172,85 @@ fun CategoriesScreen(
 }
 
 @Composable
-fun CategoryCard(
-    category: Category,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .clickable { onClick() }
-            .fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(10.dp)
+private fun TitleRow(count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.Bottom
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16 / 9f)
-        ) {
-            SubcomposeAsyncImage(
-                model = category.bannerUrl.ifBlank { null },
-                contentDescription = category.categoryName,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(10.dp)),
-                loading = {
-                    Box(contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            color = Color.Red,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
-                error = {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF1A1A2E))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.BrokenImage,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.4f),
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                }
+        Text(
+            text = "Categories",
+            color = Color.White,
+            fontFamily = AppFonts.display,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 26.sp,
+            letterSpacing = (-0.7).sp
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        if (count > 0) {
+            Text(
+                text = "$count collections",
+                color = SecondaryText,
+                fontFamily = AppFonts.ui,
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 3.dp)
             )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.1f),
-                                Color.Black.copy(alpha = 0.85f)
-                            ),
-                            startY = 0f
-                        )
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = category.categoryName,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${category.count} items",
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 12.sp
-                )
-            }
         }
     }
 }
+
+/** Soft red bloom behind the top area so the pure-black AMOLED page has some depth. */
+@Composable
+private fun TopGlow() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp)
+            .background(Color.Black)
+            .drawWithCache {
+                val brush = Brush.radialGradient(
+                    colors = listOf(AppRed.copy(alpha = 0.16f), Color.Transparent),
+                    center = Offset(size.width * 0.25f, 0f),
+                    radius = size.width * 0.9f
+                )
+                onDrawWithContent {
+                    drawContent()
+                    drawRect(brush)
+                }
+            }
+    )
+}
+
+@Composable
+private fun StaggerIn(index: Int, content: @Composable () -> Unit) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay((index % 12).toLong() * 16L)
+        shown = true
+    }
+    val progress by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(durationMillis = 320),
+        label = "stagger"
+    )
+    Box(
+        modifier = Modifier
+            .graphicsLayerCompat(
+                alpha = progress,
+                translationY = (1f - progress) * 28f
+            )
+    ) {
+        content()
+    }
+}
+
+private fun Modifier.graphicsLayerCompat(alpha: Float, translationY: Float): Modifier =
+    this.graphicsLayer {
+        this.alpha = alpha
+        this.translationY = translationY
+    }
 
 @Composable
 fun CategoryPageScreen(
@@ -313,7 +299,7 @@ fun CategoryPageScreen(
         ) {
             when {
                 uiState.isLoading && uiState.movies.isEmpty() -> {
-                    CircularProgressIndicator(color = Color.Red)
+                    CircularProgressIndicator(color = AppRed)
                 }
                 uiState.error != null && uiState.movies.isEmpty() -> {
                     ErrorView(
@@ -324,13 +310,21 @@ fun CategoryPageScreen(
                 uiState.movies.isEmpty() -> {
                     Text(
                         text = "No content found",
-                        color = Color.White.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodyLarge
+                        color = SecondaryText,
+                        fontFamily = AppFonts.ui,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
                     )
                 }
                 else -> {
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    val visibleMovies = remember(uiState.movies, context, ModerationSettings.changeVersion) { ModerationSettings.filterMovies(context, uiState.movies) }
+                    val context = LocalContext.current
+                    val visibleMovies: List<Movie> = remember(
+                        uiState.movies,
+                        context,
+                        com.movie.app.best.data.settings.ModerationSettings.changeVersion
+                    ) {
+                        com.movie.app.best.data.settings.ModerationSettings
+                            .filterMovies(context, uiState.movies)
+                    }
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize()
@@ -351,7 +345,7 @@ fun CategoryPageScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.error,
+                                        color = AppRed,
                                         modifier = Modifier.height(32.dp)
                                     )
                                 }
