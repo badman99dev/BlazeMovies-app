@@ -79,7 +79,13 @@ fun PromoAdOverlay(
         else PromoTemplates.button(ad.template.button)
     }
 
+    // Image tap → just its link. Button tap → dismiss first (same as the cross), then the
+    // button's own redirect.
     val fireAction: (PromoAction) -> Unit = { action ->
+        AppLinkRouter.handle(context, action, onDeeplink)
+    }
+    val fireButton: (PromoAction) -> Unit = { action ->
+        onDismiss()
         AppLinkRouter.handle(context, action, onDeeplink)
     }
 
@@ -89,13 +95,19 @@ fun PromoAdOverlay(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.74f))
+            // Swallow every touch on the dim layer so the page underneath can't be tapped
+            // or scrolled while the popup is up. Children (cross / button / creative) are
+            // hit-tested first, so they keep working.
+            .pointerInput(ad.dialogId) {
+                detectTapGestures { /* consume, do nothing */ }
+            }
     ) {
         when (dialogTemplate) {
-            PromoTemplates.DIALOG_BOTTOM_SHEET -> BottomSheetLayout(ad, buttonTemplate, onDismiss, fireAction)
-            PromoTemplates.DIALOG_FULLSCREEN_HERO -> FullscreenHeroLayout(ad, buttonTemplate, onDismiss, fireAction)
-            PromoTemplates.DIALOG_TOP_BANNER -> TopBannerLayout(ad, buttonTemplate, onDismiss, fireAction)
-            PromoTemplates.DIALOG_CENTER_CARD -> CenterCardLayout(ad, buttonTemplate, onDismiss, fireAction)
-            else -> ImageOverlayLayout(ad, buttonTemplate, onDismiss, fireAction)
+            PromoTemplates.DIALOG_BOTTOM_SHEET -> BottomSheetLayout(ad, buttonTemplate, onDismiss, fireAction, fireButton)
+            PromoTemplates.DIALOG_FULLSCREEN_HERO -> FullscreenHeroLayout(ad, buttonTemplate, onDismiss, fireAction, fireButton)
+            PromoTemplates.DIALOG_TOP_BANNER -> TopBannerLayout(ad, buttonTemplate, onDismiss, fireAction, fireButton)
+            PromoTemplates.DIALOG_CENTER_CARD -> CenterCardLayout(ad, buttonTemplate, onDismiss, fireAction, fireButton)
+            else -> ImageOverlayLayout(ad, buttonTemplate, onDismiss, fireAction, fireButton)
         }
     }
 }
@@ -107,7 +119,8 @@ private fun ImageOverlayLayout(
     ad: PromoAd,
     buttonTemplate: String,
     onDismiss: () -> Unit,
-    fireAction: (PromoAction) -> Unit
+    fireAction: (PromoAction) -> Unit,
+    fireButton: (PromoAction) -> Unit
 ) {
     val context = LocalContext.current
     val imageUrl = ad.image?.url
@@ -177,12 +190,12 @@ private fun ImageOverlayLayout(
                         }
                 )
 
-                // Cross on the creative's top-left corner.
+                // Cross pinned to the creative's top-right corner.
                 CloseCross(
                     onDismiss = onDismiss,
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = (-12).dp, y = (-12).dp)
+                        .align(Alignment.TopEnd)
+                        .offset(x = 12.dp, y = (-12).dp)
                         .size(30.dp)
                 )
 
@@ -192,7 +205,7 @@ private fun ImageOverlayLayout(
                             .align(buttonAlignment(ad.button.position.align))
                             .offset(x = ad.button.position.offsetX.dp, y = (-ad.button.position.offsetY).dp)
                     ) {
-                        PromoButtonView(ad, buttonTemplate, fireAction)
+                        PromoButtonView(ad, buttonTemplate) { fireButton(ad.button.action) }
                     }
                 }
             }
@@ -209,7 +222,8 @@ private fun CenterCardLayout(
     ad: PromoAd,
     buttonTemplate: String,
     onDismiss: () -> Unit,
-    fireAction: (PromoAction) -> Unit
+    fireAction: (PromoAction) -> Unit,
+    fireButton: (PromoAction) -> Unit
 ) {
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Box(
@@ -223,12 +237,12 @@ private fun CenterCardLayout(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                HeroImage(ad, Modifier.fillMaxWidth().height(190.dp), 16.dp, onDismiss, fireAction)
+                HeroImage(ad, Modifier.fillMaxWidth().height(190.dp), 16.dp, fireAction)
                 Spacer(Modifier.height(14.dp))
                 PromoTexts(ad)
                 if (ad.button.enabled) {
                     Spacer(Modifier.height(16.dp))
-                    PromoButtonView(ad, buttonTemplate, fireAction, Modifier.fillMaxWidth())
+                    PromoButtonView(ad, buttonTemplate, { fireButton(ad.button.action) }, Modifier.fillMaxWidth())
                 }
             }
             CloseCross(onDismiss, Modifier.align(Alignment.TopEnd).padding(10.dp).size(30.dp))
@@ -241,7 +255,8 @@ private fun BottomSheetLayout(
     ad: PromoAd,
     buttonTemplate: String,
     onDismiss: () -> Unit,
-    fireAction: (PromoAction) -> Unit
+    fireAction: (PromoAction) -> Unit,
+    fireButton: (PromoAction) -> Unit
 ) {
     val sheetShape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
@@ -264,12 +279,12 @@ private fun BottomSheetLayout(
                         .background(Color.White.copy(alpha = 0.22f))
                 )
                 Spacer(Modifier.height(14.dp))
-                HeroImage(ad, Modifier.fillMaxWidth().height(180.dp), 18.dp, onDismiss, fireAction)
+                HeroImage(ad, Modifier.fillMaxWidth().height(180.dp), 18.dp, fireAction)
                 Spacer(Modifier.height(14.dp))
                 PromoTexts(ad)
                 if (ad.button.enabled) {
                     Spacer(Modifier.height(16.dp))
-                    PromoButtonView(ad, buttonTemplate, fireAction, Modifier.fillMaxWidth())
+                    PromoButtonView(ad, buttonTemplate, { fireButton(ad.button.action) }, Modifier.fillMaxWidth())
                 }
             }
             CloseCross(onDismiss, Modifier.align(Alignment.TopEnd).padding(12.dp).size(30.dp))
@@ -282,14 +297,14 @@ private fun FullscreenHeroLayout(
     ad: PromoAd,
     buttonTemplate: String,
     onDismiss: () -> Unit,
-    fireAction: (PromoAction) -> Unit
+    fireAction: (PromoAction) -> Unit,
+    fireButton: (PromoAction) -> Unit
 ) {
     Box(Modifier.fillMaxSize()) {
         HeroImage(
             ad = ad,
             size = Modifier.fillMaxSize(),
             corner = 0.dp,
-            onDismiss = onDismiss,
             fireAction = fireAction,
             scale = ContentScale.Crop,
             alphaAware = false
@@ -317,13 +332,13 @@ private fun FullscreenHeroLayout(
             PromoTexts(ad)
             if (ad.button.enabled) {
                 Spacer(Modifier.height(16.dp))
-                PromoButtonView(ad, buttonTemplate, fireAction, Modifier.fillMaxWidth())
+                PromoButtonView(ad, buttonTemplate, { fireButton(ad.button.action) }, Modifier.fillMaxWidth())
             }
         }
         CloseCross(
             onDismiss,
             Modifier
-                .align(Alignment.TopStart)
+                .align(Alignment.TopEnd)
                 .padding(20.dp)
                 .size(34.dp)
         )
@@ -335,7 +350,8 @@ private fun TopBannerLayout(
     ad: PromoAd,
     buttonTemplate: String,
     onDismiss: () -> Unit,
-    fireAction: (PromoAction) -> Unit
+    fireAction: (PromoAction) -> Unit,
+    fireButton: (PromoAction) -> Unit
 ) {
     Box(Modifier.fillMaxSize()) {
         Box(
@@ -352,7 +368,6 @@ private fun TopBannerLayout(
                         ad = ad,
                         size = Modifier.size(64.dp),
                         corner = 12.dp,
-                        onDismiss = onDismiss,
                         fireAction = fireAction
                     )
                     Spacer(Modifier.width(12.dp))
@@ -361,7 +376,7 @@ private fun TopBannerLayout(
                 }
                 if (ad.button.enabled) {
                     Spacer(Modifier.height(12.dp))
-                    PromoButtonView(ad, buttonTemplate, fireAction, Modifier.fillMaxWidth())
+                    PromoButtonView(ad, buttonTemplate, { fireButton(ad.button.action) }, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -394,7 +409,6 @@ private fun HeroImage(
     ad: PromoAd,
     size: Modifier,
     corner: Dp,
-    onDismiss: () -> Unit,
     fireAction: (PromoAction) -> Unit,
     scale: ContentScale = ContentScale.Crop,
     alphaAware: Boolean = true
@@ -478,12 +492,12 @@ private fun PromoTexts(ad: PromoAd, compact: Boolean = false) {
 private fun PromoButtonView(
     ad: PromoAd,
     template: String,
-    fireAction: (PromoAction) -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val label = ad.content.buttonLabel.ifBlank { "Open" }
     val accent = parseAccent(ad.template.accent)
-    val fire = { fireAction(ad.button.action) }
+    val fire = onClick
     val buttonUrl = ad.button.image?.url
 
     if (template == PromoTemplates.BUTTON_CUSTOM_PNG && !buttonUrl.isNullOrBlank()) {
