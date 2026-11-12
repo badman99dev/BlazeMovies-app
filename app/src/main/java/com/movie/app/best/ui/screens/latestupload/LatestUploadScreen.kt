@@ -119,7 +119,7 @@ fun LatestUploadScreen(
                             onMovieClick = onContentClick
                         )
 
-                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                        item { Spacer(modifier = Modifier.height(24.dp)) }
 
                         if (uiState.isLoadingMore) {
                             item {

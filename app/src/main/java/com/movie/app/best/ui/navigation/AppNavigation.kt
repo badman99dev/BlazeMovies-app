@@ -185,7 +185,6 @@ fun AppNavigation(
         Screen.Zee5.route,
         Screen.Downloads.route,
         Screen.Library.route,
-        Screen.Movies.route,
         Screen.TVShows.route
     )
 
