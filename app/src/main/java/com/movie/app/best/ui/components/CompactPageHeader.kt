@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.movie.app.best.ui.theme.AppFonts
 
 /**
  * Compact page header that mirrors [AppHeader]'s geometry so every
@@ -78,6 +79,7 @@ fun CompactPageHeader(
             Text(
                 text = title,
                 color = Color.White,
+                fontFamily = AppFonts.display,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp,

@@ -1,24 +1,17 @@
 package com.movie.app.best.ui.screens.categories
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -48,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.movie.app.best.data.model.Movie
-import com.movie.app.best.ui.components.AppHeader
 import com.movie.app.best.ui.components.CompactPageHeader
 import com.movie.app.best.ui.components.ErrorView
 import com.movie.app.best.ui.components.SkeletonCategoryTile
@@ -57,21 +49,16 @@ import com.movie.app.best.ui.screens.home.components.movieGridItems
 import com.movie.app.best.ui.theme.AppFonts
 import com.movie.app.best.ui.theme.AppRed
 import com.movie.app.best.ui.theme.SecondaryText
-import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 import kotlinx.coroutines.delay
 
 @Composable
 fun CategoriesScreen(
     onCategoryClick: (categorySlug: String, categoryName: String) -> Unit,
-    onContentClick: (slug: String, isSeries: Boolean, imdbId: String) -> Unit = { _, _, _ -> },
+    onBackClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {},
-    onMenuClick: () -> Unit = {},
     viewModel: CategoriesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val barsState = LocalCollapsibleBarsState.current
-    val isBarsVisible = barsState?.isBarsVisible?.value ?: true
 
     Box(
         modifier = Modifier
@@ -81,30 +68,11 @@ fun CategoriesScreen(
         TopGlow()
 
         Column(modifier = Modifier.fillMaxSize()) {
-            AnimatedVisibility(
-                visible = isBarsVisible,
-                enter = slideInVertically(
-                    initialOffsetY = { -it },
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMedium,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                ),
-                exit = slideOutVertically(
-                    targetOffsetY = { -it },
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMedium,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
-                )
-            ) {
-                AppHeader(
-                    onMenuClick = onMenuClick,
-                    onSearchClick = onSearchClick,
-                    onNotificationClick = onNotificationClick,
-                    hasNotification = false
-                )
-            }
+            CompactPageHeader(
+                title = "Categories",
+                onBackClick = onBackClick,
+                onSearchClick = onSearchClick
+            )
 
             val context = LocalContext.current
             val visibleCategories = remember(uiState.categories, context) {
@@ -112,7 +80,7 @@ fun CategoriesScreen(
                     .filterCategories(context, uiState.categories)
             }
 
-            TitleRow(count = visibleCategories.size)
+            CollectionCountLine(count = visibleCategories.size)
 
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -122,7 +90,7 @@ fun CategoriesScreen(
                     uiState.isLoading && visibleCategories.isEmpty() -> {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 40.dp),
+                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxSize()
@@ -149,7 +117,7 @@ fun CategoriesScreen(
                     else -> {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 40.dp),
+                            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxSize()
@@ -172,33 +140,17 @@ fun CategoriesScreen(
 }
 
 @Composable
-private fun TitleRow(count: Int) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        Text(
-            text = "Categories",
-            color = Color.White,
-            fontFamily = AppFonts.display,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 26.sp,
-            letterSpacing = (-0.7).sp
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        if (count > 0) {
-            Text(
-                text = "$count collections",
-                color = SecondaryText,
-                fontFamily = AppFonts.ui,
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(bottom = 3.dp)
-            )
-        }
-    }
+private fun CollectionCountLine(count: Int) {
+    if (count <= 0) return
+    Text(
+        text = "$count collections",
+        color = SecondaryText,
+        fontFamily = AppFonts.ui,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        letterSpacing = 0.2.sp,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 2.dp)
+    )
 }
 
 /** Soft red bloom behind the top area so the pure-black AMOLED page has some depth. */

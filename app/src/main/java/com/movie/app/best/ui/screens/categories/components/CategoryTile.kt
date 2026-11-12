@@ -8,15 +8,21 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,22 +31,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.movie.app.best.data.model.Category
 import com.movie.app.best.ui.theme.AppFonts
+import com.movie.app.best.ui.theme.AppOrange
 import com.movie.app.best.ui.theme.CategoryPalette
 import com.movie.app.best.ui.theme.categoryWash
-import com.movie.app.best.util.formatTitleCount
+import com.movie.app.best.util.titleCount
 
 private val TileShape = RoundedCornerShape(16.dp)
 private val Hairline = Color.White.copy(alpha = 0.06f)
@@ -70,7 +77,7 @@ fun CategoryTile(
     )
 
     val (tintA, tintB) = remember(category.slug) { CategoryPalette.of(category.slug) }
-    val countText = remember(category.count) { formatTitleCount(category.count) }
+    val count = remember(category.count) { titleCount(category.count) }
 
     Box(
         modifier = modifier
@@ -156,22 +163,32 @@ fun CategoryTile(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(7.dp))
-            CountPill(text = countText, adult = category.isAdult)
+            CountPill(text = count.text, hot = count.hot, adult = category.isAdult)
         }
     }
 }
 
 @Composable
-private fun CountPill(text: String, adult: Boolean) {
+private fun CountPill(text: String, hot: Boolean, adult: Boolean) {
     val bg = if (adult) Color(0xFFE50914).copy(alpha = 0.18f) else Color.White.copy(alpha = 0.08f)
     val border = if (adult) Color(0xFFE50914).copy(alpha = 0.32f) else Color.White.copy(alpha = 0.07f)
-    Box(
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
             .border(1.dp, border, RoundedCornerShape(999.dp))
             .padding(horizontal = 9.dp, vertical = 3.dp)
     ) {
+        if (hot) {
+            Icon(
+                imageVector = Icons.Filled.LocalFireDepartment,
+                contentDescription = null,
+                tint = AppOrange,
+                modifier = Modifier.size(12.dp)
+            )
+        }
         Text(
             text = text,
             color = Color.White.copy(alpha = 0.92f),

@@ -491,10 +491,14 @@ fun AppNavigation(
                 onCategoryClick = { slug, name ->
                     navController.navigate(Screen.CategoryPage.createRoute(slug, name))
                 },
-                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
-                onSearchClick = { navController.navigate(Screen.Search.route) },
-                onNotificationClick = { navController.navigate(Screen.Notifications.route) },
-                onMenuClick = onMenuClick
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Home.route) {
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 
