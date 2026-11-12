@@ -118,13 +118,6 @@ fun MainScreen() {
     var notificationPermissionGranted by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val updateViewModel: UpdateViewModel = hiltViewModel()
-    val promoViewModel: PromoViewModel = hiltViewModel()
-    val promoAd by promoViewModel.current.collectAsState()
-
-    // App open → ask the server if an ad should be on screen (also re-checks a cached
-    // creative whose display_after window has opened since the last launch).
-    LaunchedEffect(Unit) { promoViewModel.sync() }
-
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -253,6 +246,13 @@ fun MainContent(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val collapsibleBarsState = rememberCollapsibleBarsState()
+
+    val promoViewModel: PromoViewModel = hiltViewModel()
+    val promoAd by promoViewModel.current.collectAsState()
+
+    // App open → ask the server whether an ad should be on screen (also re-checks a
+    // cached creative whose display_after window has opened since the last launch).
+    LaunchedEffect(Unit) { promoViewModel.sync() }
 
     LaunchedEffect(currentRoute) {
         collapsibleBarsState.show()
