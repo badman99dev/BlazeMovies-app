@@ -160,9 +160,10 @@ class PromoRepository @Inject constructor(
             ?.filter { it.isDirectory && it.name != dir.name }
             ?.forEach { it.deleteRecursively() }
 
-        fun fetch(url: String?): String? {
+        fun fetch(url: String?, isLottie: Boolean = false): String? {
             if (url.isNullOrBlank()) return null
-            val file = File(dir, url.hashCode().toString() + ".img")
+            val ext = if (isLottie) ".json" else ".img"
+            val file = File(dir, url.hashCode().toString() + ext)
             if (file.exists() && file.length() > 0) return file.absolutePath
             return try {
                 val req = Request.Builder().url(url).get().build()
@@ -179,8 +180,14 @@ class PromoRepository @Inject constructor(
         }
 
         ad.copy(
-            image = ad.image?.copy(url = fetch(ad.image.url) ?: ad.image.url),
-            button = ad.button.copy(image = ad.button.image?.copy(url = fetch(ad.button.image.url) ?: ""))
+            image = ad.image?.copy(
+                url = fetch(ad.image.url, ad.image.isLottie) ?: ad.image.url
+            ),
+            button = ad.button.copy(
+                image = ad.button.image?.copy(
+                    url = fetch(ad.button.image.url, ad.button.image.isLottie) ?: ""
+                )
+            )
         )
     }
 

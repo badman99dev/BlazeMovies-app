@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.movie.app.best.data.model.PromoAction
 import com.movie.app.best.data.model.PromoAd
 import com.movie.app.best.ui.theme.AppFonts
@@ -124,8 +123,11 @@ private fun ImageOverlayLayout(
 ) {
     val context = LocalContext.current
     val imageUrl = ad.image?.url
-    val mask by produceState<ImageBitmap?>(initialValue = null, imageUrl) {
-        value = imageUrl?.let { AlphaHitTest.mask(context, it) }
+    val isLottie = ad.image?.isLottie == true
+
+    // Lottie is vector — no alpha mask. Images get one so transparent pixels stay inert.
+    val mask by produceState<ImageBitmap?>(initialValue = null, imageUrl, isLottie) {
+        value = if (!isLottie) imageUrl?.let { AlphaHitTest.mask(context, it) } else null
     }
 
     val aspect: Float = remember(mask, ad.image?.width, ad.image?.height) {
@@ -170,24 +172,12 @@ private fun ImageOverlayLayout(
                     .height(boxH)
                     .onSizeChanged { drawn = it }
             ) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = null,
+                PromoMedia(
+                    source = imageUrl.orEmpty(),
+                    type = ad.image?.type ?: "image",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(mask, drawn) {
-                            detectTapGestures { offset ->
-                                val m = mask ?: return@detectTapGestures
-                                if (AlphaHitTest.isOpaque(
-                                        m, offset.x, offset.y,
-                                        drawn.width.toFloat(), drawn.height.toFloat()
-                                    )
-                                ) {
-                                    fireAction(ad.imageAction)
-                                }
-                            }
-                        }
+                    modifier = Modifier.fillMaxSize(),
+                    onClick = { fireAction(ad.imageAction) }
                 )
 
                 // Cross pinned to the creative's top-right corner.
@@ -415,38 +405,16 @@ private fun HeroImage(
 ) {
     val url = ad.image?.url
     if (url.isNullOrBlank()) return
-    val context = LocalContext.current
-    val mask by produceState<ImageBitmap?>(initialValue = null, url) {
-        value = if (alphaAware) AlphaHitTest.mask(context, url) else null
-    }
-    var measured by remember { mutableStateOf(IntSize.Zero) }
     val shape = RoundedCornerShape(corner)
 
-    AsyncImage(
-        model = url,
-        contentDescription = null,
+    PromoMedia(
+        source = url,
+        type = ad.image?.type ?: "image",
         contentScale = scale,
-        modifier = size
-            .clip(shape)
-            .onSizeChanged { measured = it }
-            .pointerInput(mask, measured, alphaAware) {
-                detectTapGestures { offset ->
-                    val action = ad.imageAction
-                    if (action.isNone) return@detectTapGestures
-                    if (!alphaAware) {
-                        fireAction(action)
-                        return@detectTapGestures
-                    }
-                    val m = mask ?: return@detectTapGestures
-                    if (AlphaHitTest.isOpaque(
-                            m, offset.x, offset.y,
-                            measured.width.toFloat(), measured.height.toFloat()
-                        )
-                    ) {
-                        fireAction(action)
-                    }
-                }
-            }
+        alphaAware = alphaAware,
+        tappable = !ad.imageAction.isNone,
+        modifier = size.clip(shape),
+        onClick = { fireAction(ad.imageAction) }
     )
 }
 
@@ -501,30 +469,12 @@ private fun PromoButtonView(
     val buttonUrl = ad.button.image?.url
 
     if (template == PromoTemplates.BUTTON_CUSTOM_PNG && !buttonUrl.isNullOrBlank()) {
-        val context = LocalContext.current
-        val mask by produceState<ImageBitmap?>(initialValue = null, buttonUrl) {
-            value = AlphaHitTest.mask(context, buttonUrl)
-        }
-        var measured by remember { mutableStateOf(IntSize.Zero) }
-        AsyncImage(
-            model = buttonUrl,
-            contentDescription = label,
+        PromoMedia(
+            source = buttonUrl,
+            type = ad.button.image?.type ?: "image",
             contentScale = ContentScale.Fit,
-            modifier = modifier
-                .height(52.dp)
-                .onSizeChanged { measured = it }
-                .pointerInput(mask, measured) {
-                    detectTapGestures { offset ->
-                        val m = mask ?: return@detectTapGestures
-                        if (AlphaHitTest.isOpaque(
-                                m, offset.x, offset.y,
-                                measured.width.toFloat(), measured.height.toFloat()
-                            )
-                        ) {
-                            fire()
-                        }
-                    }
-                }
+            modifier = modifier.height(52.dp),
+            onClick = fire
         )
         return
     }

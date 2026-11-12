@@ -36,9 +36,14 @@ data class PromoContent(
 
 data class PromoImage(
     val url: String = "",
+    /** "image" (png/webp/gif) or "lottie" (.json / .lottie animation). */
+    val type: String = "image",
     val width: Int = 0,
     val height: Int = 0
-)
+) {
+
+    val isLottie: Boolean get() = type.equals("lottie", ignoreCase = true)
+}
 
 data class PromoAction(
     val type: String = "none",
