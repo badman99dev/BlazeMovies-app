@@ -50,6 +50,24 @@ interface MovieApiService {
     @GET("categories")
     suspend fun getCategories(): ApiResponse<List<com.movie.app.best.data.model.Category>>
 
+    /**
+     * Home promo / popup ad. The app version + device identity travel in the X-App-*
+     * headers (AppInfoInterceptor); these query params mirror /v1/register so the
+     * backend can target an ad at a version / ABI / SDK level as well.
+     * Never cached server-side.
+     */
+    @GET("promo")
+    suspend fun getHomePromo(
+        @Query("ver") ver: String? = null,
+        @Query("vcode") vcode: Int? = null,
+        @Query("soc") soc: String? = null,
+        @Query("cores") cores: Int? = null,
+        @Query("ram") ram: Int? = null,
+        @Query("abi") abi: String? = null,
+        @Query("sdk") sdk: Int? = null,
+        @Query("device") device: String? = null
+    ): com.movie.app.best.data.model.PromoAdResponse
+
     @GET("drawer")
     suspend fun getDrawerMenu(): ApiResponse<com.movie.app.best.data.model.DrawerMenuResponse>
 

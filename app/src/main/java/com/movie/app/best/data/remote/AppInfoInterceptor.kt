@@ -1,5 +1,6 @@
 package com.movie.app.best.data.remote
 
+import com.google.firebase.auth.FirebaseAuth
 import com.movie.app.best.BuildConfig
 import com.movie.app.best.data.update.DeviceAbi
 import okhttp3.Interceptor
@@ -23,6 +24,9 @@ object AppInfoInterceptor : Interceptor {
             .header("X-App-Abi-Bits", DeviceAbi.bits.toString())
             .header("X-App-Sdk", DeviceAbi.sdk.toString())
             .header("X-App-Device", DeviceAbi.device)
+            // 0 = signed in, 1 = guest. Explicit so the backend never has to guess from
+            // the (sometimes cached) auth token.
+            .header("X-App-Anon", if (FirebaseAuth.getInstance().currentUser == null) "1" else "0")
             .build()
         return chain.proceed(request)
     }
