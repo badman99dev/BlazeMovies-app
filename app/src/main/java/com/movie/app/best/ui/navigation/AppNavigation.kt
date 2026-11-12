@@ -44,10 +44,9 @@ import com.movie.app.best.ui.screens.moviewatch.MovieWatchScreen
 import java.net.URLEncoder
 import com.movie.app.best.ui.screens.player.VideoPlayerScreen
 import com.movie.app.best.util.ExternalVideoOpen
-import com.movie.app.best.ui.screens.movies.MoviesScreen
+import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.settings.SettingsScreen
 import com.movie.app.best.ui.screens.trending.TrendingScreen
-import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.newreleases.NewReleaseScreen
 import com.movie.app.best.ui.screens.celebs.CelebBioScreen
 import com.movie.app.best.ui.screens.celebs.CelebsScreen
@@ -579,11 +578,16 @@ fun AppNavigation(
         }
 
         composable(Screen.Movies.route, deepLinks = refLinks("app://movies")) {
-            MoviesScreen(
+            LatestUploadScreen(
+                title = "Movies",
+                type = "movie",
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Home.route) { launchSingleTop = true }
+                    }
+                },
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
-                navController = navController,
-                onSearchClick = { navController.navigate(Screen.Search.route) },
-                onMenuClick = onMenuClick
+                onSearchClick = { navController.navigate(Screen.Search.route) }
             )
         }
 
