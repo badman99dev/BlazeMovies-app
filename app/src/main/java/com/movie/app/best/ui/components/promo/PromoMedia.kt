@@ -43,9 +43,17 @@ fun PromoMedia(
     onClick: () -> Unit = {}
 ) {
     if (type.equals("lottie", ignoreCase = true)) {
+        // Local .json is read straight from disk (works offline); a dotLottie zip or a
+        // remote source falls back to Lottie's own loaders.
         val spec = remember(source) {
-            val file = File(source)
-            if (file.exists()) LottieCompositionSpec.File(file) else LottieCompositionSpec.Url(source)
+            val local = File(source)
+            when {
+                local.exists() && local.name.endsWith(".json", ignoreCase = true) -> runCatching {
+                    LottieCompositionSpec.JsonString(local.readText())
+                }.getOrElse { LottieCompositionSpec.Url(source) }
+                local.exists() -> LottieCompositionSpec.File(local.absolutePath)
+                else -> LottieCompositionSpec.Url(source)
+            }
         }
         val composition by rememberLottieComposition(spec)
         LottieAnimation(

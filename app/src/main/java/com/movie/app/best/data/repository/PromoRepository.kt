@@ -162,7 +162,11 @@ class PromoRepository @Inject constructor(
 
         fun fetch(url: String?, isLottie: Boolean = false): String? {
             if (url.isNullOrBlank()) return null
-            val ext = if (isLottie) ".json" else ".img"
+            val ext = when {
+                !isLottie -> ".img"
+                url.trimEnd('/').endsWith(".lottie", ignoreCase = true) -> ".lottie"
+                else -> ".json"
+            }
             val file = File(dir, url.hashCode().toString() + ext)
             if (file.exists() && file.length() > 0) return file.absolutePath
             return try {
