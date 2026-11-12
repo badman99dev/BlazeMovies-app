@@ -205,7 +205,7 @@ private fun ImageOverlayLayout(
                             .align(buttonAlignment(ad.button.position.align))
                             .offset(x = ad.button.position.offsetX.dp, y = (-ad.button.position.offsetY).dp)
                     ) {
-                        PromoButtonView(ad, buttonTemplate) { fireButton(ad.button.action) }
+                        PromoButtonView(ad, buttonTemplate, onClick = { fireButton(ad.button.action) })
                     }
                 }
             }
