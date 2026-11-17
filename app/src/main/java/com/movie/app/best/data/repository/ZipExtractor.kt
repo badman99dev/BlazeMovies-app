@@ -4,6 +4,7 @@ import com.movie.app.best.data.debug.NetworkLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import net.lingala.zip4j.ZipFile
@@ -87,8 +88,13 @@ class ZipExtractor @Inject constructor() {
             }
         } catch (e: Exception) {
             NetworkLogger.logAction("ZIP_EXTRACT_ERR", e.message ?: "unknown")
-            emit(ExtractionProgress(0, "", ExtractionState.FAILED))
+            throw e
         }
+    }.catch { e ->
+        // Never emit from inside the builder's catch (exception transparency); the
+        // catch operator is the only safe place to report a failure.
+        NetworkLogger.logAction("ZIP_FLOW_ERR", e.message ?: "unknown")
+        emit(ExtractionProgress(0, "", ExtractionState.FAILED))
     }.flowOn(Dispatchers.IO)
 
     private fun scanForVideos(dir: File, result: MutableList<String>) {

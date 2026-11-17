@@ -306,13 +306,18 @@ class DownloadRepository @Inject constructor(
             if (cookies != null) put("Cookie", cookies)
         }
 
-        val newId = ketch.download(
-            url = directUrl,
-            path = downloadPath,
-            fileName = safeFileName,
-            tag = "app_download",
-            headers = headers
-        )
+        val newId = try {
+            ketch.download(
+                url = directUrl,
+                path = downloadPath,
+                fileName = safeFileName,
+                tag = "app_download",
+                headers = headers
+            )
+        } catch (e: Exception) {
+            NetworkLogger.logAction("DOWNLOAD_ENQUEUE_ERR", "path=$downloadPath file=$safeFileName err=${e.message}")
+            return null
+        }
 
         val metaKey = meta.slug + (meta.episodeLabel ?: "")
         metadataStore.updateMetadata(metaKey) {
@@ -374,7 +379,7 @@ class DownloadRepository @Inject constructor(
         try {
             metadataStore.updateMetadata(metaKey) { it.copy(status = "extracting", extractionProgress = 0) }
 
-            val downloadDir = File(meta.filePath).parentFile ?: resolveDownloadDir(false)
+            val downloadDir = resolveDownloadDir(false)
 
             zipExtractor.extractZipWithProgress(meta.filePath, downloadDir).collect { progress ->
                 when (progress.state) {
@@ -411,6 +416,7 @@ class DownloadRepository @Inject constructor(
         }
     }.catch { e ->
         NetworkLogger.logAction("ZIP_FLOW_ERR", e.message ?: "unknown")
+        metadataStore.updateMetadata(metaKey) { it.copy(status = "failed") }
         emit(ExtractionProgress(0, "", ExtractionState.FAILED))
     }.flowOn(Dispatchers.IO)
 

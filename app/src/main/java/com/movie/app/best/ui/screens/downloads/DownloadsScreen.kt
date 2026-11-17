@@ -121,16 +121,21 @@ internal fun formatFileSize(bytes: Long): String {
 
 fun scanBlazeMoviesVideos(context: Context): List<LocalVideoFile> {
     val videoExts = setOf("mp4", "mkv", "avi", "webm", "mov", "flv", "3gp", "ts", "m4v")
-    val dir = java.io.File(
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-        "BlazeMovies"
+    val dirs = listOf(
+        java.io.File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "BlazeMovies"
+        ),
+        java.io.File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "BlazeMovies")
     )
-    if (!dir.exists() || !dir.isDirectory) return emptyList()
 
-    return dir.listFiles()
-        ?.filter { it.isFile && !it.name.endsWith(".temp") && it.extension.lowercase() in videoExts }
-        ?.sortedByDescending { it.lastModified() }
-        ?.map { file ->
+    return dirs
+        .filter { it.exists() && it.isDirectory }
+        .flatMap { it.listFiles()?.toList() ?: emptyList() }
+        .distinctBy { it.absolutePath }
+        .filter { it.isFile && !it.name.endsWith(".temp") && it.extension.lowercase() in videoExts }
+        .sortedByDescending { it.lastModified() }
+        .map { file ->
             LocalVideoFile(
                 name = file.name,
                 path = file.absolutePath,
@@ -138,7 +143,7 @@ fun scanBlazeMoviesVideos(context: Context): List<LocalVideoFile> {
                 extension = file.extension.lowercase(),
                 contentUri = ""
             )
-        } ?: emptyList()
+        }
 }
 
 @Composable
