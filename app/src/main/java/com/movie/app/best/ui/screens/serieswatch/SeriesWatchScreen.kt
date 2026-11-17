@@ -126,9 +126,6 @@ fun SeriesWatchScreen(
     val activity = context as? android.app.Activity
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val trackSelector = remember {
-        PlayerFactory.trackSelector(context)
-    }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
     var langSwitchSeek by remember { mutableStateOf(0L) }
@@ -236,7 +233,6 @@ fun SeriesWatchScreen(
 
         val player = PlayerFactory.build(
             context = context,
-            trackSelector = trackSelector,
             mediaSourceFactory = mediaFactory
         )
 

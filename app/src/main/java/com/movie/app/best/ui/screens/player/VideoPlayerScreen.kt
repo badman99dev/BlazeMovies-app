@@ -108,10 +108,6 @@ fun VideoPlayerScreen(
         effectiveUrl.contains("/?id=", ignoreCase = true)
     )
 
-    val trackSelector = remember {
-        PlayerFactory.trackSelector(context)
-    }
-
     // Local playback ka decoder mode (quality button ki jagah decoder button).
     // Per-file preference: jo last time us file pe chala wahi mode dobara khulta hai.
     // Teeno modes libVLC (HW+ / HW / SW) — demuxer VLC ka, isliye seek har mode me chalta hai.
@@ -136,7 +132,6 @@ fun VideoPlayerScreen(
             Media3EngineFactory.create(
                 context = context,
                 isHls = isHls,
-                trackSelector = trackSelector,
             )
         }
     }

@@ -133,8 +133,6 @@ fun LiveTvWatchScreen(
         label = "livetv_player_aspect",
     )
 
-    val trackSelector = remember { PlayerFactory.trackSelector(context, disableSubtitles = false) }
-
     val exitFullscreen = {
         isFullscreen = false
         isFullscreenChatOpen = false
@@ -300,9 +298,9 @@ fun LiveTvWatchScreen(
 
         val player = PlayerFactory.build(
             context = context,
-            trackSelector = trackSelector,
             mediaSourceFactory = mediaSourceFactory,
             backBufferMs = PlayerFactory.SPORTS_BACK_BUFFER_MS,
+            disableSubtitles = false,
         )
 
         player.addListener(object : Player.Listener {

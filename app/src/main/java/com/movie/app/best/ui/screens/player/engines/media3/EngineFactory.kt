@@ -25,7 +25,7 @@ object Media3EngineFactory {
     fun create(
         context: Context,
         isHls: Boolean,
-        trackSelector: DefaultTrackSelector,
+        trackSelector: DefaultTrackSelector? = null,
         backBufferMs: Int = PlayerFactory.BACK_BUFFER_MS,
         playWhenReady: Boolean = true,
     ): Media3Engine {

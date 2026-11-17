@@ -104,10 +104,6 @@ fun SportsWatchScreen(
         label = "sports_player_aspect"
     )
 
-    val trackSelector = remember {
-        PlayerFactory.trackSelector(context, disableSubtitles = false)
-    }
-
     val exitFullscreen = {
         isFullscreen = false
         isFullscreenChatOpen = false
@@ -250,8 +246,8 @@ fun SportsWatchScreen(
 
         val newPlayer = PlayerFactory.build(
             context = context,
-            trackSelector = trackSelector,
-            backBufferMs = PlayerFactory.SPORTS_BACK_BUFFER_MS
+            backBufferMs = PlayerFactory.SPORTS_BACK_BUFFER_MS,
+            disableSubtitles = false
         )
 
         newPlayer.addListener(object : Player.Listener {

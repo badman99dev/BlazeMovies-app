@@ -40,13 +40,19 @@ object PlayerFactory {
 
     fun build(
         context: Context,
-        trackSelector: DefaultTrackSelector,
+        trackSelector: DefaultTrackSelector? = null,
         mediaSourceFactory: MediaSource.Factory? = null,
         backBufferMs: Int = BACK_BUFFER_MS,
         playWhenReady: Boolean = true,
+        disableSubtitles: Boolean = true,
     ): ExoPlayer {
+        // Media3 binds a TrackSelector to exactly one player (TrackSelector.init does
+        // checkState(listener == null)). ExoPlayer.release() is async, so a shared
+        // selector crashes the next build with IllegalStateException. Always hand
+        // each player its own selector unless the caller explicitly creates one.
+        val selector = trackSelector ?: trackSelector(context, disableSubtitles)
         val builder = ExoPlayer.Builder(context)
-            .setTrackSelector(trackSelector)
+            .setTrackSelector(selector)
             .setLoadControl(defaultLoadControl(backBufferMs))
             .setSeekBackIncrementMs(SEEK_INCREMENT_MS.toLong())
             .setSeekForwardIncrementMs(SEEK_INCREMENT_MS.toLong())

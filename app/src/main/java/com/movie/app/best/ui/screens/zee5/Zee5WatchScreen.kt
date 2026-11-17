@@ -116,10 +116,6 @@ fun Zee5WatchScreen(
         }
     }
 
-    val trackSelector = remember {
-        PlayerFactory.trackSelector(context)
-    }
-
     val exoPlayer = remember {
         val okClient = OkHttpClient.Builder()
             .followRedirects(true).followSslRedirects(true)
@@ -138,7 +134,6 @@ fun Zee5WatchScreen(
 
         PlayerFactory.build(
             context = context,
-            trackSelector = trackSelector,
             mediaSourceFactory = hlsFactory
         )
     }

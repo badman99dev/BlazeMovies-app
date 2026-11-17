@@ -157,9 +157,6 @@ fun MovieWatchScreen(
     val title = viewModel.title
     val playerTitle = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title
 
-    val trackSelector = remember {
-        PlayerFactory.trackSelector(context)
-    }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
     var langSwitchSeek by remember { mutableStateOf(0L) }
@@ -285,7 +282,6 @@ fun MovieWatchScreen(
 
         val player = PlayerFactory.build(
             context = context,
-            trackSelector = trackSelector,
             mediaSourceFactory = mediaFactory
         )
 
