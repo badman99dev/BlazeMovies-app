@@ -263,7 +263,25 @@ class MovieDetailViewModel @Inject constructor(
                             )
                         }
                         NetworkLogger.logAction("FALLBACK", "queue=${mirrors.size} starting server 1")
-                        val ketchId = downloadRepository.startDownloadWithMetadata(first, slug, posterUrl, title, "movie")
+                        // A collector failure would propagate back through the flow's emit and
+                        // crash with a Flow exception-transparency violation, so contain it here.
+                        val ketchId = try {
+                            downloadRepository.startDownloadWithMetadata(first, slug, posterUrl, title, "movie")
+                        } catch (e: Exception) {
+                            NetworkLogger.logAction("DOWNLOAD_START_ERR", e.message ?: "unknown")
+                            -1
+                        }
+                        if (ketchId <= 0) {
+                            _uiState.update {
+                                it.copy(
+                                    downloadPhase = DownloadPhase.FAILED,
+                                    downloadLoadingLinkId = null,
+                                    downloadStarted = false,
+                                    downloadError = "Could not start download (storage unavailable)"
+                                )
+                            }
+                            return@collect
+                        }
                         val meta = downloadRepository.getMetadata(slug)
                         _uiState.update {
                             it.copy(

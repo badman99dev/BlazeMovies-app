@@ -416,8 +416,22 @@ class DownloadsViewModel @Inject constructor(
                         val mirrors = result.data ?: emptyList()
                         val first = mirrors.firstOrNull()
                         if (first != null) {
-                            repository.startDownload(first.jackpot, first.fileName, title)
-                            _uiState.update { it.copy(isResolving = false, resolveSuccess = true) }
+                            // Never let a file-system hiccup inside the collector escape: it
+                            // travels back through the flow's emit and kills the app.
+                            try {
+                                val id = repository.startDownload(first.jackpot, first.fileName, title)
+                                if (id > 0) {
+                                    _uiState.update { it.copy(isResolving = false, resolveSuccess = true) }
+                                } else {
+                                    _uiState.update {
+                                        it.copy(isResolving = false, resolveError = "Could not start download (storage unavailable)")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                _uiState.update {
+                                    it.copy(isResolving = false, resolveError = e.message ?: "Could not start download")
+                                }
+                            }
                         } else {
                             _uiState.update { it.copy(isResolving = false, resolveError = "No mirrors found") }
                         }

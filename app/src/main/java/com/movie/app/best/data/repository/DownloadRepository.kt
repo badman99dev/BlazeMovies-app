@@ -65,6 +65,45 @@ class DownloadRepository @Inject constructor(
 
     private fun hostOf(url: String): String? = runCatching { URL(url).host }.getOrNull()
 
+    private fun publicDownloadDir(): File =
+        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "BlazeMovies")
+
+    private fun isWritableDir(dir: File): Boolean {
+        if (!dir.exists() && !dir.mkdirs()) return false
+        if (!dir.isDirectory) return false
+        return try {
+            val probe = File(dir, ".bm_write_probe")
+            probe.writeText("ok")
+            probe.delete()
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Scoped storage (Android 11+) blocks direct writes to the public Downloads folder
+     * unless the app has all-files access, and mkdirs() fails silently there. Ketch then
+     * fails with "No such file or directory" (ENOENT). Probe the public dir first and
+     * fall back to the app-specific external dir, which is always writable.
+     */
+    private fun resolveDownloadDir(isZip: Boolean): File {
+        if (isZip) {
+            val dir = File(context.cacheDir, "app_zips")
+            dir.mkdirs()
+            return dir
+        }
+        val public = publicDownloadDir()
+        if (isWritableDir(public)) return public
+        val fallback = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "BlazeMovies")
+        if (isWritableDir(fallback)) {
+            NetworkLogger.logAction("DOWNLOAD_DIR_FALLBACK", "public not writable, using ${fallback.path}")
+            return fallback
+        }
+        NetworkLogger.logAction("DOWNLOAD_DIR_ERR", "no writable download dir: public=$public fallback=$fallback")
+        return fallback
+    }
+
     fun cookieHeaderForUrl(url: String): String? {
         val host = hostOf(url) ?: return null
         val cached = cookieCache[host] ?: return null
@@ -93,51 +132,54 @@ class DownloadRepository @Inject constructor(
         onConfirm: (suspend (BypassConfirmEvent) -> String?)? = null
     ): Flow<Resource<List<ResolvedMirror>>> = flow {
         emit(Resource.Loading())
-        try {
-            NetworkLogger.logAction("RESOLVE", "linkUrl=$linkUrl (ws)")
-            val done = bypassWsClient.resolve(linkUrl, fetchInfo = true, onLog = onLog, onConfirm = onConfirm)
-            val results = done.results
-            val successItems = results.filter { it.status == "SUCCESS" && !it.jackpot.isNullOrEmpty() }
-            if (successItems.isEmpty()) {
-                emit(Resource.Error("No direct download URL found"))
-                return@flow
-            }
-            val mirrors = successItems.mapIndexedNotNull { idx, item ->
-                val jackpot = item.jackpot ?: return@mapIndexedNotNull null
-                if (!jackpot.startsWith("http")) return@mapIndexedNotNull null
-                val fi = item.fileInfo
-                val fileName = fi?.filename ?: extractFileNameFromUrl(jackpot)
-                val quality = detectQuality(fileName)
-                val sourceLabel = if (successItems.size == 1) "Download Now" else "Server ${idx + 1}"
-                ResolvedMirror(
-                    jackpot = jackpot,
-                    fileName = fileName,
-                    size = fi?.size ?: "",
-                    sizeBytes = fi?.sizeBytes,
-                    resumable = fi?.resumable ?: false,
-                    quality = quality,
-                    sourceLabel = sourceLabel,
-                    isZip = isZipFileName(fileName)
-                )
-            }.distinctBy { it.jackpot }
-            if (mirrors.size == 1) {
-                mirrors.mapIndexed { idx, m -> m.copy(sourceLabel = "Download Now") }
-            } else {
-                mirrors.mapIndexed { idx, m -> m.copy(sourceLabel = "Server ${idx + 1}") }
-            }
-            if (mirrors.isEmpty()) {
-                emit(Resource.Error("No valid direct download URLs found"))
-                return@flow
-            }
-            NetworkLogger.logAction("RESOLVE", "mirrors=${mirrors.size}")
-            emit(Resource.Success(mirrors))
-        } catch (e: ConfirmCancelledException) {
+        emit(resolveMirrors(linkUrl, onLog, onConfirm))
+    }.catch { e ->
+        // Emissions from a flow builder's catch block are forbidden: if the collector
+        // throws, that failure travels back through emit, gets caught here and the
+        // second emit crashes with a Flow exception-transparency violation. The catch
+        // operator only sees upstream failures, which is exactly what we want.
+        if (e is ConfirmCancelledException) {
             NetworkLogger.logAction("RESOLVE_CANCELLED", "confirm cancelled by user/timeout")
             emit(Resource.Error(CONFIRM_CANCELLED))
-        } catch (e: Exception) {
+        } else {
             NetworkLogger.logAction("RESOLVE_ERR", e.message ?: "unknown")
             emit(Resource.Error(e.message ?: "Failed to resolve download URL"))
         }
+    }
+
+    private suspend fun resolveMirrors(
+        linkUrl: String,
+        onLog: (String) -> Unit,
+        onConfirm: (suspend (BypassConfirmEvent) -> String?)?
+    ): Resource<List<ResolvedMirror>> {
+        NetworkLogger.logAction("RESOLVE", "linkUrl=$linkUrl (ws)")
+        val done = bypassWsClient.resolve(linkUrl, fetchInfo = true, onLog = onLog, onConfirm = onConfirm)
+        val results = done.results
+        val successItems = results.filter { it.status == "SUCCESS" && !it.jackpot.isNullOrEmpty() }
+        if (successItems.isEmpty()) return Resource.Error("No direct download URL found")
+
+        val mirrors = successItems.mapIndexedNotNull { idx, item ->
+            val jackpot = item.jackpot ?: return@mapIndexedNotNull null
+            if (!jackpot.startsWith("http")) return@mapIndexedNotNull null
+            val fi = item.fileInfo
+            val fileName = fi?.filename ?: extractFileNameFromUrl(jackpot)
+            val quality = detectQuality(fileName)
+            val sourceLabel = if (successItems.size == 1) "Download Now" else "Server ${idx + 1}"
+            ResolvedMirror(
+                jackpot = jackpot,
+                fileName = fileName,
+                size = fi?.size ?: "",
+                sizeBytes = fi?.sizeBytes,
+                resumable = fi?.resumable ?: false,
+                quality = quality,
+                sourceLabel = sourceLabel,
+                isZip = isZipFileName(fileName)
+            )
+        }.distinctBy { it.jackpot }
+
+        if (mirrors.isEmpty()) return Resource.Error("No valid direct download URLs found")
+        NetworkLogger.logAction("RESOLVE", "mirrors=${mirrors.size}")
+        return Resource.Success(mirrors)
     }
 
     suspend fun startDownloadWithMetadata(
@@ -152,14 +194,7 @@ class DownloadRepository @Inject constructor(
         val safeFileName = sanitizeFileName(mirror.fileName)
         val isZip = metadataStore.isZipFile(safeFileName)
 
-        val downloadPath = if (isZip) {
-            File(context.cacheDir, "app_zips").apply { if (!exists()) mkdirs() }.path
-        } else {
-            File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "BlazeMovies"
-            ).apply { if (!exists()) mkdirs() }.path
-        }
+        val downloadPath = resolveDownloadDir(isZip).path
 
         val filePath = File(downloadPath, safeFileName).path
         val metaKey = slug + (episodeLabel ?: "")
@@ -192,13 +227,19 @@ class DownloadRepository @Inject constructor(
             cookieHeaderForUrl(mirror.jackpot)?.let { put("Cookie", it) }
         }
 
-        val id = ketch.download(
-            url = mirror.jackpot,
-            path = downloadPath,
-            fileName = safeFileName,
-            tag = "app_download",
-            headers = headers
-        )
+        val id = try {
+            ketch.download(
+                url = mirror.jackpot,
+                path = downloadPath,
+                fileName = safeFileName,
+                tag = "app_download",
+                headers = headers
+            )
+        } catch (e: Exception) {
+            NetworkLogger.logAction("DOWNLOAD_ENQUEUE_ERR", "path=$downloadPath file=$safeFileName err=${e.message}")
+            metadataStore.updateMetadata(metaKey) { it.copy(status = "failed") }
+            return -1
+        }
 
         metadataStore.updateMetadata(metaKey) { it.copy(ketchId = id, status = "downloading") }
         NetworkLogger.logAction("DOWNLOAD_QUEUED", "id=$id file=$safeFileName slug=$slug")
@@ -209,10 +250,7 @@ class DownloadRepository @Inject constructor(
         val safeFileName = sanitizeFileName(fileName)
         val actualFileName = if (safeFileName.isNotBlank()) safeFileName else extractFileNameFromUrl(url)
 
-        val downloadPath = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "BlazeMovies"
-        ).apply { if (!exists()) mkdirs() }.path
+        val downloadPath = resolveDownloadDir(false).path
 
         val headers = HashMap<String, String>().apply {
             put("User-Agent", DOWNLOAD_USER_AGENT)
@@ -221,13 +259,18 @@ class DownloadRepository @Inject constructor(
             cookieHeaderForUrl(url)?.let { put("Cookie", it) }
         }
 
-        val id = ketch.download(
-            url = url,
-            path = downloadPath,
-            fileName = actualFileName,
-            tag = "app_download",
-            headers = headers
-        )
+        val id = try {
+            ketch.download(
+                url = url,
+                path = downloadPath,
+                fileName = actualFileName,
+                tag = "app_download",
+                headers = headers
+            )
+        } catch (e: Exception) {
+            NetworkLogger.logAction("DOWNLOAD_ENQUEUE_ERR", "path=$downloadPath file=$actualFileName err=${e.message}")
+            return -1
+        }
 
         NetworkLogger.logAction("DOWNLOAD_QUEUED", "id=$id file=$actualFileName")
         return id
@@ -250,14 +293,7 @@ class DownloadRepository @Inject constructor(
                 meta.fileName.ifBlank { extractFileNameFromUrl(directUrl) }
         )
         val isZip = isZipFileName(safeFileName)
-        val downloadPath = if (isZip) {
-            File(context.cacheDir, "app_zips").apply { if (!exists()) mkdirs() }.path
-        } else {
-            File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "BlazeMovies"
-            ).apply { if (!exists()) mkdirs() }.path
-        }
+        val downloadPath = resolveDownloadDir(isZip).path
         val filePath = File(downloadPath, safeFileName).path
 
         try { ketch.cancel(ketchId) } catch (_: Exception) {}
@@ -338,10 +374,7 @@ class DownloadRepository @Inject constructor(
         try {
             metadataStore.updateMetadata(metaKey) { it.copy(status = "extracting", extractionProgress = 0) }
 
-            val downloadDir = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "BlazeMovies"
-            ).apply { if (!exists()) mkdirs() }
+            val downloadDir = File(meta.filePath).parentFile ?: resolveDownloadDir(false)
 
             zipExtractor.extractZipWithProgress(meta.filePath, downloadDir).collect { progress ->
                 when (progress.state) {
@@ -426,11 +459,7 @@ class DownloadRepository @Inject constructor(
     }
 
     fun rescanDownloads() {
-        val downloadDir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "BlazeMovies"
-        )
-        metadataStore.rescanAndCleanup(downloadDir)
+        metadataStore.rescanAndCleanup(publicDownloadDir())
     }
 
     private fun isZipFileName(fileName: String): Boolean {

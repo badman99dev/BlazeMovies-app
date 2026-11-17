@@ -235,9 +235,27 @@ class TVShowDetailViewModel @Inject constructor(
                         }
                         val first = mirrors.first()
                         com.movie.app.best.data.debug.NetworkLogger.logAction("FALLBACK_TV", "queue=${mirrors.size} starting server 1")
-                        val ketchId = downloadRepository.startDownloadWithMetadata(
-                            first, slug, posterUrl, title, "series", episodeId, episodeLabel
-                        )
+                        // Contain collector failures: an escaped exception reaches the flow's
+                        // emit and crashes with a Flow exception-transparency violation.
+                        val ketchId = try {
+                            downloadRepository.startDownloadWithMetadata(
+                                first, slug, posterUrl, title, "series", episodeId, episodeLabel
+                            )
+                        } catch (e: Exception) {
+                            com.movie.app.best.data.debug.NetworkLogger.logAction("DOWNLOAD_START_ERR", e.message ?: "unknown")
+                            -1
+                        }
+                        if (ketchId <= 0) {
+                            _uiState.update {
+                                it.copy(
+                                    downloadPhase = DownloadPhase.FAILED,
+                                    downloadLoadingLinkId = null,
+                                    downloadStarted = false,
+                                    downloadError = "Could not start download (storage unavailable)"
+                                )
+                            }
+                            return@collect
+                        }
                         val meta = downloadRepository.getMetadata(slug + (episodeLabel ?: ""))
                         _uiState.update {
                             it.copy(
