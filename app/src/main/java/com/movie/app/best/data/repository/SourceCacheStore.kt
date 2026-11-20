@@ -5,8 +5,8 @@ import android.net.Uri
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.movie.app.best.data.debug.NetworkLogger
-import com.movie.app.best.data.model.GemmaExtractionResult
-import com.movie.app.best.data.model.SourceHubSource
+import com.movie.app.best.data.model.SourceHubGroup
+import com.movie.app.best.data.model.SourceHubTree
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -14,9 +14,8 @@ import javax.inject.Singleton
 
 data class SourceCacheEntry(
     val savedAt: Long = 0L,
-    val sources: List<SourceHubSource> = emptyList(),
-    val gemma: GemmaExtractionResult? = null,
-    val resolved: Map<String, String> = emptyMap()
+    val groups: List<SourceHubGroup> = emptyList(),
+    val tree: SourceHubTree? = null
 )
 
 @Singleton
@@ -112,6 +111,6 @@ class SourceCacheStore @Inject constructor(
 
         fun movieKey(imdbId: String) = "$imdbId:movie"
         fun episodeKey(imdbId: String, season: Int, episode: Int) = "$imdbId:tv:$season:$episode"
-        fun gemmaTreeKey(imdbId: String) = "$imdbId:gemma-tree"
+        fun tvTreeKey(imdbId: String) = "$imdbId:tv-tree"
     }
 }

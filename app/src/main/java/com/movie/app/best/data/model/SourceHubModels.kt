@@ -30,6 +30,7 @@ data class SourceHubSource(
         get() = when (service.lowercase()) {
             "vidsrc" -> "VidSrc"
             "filmu" -> "FilmU"
+            "vidly" -> "Vidly"
             "vidlove" -> "VidLove"
             "vidnest" -> "VidNest"
             "gemma" -> "Gemma"
@@ -57,85 +58,48 @@ data class SourceHubSource(
     fun playbackHeaders(): Map<String, String> = playback?.headers ?: emptyMap()
 }
 
-/** All sources of one service+server collapse into one picker row; languages are surfaced separately. */
+/**
+ * A ready-to-render picker row composed by the source-hub (the old client-side
+ * `groupByServer()` / `buildMasterPlaylist()` live on the server now). The client only writes
+ * [master] to a local file (or plays [variants].first()) and attaches [headers].
+ */
 data class SourceHubGroup(
-    val key: String,
-    val label: String,
-    val headers: Map<String, String>,
-    val sources: List<SourceHubSource>,
-    val languages: List<String> = emptyList()
+    val key: String = "",
+    val service: String = "",
+    val label: String = "",
+    val headers: Map<String, String> = emptyMap(),
+    val playbackType: String = "hls",
+    val languages: List<String> = emptyList(),
+    val master: String? = null,
+    val variants: List<String> = emptyList()
 ) {
     fun fileBaseName(): String = key.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")
-    val playbackType: String get() = sources.firstOrNull()?.playback?.type?.lowercase()?.takeIf { it.isNotBlank() } ?: "hls"
-    val isProgressive: Boolean get() = playbackType != "hls"
-
-    /** Hindi-first language order so the merged default matches the app's language priority. */
-    fun sortedLanguages(): List<String> = languages.sortedWith(
-        compareByDescending<String> { it.contains("Hindi", ignoreCase = true) }
-    )
-
-    /** The language whose variants get merged into one adaptive master (others stay as alternates). */
-    fun primaryLanguage(): String? = sortedLanguages().firstOrNull()
+    val sortedLanguages: List<String> get() = languages
+    val language: String? get() = languages.firstOrNull()
 }
 
-fun qualityHeight(q: String?): Int? {
-    if (q.isNullOrBlank()) return null
-    val m = Regex("(\\d{3,4})\\s*p", RegexOption.IGNORE_CASE).find(q) ?: return null
-    return m.groupValues[1].toIntOrNull()
-}
+/** Gemma's season/episode tree, carried on the `gemma` service event. */
+data class SourceHubTree(val seasons: List<SourceHubTreeSeason> = emptyList())
 
-private fun langOfSource(s: SourceHubSource): String? =
-    s.allLanguages.firstOrNull()
+data class SourceHubTreeSeason(
+    val season: Int = 0,
+    val title: String = "",
+    val episodes: List<SourceHubTreeEpisode> = emptyList()
+)
 
-fun List<SourceHubSource>.groupByServer(): List<SourceHubGroup> {
-    val buckets = LinkedHashMap<String, MutableList<SourceHubSource>>()
-    for (s in this) {
-        if (s.url.isBlank()) continue
-        val key = s.service.lowercase() + "|" + s.server.orEmpty().lowercase()
-        val list = buckets.getOrPut(key) { mutableListOf() }
-        if (list.none { it.url == s.url }) list.add(s)
-    }
-    return buckets.map { (key, srcs) ->
-        val sorted = srcs.sortedByDescending { qualityHeight(it.quality) ?: -1 }
-        val first = sorted.first()
-        val langs = sorted.flatMap { it.allLanguages }
-            .distinctBy { it.lowercase() }
-            .sortedWith(
-                compareByDescending<String> { it.contains("Hindi", ignoreCase = true) }
-                    .thenByDescending { it.contains("English", ignoreCase = true) }
-            )
-        SourceHubGroup(
-            key = key,
-            label = first.serverLabel,
-            headers = first.playbackHeaders(),
-            sources = sorted,
-            languages = langs
-        )
-    }
-}
-
-/** Merges distinct single-quality HLS variants of the primary language into a master. Never mixes languages or progressive. */
-fun SourceHubGroup.buildMasterPlaylist(): String? {
-    if (isProgressive) return null
-    val primary = primaryLanguage()
-    val sameLang = sources.filter { it.allLanguages.isEmpty() || langOfSource(it) == primary || it.allLanguages.any { l -> l.equals(primary, ignoreCase = true) } }
-    val pool = if (primary == null) sources else sameLang.ifEmpty { sources }
-    val variants = pool.map { (qualityHeight(it.quality) ?: 0) to it.url }.filter { it.first > 0 }
-    if (variants.size < 2) return null
-    val sb = StringBuilder("#EXTM3U\n#EXT-X-VERSION:3\n")
-    for ((h, url) in variants) {
-        sb.append("#EXT-X-STREAM-INF:BANDWIDTH=").append(h * 3000)
-            .append(",RESOLUTION=").append(h * 16 / 9).append('x').append(h).append('\n')
-            .append(url).append('\n')
-    }
-    return sb.toString()
-}
+data class SourceHubTreeEpisode(
+    val episode: Int = 0,
+    val title: String = "",
+    val languages: List<String> = emptyList()
+)
 
 data class SourceHubServiceResult(
     val service: String = "",
     val status: String? = null,
     val ok: Boolean = false,
     val sources: List<SourceHubSource> = emptyList(),
+    val groups: List<SourceHubGroup> = emptyList(),
+    val tree: SourceHubTree? = null,
     @SerializedName("skipped") val skipped: String? = null,
     val error: String? = null
 )
@@ -145,6 +109,8 @@ data class SourceHubResolveResult(
     val title: String? = null,
     val count: Int = 0,
     val sources: List<SourceHubSource> = emptyList(),
+    val groups: List<SourceHubGroup> = emptyList(),
+    val tree: SourceHubTree? = null,
     val services: Map<String, SourceHubServiceResult> = emptyMap(),
     val elapsedMs: Long = 0
 )
@@ -176,7 +142,6 @@ data class SourceHubRequest(
 object PlaybackKind {
     const val NATIVE = "native"
     const val SOURCE_HUB = "sourcehub"
-    const val GEMMA = "gemma"
 }
 
 data class PlaybackOption(
@@ -185,6 +150,7 @@ data class PlaybackOption(
     val kind: String,
     val url: String = "",
     val headers: Map<String, String> = emptyMap(),
+    val service: String = "",
     val language: String? = null,
     val languages: List<String> = emptyList(),
     val alternates: List<String> = emptyList(),

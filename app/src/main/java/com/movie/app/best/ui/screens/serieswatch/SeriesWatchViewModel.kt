@@ -5,23 +5,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.CrewPerson
 import com.movie.app.best.data.model.ExtractionState
-import com.movie.app.best.data.model.GemmaExtractionResult
 import com.movie.app.best.data.model.ImdbEpisode
 import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
 import com.movie.app.best.data.model.ServerScanRow
+import com.movie.app.best.data.model.SourceHubGroup
 import com.movie.app.best.data.model.SourceHubRequest
-import com.movie.app.best.data.model.SourceHubSource
-import com.movie.app.best.data.model.buildMasterPlaylist
-import com.movie.app.best.data.model.groupByServer
+import com.movie.app.best.data.model.SourceHubTree
 import com.movie.app.best.data.model.WatchEpisode
-import com.movie.app.best.data.remote.GemmaExtractorService
 import com.movie.app.best.data.remote.ImdbApiService
 import com.movie.app.best.data.remote.SourceHubClient
+import com.movie.app.best.data.repository.SourceCacheEntry
 import com.movie.app.best.data.repository.SourceCacheStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +29,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SeriesWatchViewModel @Inject constructor(
-    private val gemmaExtractor: GemmaExtractorService,
     private val imdbApi: ImdbApiService,
     private val sourceHubClient: SourceHubClient,
     private val sourceCache: SourceCacheStore,
@@ -53,19 +49,15 @@ class SeriesWatchViewModel @Inject constructor(
     val state: StateFlow<ExtractionState> = _state.asStateFlow()
 
     private val imdbCache = mutableMapOf<Int, List<ImdbEpisode>>()
-    private var sourceHubSources: List<SourceHubSource> = emptyList()
+    private var sourceHubGroups: List<SourceHubGroup> = emptyList()
     private val options = mutableListOf<PlaybackOption>()
     private val altCursor = mutableMapOf<String, Int>()
-    private var userPinned = false
-    private var gemmaScanStatus = "resolving"
     private var scanStarted = false
     private var lastHubRows: List<ServerScanRow> = emptyList()
     private var hubSettled = false
-    private var defaultPlaylistReady = false
     private var playbackCommitted = false
-    private var scanDeadlinePassed = false
     private var scanEpoch = 0
-    private val gemmaTreeKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.gemmaTreeKey(imdbId) else null
+    private val tvTreeKey: String? = if (imdbId.startsWith("tt")) SourceCacheStore.tvTreeKey(imdbId) else null
     private fun episodeCacheKey(season: Int, episode: Int): String? =
         if (imdbId.startsWith("tt")) SourceCacheStore.episodeKey(imdbId, season, episode) else null
 
@@ -103,94 +95,37 @@ class SeriesWatchViewModel @Inject constructor(
                 } catch (_: Exception) {}
             }
 
-            gemmaScanStatus = "resolving"
-            val gemmaResult = gemmaTreeKey?.let { sourceCache.get(it)?.gemma } ?: run {
-                val fresh = gemmaExtractor.extract(imdbId)
-                gemmaTreeKey?.let { key ->
-                    val cur = sourceCache.get(key)
-                    sourceCache.put(key, (cur ?: com.movie.app.best.data.repository.SourceCacheEntry()).copy(gemma = fresh))
-                }
-                fresh
+            // Previously-resolved tree (from the hub's gemma service) paints the season list instantly.
+            tvTreeKey?.let { key -> sourceCache.get(key)?.tree }?.let { setHubTree(it, persist = false) }
+
+            val selectedSeason = initialSeason()
+            _state.update { it.copy(selectedSeason = selectedSeason) }
+
+            val episodesDeferred = viewModelScope.async {
+                try { imdbApi.getEpisodes(imdbId, selectedSeason) } catch (_: Exception) { null }
             }
-
-            setGemmaScan(if (gemmaResult.seasons.isNotEmpty()) "found" else "fail")
-            if (gemmaResult.seasons.isEmpty() && !imdbId.startsWith("tt")) {
-                _state.update { it.copy(isLoading = false, error = "Source not found") }
-                return@launch
-            }
-
-            val availableSeasons = gemmaResult.seasons.keys
-
-            // If target season is not in the backend, try IMDb to confirm it exists
-            var targetImdbEpisodes: List<ImdbEpisode>? = null
-            if (targetSeason != -1 && targetSeason !in availableSeasons) {
-                val targetDeferred = viewModelScope.async {
-                    try { imdbApi.getEpisodes(imdbId, targetSeason) } catch (_: Exception) { null }
-                }
-                viewModelScope.launch {
-                    try {
-                        val resp = targetDeferred.await()
-                        if (resp != null) {
-                            imdbCache[targetSeason] = resp.episodes
-                            _state.update { it.copy(imdbEpisodes = it.imdbEpisodes.toMutableMap().apply { put(targetSeason, resp.episodes) }) }
-                        }
-                    } catch (_: Exception) {}
-                }
-                val targetResponse = withTimeoutOrNull(2000) { targetDeferred.await() }
-                targetImdbEpisodes = targetResponse?.episodes?.takeIf { it.isNotEmpty() }
-                targetImdbEpisodes?.let { imdbCache[targetSeason] = it }
-            }
-
-            val selectedSeason = when {
-                targetSeason != -1 && (targetSeason in availableSeasons || targetImdbEpisodes?.isNotEmpty() == true) -> targetSeason
-                targetSeason != -1 && availableSeasons.isNotEmpty() -> availableSeasons.maxOrNull() ?: availableSeasons.firstOrNull() ?: 1
-                availableSeasons.isNotEmpty() -> availableSeasons.maxOrNull() ?: availableSeasons.firstOrNull() ?: 1
-                targetSeason != -1 -> targetSeason
-                else -> 1
-            }
-
-            // Start IMDb episodes for the selected season; observer updates cache/state when it arrives
-            val episodesDeferred = if (imdbCache[selectedSeason] == null) {
-                viewModelScope.async {
-                    try { imdbApi.getEpisodes(imdbId, selectedSeason) } catch (_: Exception) { null }
-                }
-            } else null
-
-            episodesDeferred?.let { deferred ->
-                viewModelScope.launch {
-                    try {
-                        val resp = deferred.await()
-                        if (resp != null) {
-                            imdbCache[selectedSeason] = resp.episodes
-                            _state.update { it.copy(imdbEpisodes = it.imdbEpisodes.toMutableMap().apply { put(selectedSeason, resp.episodes) }) }
-                        }
-                    } catch (_: Exception) {}
-                }
+            viewModelScope.launch {
+                try {
+                    val resp = episodesDeferred.await()
+                    if (resp != null) {
+                        imdbCache[selectedSeason] = resp.episodes
+                        _state.update { it.copy(imdbEpisodes = it.imdbEpisodes + (selectedSeason to resp.episodes)) }
+                    }
+                } catch (_: Exception) {}
             }
 
             // Wait up to 2 seconds for the IMDb requests (not cancelling them)
             val titleDetails = withTimeoutOrNull(2000) { titleDetailsDeferred.await() }
             val certificates = withTimeoutOrNull(2000) { certificatesDeferred.await() }
             val credits = withTimeoutOrNull(2000) { creditsDeferred.await() }
-            val episodesResponse = withTimeoutOrNull(2000) { episodesDeferred?.await() }
-
-            episodesResponse?.let { resp ->
-                imdbCache[selectedSeason] = resp.episodes
-            }
-
-            collectAvailableLanguages(gemmaResult)
-
-            val imdbEpisodesMap = mutableMapOf<Int, List<ImdbEpisode>>()
-            imdbCache[selectedSeason]?.let { imdbEpisodesMap[selectedSeason] = it }
-            targetImdbEpisodes?.let { imdbEpisodesMap[targetSeason] = it }
+            val episodesResponse = withTimeoutOrNull(2000) { episodesDeferred.await() }
+            episodesResponse?.let { resp -> imdbCache[selectedSeason] = resp.episodes }
 
             _state.update {
                 it.copy(
                     isLoading = false,
-                    result = gemmaResult,
                     selectedSeason = selectedSeason,
                     error = null,
-                    imdbEpisodes = imdbEpisodesMap,
                     titleDetails = titleDetails,
                     crewCredits = CrewPerson.sortCrew(
                         credits?.credits?.mapNotNull { CrewPerson.fromCredit(it) } ?: emptyList()
@@ -199,38 +134,36 @@ class SeriesWatchViewModel @Inject constructor(
                 )
             }
 
-            // Auto-select the first episode of the selected season
-            val episodes = _state.value.mergedEpisodes
-            if (episodes.isNotEmpty()) {
-                val first = episodes.first()
-                _state.update { it.copy(currentEpisode = first) }
-                onEpisodeClick(first)
-            }
+            // Auto-select the first episode of the selected season. If IMDb has none yet, still
+            // resolve season/episode 1 so the hub can hand back gemma's tree and sources.
+            val first = _state.value.mergedEpisodes.firstOrNull() ?: placeholderEpisode(selectedSeason)
+            _state.update { it.copy(currentEpisode = first) }
+            onEpisodeClick(first)
         }
     }
 
-    private fun collectAvailableLanguages(result: GemmaExtractionResult) {
-        val langs = mutableSetOf<String>()
-        for (season in result.seasons.values) {
-            for (ep in season.episodes.values) {
-                langs.addAll(ep.languages.keys)
-            }
-        }
-        val sorted = langs.sortedWith(compareBy<String> { lang ->
-            when {
-                lang.contains("Hindi", ignoreCase = true) -> 0
-                lang.contains("English", ignoreCase = true) -> 1
-                else -> 2
-            }
-        }.thenBy { it })
-        val default = sorted.firstOrNull { it.contains("Hindi", ignoreCase = true) } ?: sorted.firstOrNull() ?: "Hindi"
-        _state.update { it.copy(availableLanguages = sorted, selectedLanguage = default) }
+    private fun initialSeason(): Int {
+        if (targetSeason != -1) return targetSeason
+        val tree = _state.value.hubTree ?: return 1
+        return tree.seasons.maxByOrNull { it.season }?.season ?: 1
     }
+
+    private fun placeholderEpisode(season: Int) = WatchEpisode(
+        episodeNo = 1,
+        seasonNo = season,
+        title = "Episode 1",
+        stillImageUrl = "",
+        runtimeMinutes = 0,
+        rating = 0.0,
+        releaseDate = "",
+        plot = "",
+        languages = emptyList()
+    )
 
     fun loadImdbEpisodes(seasonNo: Int, onLoaded: ((List<ImdbEpisode>) -> Unit)? = null) {
         if (imdbCache.containsKey(seasonNo)) {
             val cached = imdbCache[seasonNo]!!
-            _state.update { it.copy(imdbEpisodes = it.imdbEpisodes.toMutableMap().apply { put(seasonNo, cached) }) }
+            _state.update { it.copy(imdbEpisodes = it.imdbEpisodes + (seasonNo to cached)) }
             onLoaded?.invoke(cached)
             return
         }
@@ -239,7 +172,7 @@ class SeriesWatchViewModel @Inject constructor(
                 val resp = imdbApi.getEpisodes(imdbId, seasonNo)
                 val eps = resp.episodes
                 imdbCache[seasonNo] = eps
-                _state.update { it.copy(imdbEpisodes = it.imdbEpisodes.toMutableMap().apply { put(seasonNo, eps) }) }
+                _state.update { it.copy(imdbEpisodes = it.imdbEpisodes + (seasonNo to eps)) }
                 onLoaded?.invoke(eps)
             } catch (_: Exception) { onLoaded?.invoke(emptyList()) }
         }
@@ -250,23 +183,18 @@ class SeriesWatchViewModel @Inject constructor(
         loadImdbEpisodes(seasonNo) { episodes ->
             if (episodes.isNotEmpty()) {
                 val merged = _state.value.mergedEpisodes
-                if (merged.isNotEmpty()) {
-                    val first = merged.first()
-                    onEpisodeClick(first)
-                }
+                if (merged.isNotEmpty()) onEpisodeClick(merged.first())
             }
         }
     }
 
     fun selectLanguage(lang: String) {
-        userPinned = true
         _state.update { it.copy(selectedLanguage = lang) }
-        val gemmaOpt = options.firstOrNull { it.kind == PlaybackKind.GEMMA && it.language == lang }
+        val gemmaOpt = options.firstOrNull { it.service == "gemma" && it.language == lang }
         if (gemmaOpt != null) playOption(gemmaOpt)
     }
 
     fun onEpisodeClick(episode: WatchEpisode) {
-        userPinned = false
         scanEpoch++
         scanStarted = false
         lastHubRows = emptyList()
@@ -282,8 +210,7 @@ class SeriesWatchViewModel @Inject constructor(
                 error = null
             )
         }
-        if (!imdbId.startsWith("tt") && episode.languages.isEmpty()) {
-            // No Gemma entry and no IMDb id to query the hub with → nothing we can try.
+        if (!imdbId.startsWith("tt")) {
             _state.update { it.copy(isLoading = false, currentM3u8 = null, episodeNoSource = true) }
             return
         }
@@ -299,81 +226,91 @@ class SeriesWatchViewModel @Inject constructor(
     private fun orderOptions(opts: List<PlaybackOption>): List<PlaybackOption> {
         val hindi = opts.filter { isHindiOption(it) }
         val others = opts.filterNot { isHindiOption(it) }
-        fun byGemmaFirst(l: List<PlaybackOption>) = l.sortedWith(compareBy { if (it.kind == PlaybackKind.GEMMA) 0 else 1 })
+        fun byGemmaFirst(l: List<PlaybackOption>) = l.sortedWith(compareBy { if (it.service == "gemma") 0 else 1 })
         return byGemmaFirst(hindi) + byGemmaFirst(others)
     }
 
-    private fun buildOptions(episode: WatchEpisode?) {
+    private fun buildOptions() {
         val list = mutableListOf<PlaybackOption>()
-        sourceHubSources.groupByServer().forEach { g ->
-            val master = g.buildMasterPlaylist()
-            val direct = g.sources.map { it.url }
-            val langs = g.sortedLanguages()
-            if (master != null) {
+        sourceHubGroups.forEach { g ->
+            val langs = g.sortedLanguages
+            val master = g.master
+            if (!master.isNullOrEmpty()) {
                 list.add(
                     PlaybackOption(
                         id = "sourcehub:" + g.key,
                         label = g.label,
                         kind = PlaybackKind.SOURCE_HUB,
+                        service = g.service,
                         url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
                         headers = g.headers,
-                        alternates = direct,
+                        alternates = g.variants,
                         playbackType = g.playbackType,
+                        language = g.language,
                         languages = langs
                     )
                 )
             } else {
+                val url = g.variants.firstOrNull() ?: return@forEach
                 list.add(
                     PlaybackOption(
                         id = "sourcehub:" + g.key,
                         label = g.label,
                         kind = PlaybackKind.SOURCE_HUB,
-                        url = g.sources.first().url,
+                        service = g.service,
+                        url = url,
                         headers = g.headers,
-                        alternates = g.sources.drop(1).map { it.url },
+                        alternates = g.variants.drop(1),
                         playbackType = g.playbackType,
+                        language = g.language,
                         languages = langs
                     )
                 )
-            }
-        }
-        val result = _state.value.result
-        if (result != null && episode != null) {
-            val season = result.seasons[episode.seasonNo]
-            val gemmaEp = season?.episodes?.get(episode.episodeNo)
-            if (gemmaEp != null) {
-                val orderedLangs = gemmaEp.languages.keys.sortedWith(languageComparator())
-                orderedLangs.forEach { lang ->
-                    val file = gemmaEp.languages[lang] ?: return@forEach
-                    val ck = "e:${episode.seasonNo}:${episode.episodeNo}:$lang"
-                    val resolved = episodeCacheKey(episode.seasonNo, episode.episodeNo)
-                        ?.let { sourceCache.get(it)?.resolved?.get(ck) }
-                    list.add(
-                        PlaybackOption(
-                            id = "gemma:${episode.seasonNo}x${episode.episodeNo}:$lang",
-                            label = "Gemma",
-                            kind = PlaybackKind.GEMMA,
-                            url = resolved ?: "",
-                            language = lang,
-                            languages = orderedLangs
-                        )
-                    )
-                }
             }
         }
         val ordered = orderOptions(list)
         options.clear()
         options.addAll(ordered)
         _state.update { it.copy(options = ordered) }
+        updateLanguages()
     }
 
-    private fun languageComparator(): Comparator<String> = compareBy<String> { lang ->
-        when {
-            lang.contains("Hindi", ignoreCase = true) -> 0
-            lang.contains("English", ignoreCase = true) -> 1
-            else -> 2
+    private fun updateLanguages() {
+        val langs = options.filter { it.service == "gemma" }
+            .mapNotNull { it.language }
+            .distinctBy { it.lowercase() }
+            .sortedWith(compareBy<String> { lang ->
+                when {
+                    lang.contains("Hindi", ignoreCase = true) -> 0
+                    lang.contains("English", ignoreCase = true) -> 1
+                    else -> 2
+                }
+            }.thenBy { it })
+        val playing = _state.value.selectedOptionId?.let { id -> options.firstOrNull { it.id == id }?.language }
+        val default = playing?.takeIf { l -> langs.any { it.equals(l, true) } }
+            ?: langs.firstOrNull { it.contains("Hindi", ignoreCase = true) }
+            ?: langs.firstOrNull()
+            ?: _state.value.selectedLanguage
+        _state.update { it.copy(availableLanguages = langs, selectedLanguage = default) }
+    }
+
+    private fun mergeGroups(partial: List<SourceHubGroup>) {
+        val merged = LinkedHashMap<String, SourceHubGroup>()
+        sourceHubGroups.forEach { merged[it.key] = it }
+        partial.forEach { merged[it.key] = it }
+        sourceHubGroups = merged.values.toList()
+    }
+
+    private fun setHubTree(tree: SourceHubTree, persist: Boolean = true) {
+        if (tree.seasons.isEmpty()) return
+        if (persist) {
+            tvTreeKey?.let { key ->
+                val cur = sourceCache.get(key)
+                sourceCache.put(key, (cur ?: SourceCacheEntry()).copy(tree = tree))
+            }
         }
-    }.thenBy { it }
+        _state.update { it.copy(hubTree = tree) }
+    }
 
     private fun resolveEpisode(episode: WatchEpisode) {
         viewModelScope.launch {
@@ -384,82 +321,53 @@ class SeriesWatchViewModel @Inject constructor(
             scanStarted = false
             lastHubRows = emptyList()
             hubSettled = false
-            defaultPlaylistReady = false
             playbackCommitted = false
-            scanDeadlinePassed = false
-            gemmaScanStatus = if (episode.languages.isNotEmpty()) "found" else "na"
 
-            if (cached != null && cached.sources.isNotEmpty()) {
-                sourceHubSources = cached.sources
-                buildOptions(episode)
+            if (cached != null && cached.groups.isNotEmpty()) {
+                sourceHubGroups = cached.groups
+                buildOptions()
                 playFirstOption()
                 return@launch
             }
             key?.let { sourceCache.invalidate(it) }
 
             _state.update { it.copy(isLoading = true) }
-            sourceHubSources = emptyList()
-            buildOptions(episode)
+            sourceHubGroups = emptyList()
+            buildOptions()
 
-            val hubDeferred = if (imdbId.startsWith("tt")) {
-                viewModelScope.async {
-                    try {
-                        sourceHubClient.resolve(
-                            SourceHubRequest(
-                                id = imdbId,
-                                type = "tv",
-                                season = episode.seasonNo,
-                                episode = episode.episodeNo
-                            ),
-                            onService = { partial ->
-                                if (epoch == scanEpoch && partial.sources.isNotEmpty()) {
-                                    sourceHubSources = sourceHubSources + partial.sources
-                                    buildOptions(episode)
+            val hubDeferred = viewModelScope.async {
+                try {
+                    sourceHubClient.resolve(
+                        SourceHubRequest(
+                            id = imdbId,
+                            type = "tv",
+                            season = episode.seasonNo,
+                            episode = episode.episodeNo
+                        ),
+                        onService = { partial ->
+                            if (epoch == scanEpoch) {
+                                partial.tree?.let { setHubTree(it) }
+                                if (partial.groups.isNotEmpty()) {
+                                    mergeGroups(partial.groups)
+                                    buildOptions()
                                 }
-                            },
-                            onScan = { rows -> if (epoch == scanEpoch) onHubScan(rows) }
-                        )
-                    } catch (_: Exception) { null }
-                }
-            } else null
-
-            // Default playlist (Gemma) fetch runs in parallel with the hub resolve
-            viewModelScope.launch {
-                if (episode.languages.isNotEmpty()) {
-                    resolveGemmaUrl(_state.value.selectedLanguage)
-                }
-                if (epoch != scanEpoch) return@launch
-                defaultPlaylistReady = true
-                tryCommitPlayback()
+                            }
+                        },
+                        onScan = { rows -> if (epoch == scanEpoch) onHubScan(rows) }
+                    )
+                } catch (_: Exception) { null }
             }
 
-            // Safety: if the hub 'start' is slow, still switch to the new episode on the deadline
-            viewModelScope.launch {
-                delay(2500L)
-                if (epoch != scanEpoch) return@launch
-                scanDeadlinePassed = true
-                tryCommitPlayback()
+            val sh = hubDeferred.await()
+            if (epoch != scanEpoch) return@launch
+            sh?.tree?.let { setHubTree(it) }
+            if (sh != null && sh.groups.isNotEmpty()) {
+                sourceHubGroups = sh.groups.distinctBy { it.key }
+                buildOptions()
+                key?.let { k -> sourceCache.put(k, SourceCacheEntry(groups = sourceHubGroups)) }
             }
-
-            if (hubDeferred == null) {
-                hubSettled = true
-                tryCommitPlayback()
-            } else {
-                val sh = hubDeferred.await()
-                if (sh != null && sh.sources.isNotEmpty() && key != null) {
-                    sourceCache.update(key) { cur ->
-                        (cur ?: com.movie.app.best.data.repository.SourceCacheEntry()).copy(sources = sh.sources.distinctBy { it.id })
-                    }
-                }
-                if (epoch != scanEpoch) return@launch
-                if (sh != null && sh.sources.isNotEmpty()) {
-                    sourceHubSources = sh.sources.distinctBy { it.id }
-                    buildOptions(episode)
-                }
-                hubSettled = true
-                if (preferredOption()?.kind != PlaybackKind.GEMMA) defaultPlaylistReady = true
-                tryCommitPlayback()
-            }
+            hubSettled = true
+            tryCommitPlayback()
         }
     }
 
@@ -470,23 +378,10 @@ class SeriesWatchViewModel @Inject constructor(
         publishScan()
     }
 
-    /**
-     * Gemma-first: as soon as the default playlist is ready we start the new episode —
-     * only waiting for the hub 'start' (so its request is visible as scan cards with
-     * Gemma already green) up to a short deadline. Non-Gemma defaults still wait for the hub.
-     */
     private fun tryCommitPlayback() {
         if (playbackCommitted) return
-        if (!defaultPlaylistReady) return
-        val pref = preferredOption()
-        if (pref?.kind == PlaybackKind.GEMMA) {
-            if (!scanStarted && !hubSettled && !scanDeadlinePassed) return
-            playbackCommitted = true
-            playOption(pref)
-            return
-        }
-        if (!hubSettled) return
         playbackCommitted = true
+        val pref = preferredOption()
         if (pref == null) {
             _state.value.currentEpisode?.let { ep ->
                 episodeCacheKey(ep.seasonNo, ep.episodeNo)?.let { sourceCache.invalidate(it) }
@@ -499,12 +394,7 @@ class SeriesWatchViewModel @Inject constructor(
 
     private fun publishScan() {
         if (!scanStarted) return
-        _state.update { it.copy(serverScan = lastHubRows + ServerScanRow(name = "Gemma", status = gemmaScanStatus)) }
-    }
-
-    private fun setGemmaScan(status: String) {
-        gemmaScanStatus = status
-        publishScan()
+        _state.update { it.copy(serverScan = lastHubRows) }
     }
 
     /** Pure list order — whatever sits on top of the option list plays first. */
@@ -531,14 +421,14 @@ class SeriesWatchViewModel @Inject constructor(
                 currentM3u8 = null,
                 selectedOptionId = opt.id,
                 activeSource = opt.kind,
+                activeService = opt.service,
+                selectedLanguage = opt.language ?: it.selectedLanguage,
                 error = null,
                 playToken = it.playToken + 1
             )
         }
         viewModelScope.launch {
-            val url = if (opt.kind == PlaybackKind.GEMMA && opt.url.isEmpty()) {
-                resolveGemmaUrl(opt.language)
-            } else opt.url
+            val url = opt.url
             if (url.isNullOrEmpty()) {
                 advanceFrom(opt.id)
                 return@launch
@@ -551,30 +441,11 @@ class SeriesWatchViewModel @Inject constructor(
                     currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
                     activeSource = opt.kind,
+                    activeService = opt.service,
                     error = null
                 )
             }
         }
-    }
-
-    private suspend fun resolveGemmaUrl(lang: String?): String? {
-        val episode = _state.value.currentEpisode ?: return null
-        val result = _state.value.result ?: return null
-        val season = result.seasons[episode.seasonNo] ?: return null
-        val gemmaEp = season.episodes[episode.episodeNo] ?: return null
-        val chosenLang = lang?.takeIf { gemmaEp.languages.containsKey(it) } ?: gemmaEp.languages.keys.firstOrNull() ?: return null
-        val file = gemmaEp.languages[chosenLang] ?: return null
-        val ck = "e:${episode.seasonNo}:${episode.episodeNo}:$chosenLang"
-        val key = episodeCacheKey(episode.seasonNo, episode.episodeNo)
-        key?.let { sourceCache.get(it)?.resolved?.get(ck) }?.let { return it }
-        val m3u8 = gemmaExtractor.resolveFile(file, result.csrfKey) ?: return null
-        if (key != null) {
-            sourceCache.update(key) { cur ->
-                val base = cur ?: com.movie.app.best.data.repository.SourceCacheEntry()
-                base.copy(resolved = base.resolved.toMutableMap().apply { put(ck, m3u8) })
-            }
-        }
-        return m3u8
     }
 
     private fun advanceFrom(failedId: String) {
@@ -592,7 +463,6 @@ class SeriesWatchViewModel @Inject constructor(
 
     fun selectOption(id: String) {
         val opt = options.firstOrNull { it.id == id } ?: return
-        userPinned = true
         playOption(opt)
     }
 
@@ -609,6 +479,7 @@ class SeriesWatchViewModel @Inject constructor(
                     currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
                     activeSource = opt.kind,
+                    activeService = opt.service,
                     error = null
                 )
             }

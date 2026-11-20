@@ -245,10 +245,7 @@ fun MovieWatchScreen(
         }
 
         val isSourceHub = state.activeSource == "sourcehub"
-        val referer = when (state.activeSource) {
-            "gemma" -> com.movie.app.best.data.config.RemoteConfig.extractor()
-            else -> com.movie.app.best.data.config.RemoteConfig.playerReferer()
-        }
+        val referer = com.movie.app.best.data.config.RemoteConfig.playerReferer()
 
         val okClient = OkHttpClient.Builder()
             .followRedirects(true).followSslRedirects(true)
@@ -455,14 +452,14 @@ fun MovieWatchScreen(
 
     // Gemma has per-language entries (used by the Audio selector); the Server picker only
     // needs one "Gemma" row — pick the option matching the currently-selected audio language.
-    val repGemma = state.options.firstOrNull { it.kind == "gemma" && it.language == state.selectedLanguage }
-        ?: state.options.firstOrNull { it.kind == "gemma" }
+    val repGemma = state.options.firstOrNull { it.service == "gemma" && it.language == state.selectedLanguage }
+        ?: state.options.firstOrNull { it.service == "gemma" }
     val serverOptions = state.options
-        .filter { it.kind != "gemma" || it == repGemma }
+        .filter { it.service != "gemma" || it == repGemma }
         .takeIf { it.isNotEmpty() }
 
     val customAudioTracks = state.availableLanguages
-        .takeIf { it.size > 1 && state.activeSource == "gemma" }
+        .takeIf { it.size > 1 && state.activeService == "gemma" }
 
     BackHandler {
         if (isFullscreen) {

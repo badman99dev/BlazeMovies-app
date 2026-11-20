@@ -12,13 +12,13 @@ data class WatchEpisode(
     val rating: Double,
     val releaseDate: String,
     val plot: String,
-    val languages: Map<String, String>,
+    val languages: List<String>,
     val available: Boolean = true
 ) {
     val displayTitle: String get() = if (title.isNotBlank()) "E$episodeNo · $title" else "Episode $episodeNo"
     val displayMeta: String get() {
         val parts = mutableListOf<String>()
-        if (runtimeMinutes > 0) parts.add("${runtimeMinutes} min")
+        if (runtimeMinutes > 0) parts.add("$runtimeMinutes min")
         if (rating > 0) parts.add("⭐ ${String.format("%.1f", rating)}")
         if (releaseDate.isNotBlank()) parts.add(releaseDate)
         return parts.joinToString(" · ")
@@ -32,27 +32,12 @@ data class WatchEpisode(
     }
 }
 
-data class GemmaExtractionResult(
-    val seasons: Map<Int, GemmaSeasonInfo>,
-    val csrfKey: String = "",
-    val error: String? = null
-)
-
-data class GemmaSeasonInfo(
-    val title: String,
-    val episodes: Map<Int, GemmaEpisodeInfo>
-)
-
-data class GemmaEpisodeInfo(
-    val title: String = "",
-    val languages: Map<String, String> = emptyMap()
-)
-
 data class ExtractionState(
     val isLoading: Boolean = false,
     /** Bumped on every playOption() so the player subtree rebuilds even when the URL/id repeats. */
     val playToken: Long = 0L,
-    val result: GemmaExtractionResult? = null,
+    /** Gemma season/episode tree supplied by the source-hub (used to paint the episode list). */
+    val hubTree: SourceHubTree? = null,
     val imdbEpisodes: Map<Int, List<ImdbEpisode>> = emptyMap(),
     val selectedSeason: Int = 1,
     val selectedLanguage: String = "Hindi",
@@ -61,6 +46,7 @@ data class ExtractionState(
     val currentPlaybackType: String = "hls",
     val currentHeaders: Map<String, String> = emptyMap(),
     val activeSource: String = "",
+    val activeService: String = "",
     val selectedOptionId: String? = null,
     val options: List<PlaybackOption> = emptyList(),
     val currentEpisode: WatchEpisode? = null,
@@ -77,23 +63,23 @@ data class ExtractionState(
 ) {
     val mergedEpisodes: List<WatchEpisode>
         get() {
-            val gemmaSeason = result?.seasons?.get(selectedSeason)
+            val treeSeason = hubTree?.seasons?.firstOrNull { it.season == selectedSeason }
             val imdbEps = imdbEpisodes[selectedSeason] ?: emptyList()
             val imdbMap = imdbEps.associateBy { it.episodeNumber }
 
-            if (gemmaSeason != null) {
-                return gemmaSeason.episodes.map { (epNo, gemmaEp) ->
-                    val imdb = imdbMap[epNo]
+            if (treeSeason != null && treeSeason.episodes.isNotEmpty()) {
+                return treeSeason.episodes.map { e ->
+                    val imdb = imdbMap[e.episode]
                     WatchEpisode(
-                        episodeNo = epNo,
+                        episodeNo = e.episode,
                         seasonNo = selectedSeason,
-                        title = imdb?.title ?: gemmaEp.title.replaceAfterLast(" - ", "").trim().ifBlank { "Episode $epNo" },
+                        title = imdb?.title ?: e.title.replaceAfterLast(" - ", "").trim().ifBlank { "Episode ${e.episode}" },
                         stillImageUrl = imdb?.stillImageUrl ?: "",
                         runtimeMinutes = imdb?.runtimeMinutes ?: 0,
                         rating = imdb?.ratingValue ?: 0.0,
                         releaseDate = imdb?.formattedDate ?: "",
                         plot = imdb?.plot ?: "",
-                        languages = gemmaEp.languages,
+                        languages = e.languages,
                         available = true
                     )
                 }.sortedBy { it.episodeNo }
@@ -110,7 +96,7 @@ data class ExtractionState(
                         rating = imdb.ratingValue,
                         releaseDate = imdb.formattedDate,
                         plot = imdb.plot,
-                        languages = emptyMap(),
+                        languages = emptyList(),
                         available = true
                     )
                 }.sortedBy { it.episodeNo }
@@ -120,8 +106,8 @@ data class ExtractionState(
         }
 
     val seasonKeys: List<Int>
-        get() = ((result?.seasons?.keys ?: emptySet()) + imdbEpisodes.keys).toSortedSet().toList()
+        get() = ((hubTree?.seasons?.map { it.season } ?: emptyList()) + imdbEpisodes.keys).toSortedSet().toList()
 
     val isSelectedSeasonAvailable: Boolean
-        get() = result?.seasons?.containsKey(selectedSeason) == true
+        get() = hubTree?.seasons?.any { it.season == selectedSeason } == true
 }

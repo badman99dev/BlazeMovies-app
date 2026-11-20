@@ -210,7 +210,7 @@ fun SeriesWatchScreen(
         val isSourceHub = state.activeSource == "sourcehub"
         val requestProps = mutableMapOf<String, String>()
         if (!isSourceHub) {
-            requestProps["Referer"] = com.movie.app.best.data.config.RemoteConfig.extractor()
+            requestProps["Referer"] = com.movie.app.best.data.config.RemoteConfig.playerReferer()
             requestProps["Accept"] = "*/*"
         }
         state.currentHeaders.forEach { (k, v) ->
@@ -369,10 +369,10 @@ fun SeriesWatchScreen(
 
     // Gemma has per-language entries (used by the Audio selector); the Server picker only
     // needs one "Gemma" row — pick the option matching the currently-selected audio language.
-    val repGemma = state.options.firstOrNull { it.kind == "gemma" && it.language == state.selectedLanguage }
-        ?: state.options.firstOrNull { it.kind == "gemma" }
+    val repGemma = state.options.firstOrNull { it.service == "gemma" && it.language == state.selectedLanguage }
+        ?: state.options.firstOrNull { it.service == "gemma" }
     val serverOptions = state.options
-        .filter { it.kind != "gemma" || it == repGemma }
+        .filter { it.service != "gemma" || it == repGemma }
         .takeIf { it.isNotEmpty() }
 
     val customAudioTracks = state.availableLanguages.takeIf { it.size > 1 }

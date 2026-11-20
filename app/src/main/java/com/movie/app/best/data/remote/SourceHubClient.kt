@@ -11,7 +11,9 @@ import com.movie.app.best.data.model.SourceHubResolveResult
 import com.movie.app.best.data.model.ServerScanRow
 import com.movie.app.best.data.model.SourceHubServiceResult
 import com.movie.app.best.data.model.SourceHubStartEvent
+import com.movie.app.best.data.model.SourceHubGroup
 import com.movie.app.best.data.model.SourceHubSource
+import com.movie.app.best.data.model.SourceHubTree
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +97,8 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
         private val finished = AtomicBoolean(false)
         private val reqId = "r" + System.currentTimeMillis().toString(36)
         private val sources = mutableListOf<SourceHubSource>()
+        private val groups = mutableListOf<SourceHubGroup>()
+        private var tree: SourceHubTree? = null
 
         suspend fun await(): SourceHubResolveResult {
             val req = Request.Builder().url(wsUrl).build()
@@ -138,8 +142,10 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
                                 .getOrNull() ?: SourceHubServiceResult()
                             val st = svc.status ?: if (svc.skipped != null) "na" else if (svc.ok) "found" else "fail"
                             pushScan(svc.service, st, elapsedMs = msg.get("elapsedMs")?.takeIf { !it.isJsonNull }?.asLong ?: 0, error = svc.error)
-                            if (svc.sources.isNotEmpty()) {
+                            if (svc.tree != null) tree = svc.tree
+                            if (svc.sources.isNotEmpty() || svc.groups.isNotEmpty()) {
                                 sources.addAll(svc.sources)
+                                groups.addAll(svc.groups)
                                 runCatching { onService(svc) }
                             }
                         }
@@ -150,9 +156,11 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
                                     pushScan(n, "fail", error = "timeout")
                                 }
                                 val out = SourceHubResolveResult(
-                                    ok = sources.isNotEmpty(),
+                                    ok = sources.isNotEmpty() || groups.isNotEmpty(),
                                     count = sources.size,
-                                    sources = sources.toList()
+                                    sources = sources.toList(),
+                                    groups = groups.toList(),
+                                    tree = tree
                                 )
                                 result.complete(out)
                             }
@@ -175,7 +183,7 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 if (finished.compareAndSet(false, true)) {
-                    result.complete(SourceHubResolveResult(sources = sources.toList(), count = sources.size, ok = sources.isNotEmpty()))
+                    result.complete(SourceHubResolveResult(sources = sources.toList(), count = sources.size, groups = groups.toList(), tree = tree, ok = sources.isNotEmpty() || groups.isNotEmpty()))
                 }
             }
         }
