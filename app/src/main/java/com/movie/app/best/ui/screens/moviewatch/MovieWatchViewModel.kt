@@ -88,16 +88,17 @@ class MovieWatchViewModel @Inject constructor(
     }
 
     /**
-     * Pure order-based priority: Native first, then Hindi options (Gemma at the top of its tier),
-     * then every other language (Gemma again at the top). What is on top plays first.
+     * Pure order-based priority: Native first, then Hindi options, then every other language.
+     * Within a tier the server's `pinned` hint decides the order (higher plays first). Whatever
+     * sits on top of the list plays first.
      */
     private fun orderOptions(opts: List<PlaybackOption>): List<PlaybackOption> {
+        fun byPinned(l: List<PlaybackOption>) = l.sortedWith(compareByDescending { it.pinned })
         val native = opts.filter { it.kind == PlaybackKind.NATIVE }
         val rest = opts.filterNot { it.kind == PlaybackKind.NATIVE }
         val hindi = rest.filter { isHindiOption(it) }
         val others = rest.filterNot { isHindiOption(it) }
-        fun byGemmaFirst(l: List<PlaybackOption>) = l.sortedWith(compareBy { if (it.service == "gemma") 0 else 1 })
-        return native + byGemmaFirst(hindi) + byGemmaFirst(others)
+        return native + byPinned(hindi) + byPinned(others)
     }
 
     private fun rebuildOptions() {
@@ -106,38 +107,29 @@ class MovieWatchViewModel @Inject constructor(
         sourceHubGroups.forEach { g ->
             val langs = g.sortedLanguages
             val master = g.master
-            if (!master.isNullOrEmpty()) {
-                list.add(
-                    PlaybackOption(
-                        id = "sourcehub:" + g.key,
-                        label = g.label,
-                        kind = PlaybackKind.SOURCE_HUB,
-                        service = g.service,
-                        url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
-                        headers = g.headers,
-                        alternates = g.variants,
-                        playbackType = g.playbackType,
-                        language = g.language,
-                        languages = langs
-                    )
-                )
-            } else {
-                val url = g.variants.firstOrNull() ?: return@forEach
-                list.add(
-                    PlaybackOption(
-                        id = "sourcehub:" + g.key,
-                        label = g.label,
-                        kind = PlaybackKind.SOURCE_HUB,
-                        service = g.service,
-                        url = url,
-                        headers = g.headers,
-                        alternates = g.variants.drop(1),
-                        playbackType = g.playbackType,
-                        language = g.language,
-                        languages = langs
-                    )
-                )
+            val trackUrl = g.tracks.firstOrNull()?.url
+            val url = when {
+                !master.isNullOrEmpty() -> sourceCache.writeHlsMaster(g.fileBaseName(), master)
+                trackUrl != null -> trackUrl
+                else -> g.variants.firstOrNull() ?: return@forEach
             }
+            list.add(
+                PlaybackOption(
+                    id = "sourcehub:" + g.key,
+                    label = g.label,
+                    kind = PlaybackKind.SOURCE_HUB,
+                    service = g.service,
+                    url = url,
+                    headers = g.headers,
+                    alternates = g.variants.filter { it != url },
+                    playbackType = g.playbackType,
+                    language = langs.firstOrNull(),
+                    languages = langs,
+                    tracks = g.tracks,
+                    audio = g.audio,
+                    pinned = g.pinned
+                )
+            )
         }
         val orderedOptions = orderOptions(list)
         options.clear()
@@ -146,16 +138,21 @@ class MovieWatchViewModel @Inject constructor(
         updateLanguages()
     }
 
+    /**
+     * Audio languages come from whichever rows declare independent per-language streams
+     * (`audio`). Nothing here follows the currently-playing track — rows show all their
+     * languages, and switching swaps the row's track only.
+     */
     private fun updateLanguages() {
-        val langs = options.filter { it.service == "gemma" }
-            .mapNotNull { it.language }
+        val langs = options.filter { it.audio }
+            .flatMap { it.languages }
             .distinctBy { it.lowercase() }
             .sortedWith(languageComparator())
-        val playing = _state.value.selectedOptionId?.let { id -> options.firstOrNull { it.id == id }?.language }
-        val default = playing?.takeIf { l -> langs.any { it.equals(l, true) } }
+        val cur = _state.value.selectedLanguage
+        val default = cur.takeIf { l -> langs.any { it.equals(l, true) } }
             ?: langs.firstOrNull { it.contains("Hindi", ignoreCase = true) }
             ?: langs.firstOrNull()
-            ?: _state.value.selectedLanguage
+            ?: cur
         _state.update { it.copy(availableLanguages = langs, selectedLanguage = default) }
     }
 
@@ -331,7 +328,8 @@ class MovieWatchViewModel @Inject constructor(
         playOption(first)
     }
 
-    private fun playOption(opt: PlaybackOption) {
+    private fun playOption(opt: PlaybackOption, trackLang: String? = null) {
+        val playUrl = resolveUrl(opt, trackLang)
         altCursor[opt.id] = 0
         _state.update {
             it.copy(
@@ -340,21 +338,20 @@ class MovieWatchViewModel @Inject constructor(
                 selectedOptionId = opt.id,
                 activeSource = opt.kind,
                 activeService = opt.service,
-                selectedLanguage = opt.language ?: it.selectedLanguage,
+                selectedLanguage = trackLang ?: opt.language ?: it.selectedLanguage,
                 error = null,
                 playToken = it.playToken + 1
             )
         }
         viewModelScope.launch {
-            val url = opt.url
-            if (url.isNullOrEmpty()) {
+            if (playUrl.isNullOrEmpty()) {
                 advanceFrom(opt.id)
                 return@launch
             }
             _state.update {
                 it.copy(
                     isLoading = false,
-                    currentM3u8 = url,
+                    currentM3u8 = playUrl,
                     currentHeaders = opt.headers,
                     currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
@@ -364,6 +361,15 @@ class MovieWatchViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /** A per-language group's stream for [trackLang]; falls back to the row's default url. */
+    private fun resolveUrl(opt: PlaybackOption, trackLang: String?): String {
+        if (trackLang != null) {
+            val t = opt.tracks.firstOrNull { it.language.equals(trackLang, true) }
+            if (t != null && t.url.isNotBlank()) return t.url
+        }
+        return opt.url
     }
 
     private fun advanceFrom(failedId: String) {
@@ -413,8 +419,8 @@ class MovieWatchViewModel @Inject constructor(
 
     fun selectLanguage(lang: String) {
         _state.update { it.copy(selectedLanguage = lang) }
-        val gemmaOpt = options.firstOrNull { it.service == "gemma" && it.language == lang }
-        if (gemmaOpt != null) playOption(gemmaOpt)
+        val opt = options.firstOrNull { it.audio && it.languages.any { l -> l.equals(lang, true) } } ?: return
+        playOption(opt, lang)
     }
 
     fun toggleBookmark() {

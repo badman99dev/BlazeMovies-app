@@ -66,7 +66,7 @@ private fun statusColor(status: String): Color = when (status) {
 }
 
 /**
- * Live "scanning servers" animation shown over the (blurred) poster while SourceHub + Gemma resolve.
+ * Live "scanning servers" animation shown over the (blurred) poster while the hub resolves.
  * resolving → neon-yellow rotating ring; found → green ✓; fail → red ✕; na → grey –.
  * Subtitle flips to "Ready to play" once every row has settled but the default playlist is still loading.
  */

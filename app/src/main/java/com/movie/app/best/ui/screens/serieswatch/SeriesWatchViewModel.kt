@@ -95,7 +95,7 @@ class SeriesWatchViewModel @Inject constructor(
                 } catch (_: Exception) {}
             }
 
-            // Previously-resolved tree (from the hub's gemma service) paints the season list instantly.
+            // Previously-resolved tree (from the hub) paints the season list instantly.
             tvTreeKey?.let { key -> sourceCache.get(key)?.tree }?.let { setHubTree(it, persist = false) }
 
             val selectedSeason = initialSeason()
@@ -135,7 +135,7 @@ class SeriesWatchViewModel @Inject constructor(
             }
 
             // Auto-select the first episode of the selected season. If IMDb has none yet, still
-            // resolve season/episode 1 so the hub can hand back gemma's tree and sources.
+            // resolve season/episode 1 so the hub can hand back the tree and sources.
             val first = _state.value.mergedEpisodes.firstOrNull() ?: placeholderEpisode(selectedSeason)
             _state.update { it.copy(currentEpisode = first) }
             onEpisodeClick(first)
@@ -190,8 +190,8 @@ class SeriesWatchViewModel @Inject constructor(
 
     fun selectLanguage(lang: String) {
         _state.update { it.copy(selectedLanguage = lang) }
-        val gemmaOpt = options.firstOrNull { it.service == "gemma" && it.language == lang }
-        if (gemmaOpt != null) playOption(gemmaOpt)
+        val opt = options.firstOrNull { it.audio && it.languages.any { l -> l.equals(lang, true) } } ?: return
+        playOption(opt, lang)
     }
 
     fun onEpisodeClick(episode: WatchEpisode) {
@@ -222,12 +222,12 @@ class SeriesWatchViewModel @Inject constructor(
         return l.contains("Hindi", ignoreCase = true)
     }
 
-    /** Pure order-based priority: Hindi tier first (Gemma on top of its tier), then other languages. */
+    /** Pure order-based priority: Hindi tier first, then other languages. Server `pinned` decides within a tier. */
     private fun orderOptions(opts: List<PlaybackOption>): List<PlaybackOption> {
+        fun byPinned(l: List<PlaybackOption>) = l.sortedWith(compareByDescending { it.pinned })
         val hindi = opts.filter { isHindiOption(it) }
         val others = opts.filterNot { isHindiOption(it) }
-        fun byGemmaFirst(l: List<PlaybackOption>) = l.sortedWith(compareBy { if (it.service == "gemma") 0 else 1 })
-        return byGemmaFirst(hindi) + byGemmaFirst(others)
+        return byPinned(hindi) + byPinned(others)
     }
 
     private fun buildOptions() {
@@ -235,38 +235,29 @@ class SeriesWatchViewModel @Inject constructor(
         sourceHubGroups.forEach { g ->
             val langs = g.sortedLanguages
             val master = g.master
-            if (!master.isNullOrEmpty()) {
-                list.add(
-                    PlaybackOption(
-                        id = "sourcehub:" + g.key,
-                        label = g.label,
-                        kind = PlaybackKind.SOURCE_HUB,
-                        service = g.service,
-                        url = sourceCache.writeHlsMaster(g.fileBaseName(), master),
-                        headers = g.headers,
-                        alternates = g.variants,
-                        playbackType = g.playbackType,
-                        language = g.language,
-                        languages = langs
-                    )
-                )
-            } else {
-                val url = g.variants.firstOrNull() ?: return@forEach
-                list.add(
-                    PlaybackOption(
-                        id = "sourcehub:" + g.key,
-                        label = g.label,
-                        kind = PlaybackKind.SOURCE_HUB,
-                        service = g.service,
-                        url = url,
-                        headers = g.headers,
-                        alternates = g.variants.drop(1),
-                        playbackType = g.playbackType,
-                        language = g.language,
-                        languages = langs
-                    )
-                )
+            val trackUrl = g.tracks.firstOrNull()?.url
+            val url = when {
+                !master.isNullOrEmpty() -> sourceCache.writeHlsMaster(g.fileBaseName(), master)
+                trackUrl != null -> trackUrl
+                else -> g.variants.firstOrNull() ?: return@forEach
             }
+            list.add(
+                PlaybackOption(
+                    id = "sourcehub:" + g.key,
+                    label = g.label,
+                    kind = PlaybackKind.SOURCE_HUB,
+                    service = g.service,
+                    url = url,
+                    headers = g.headers,
+                    alternates = g.variants.filter { it != url },
+                    playbackType = g.playbackType,
+                    language = langs.firstOrNull(),
+                    languages = langs,
+                    tracks = g.tracks,
+                    audio = g.audio,
+                    pinned = g.pinned
+                )
+            )
         }
         val ordered = orderOptions(list)
         options.clear()
@@ -275,9 +266,10 @@ class SeriesWatchViewModel @Inject constructor(
         updateLanguages()
     }
 
+    /** Audio languages come from rows declaring independent per-language streams (`audio`). */
     private fun updateLanguages() {
-        val langs = options.filter { it.service == "gemma" }
-            .mapNotNull { it.language }
+        val langs = options.filter { it.audio }
+            .flatMap { it.languages }
             .distinctBy { it.lowercase() }
             .sortedWith(compareBy<String> { lang ->
                 when {
@@ -286,11 +278,11 @@ class SeriesWatchViewModel @Inject constructor(
                     else -> 2
                 }
             }.thenBy { it })
-        val playing = _state.value.selectedOptionId?.let { id -> options.firstOrNull { it.id == id }?.language }
-        val default = playing?.takeIf { l -> langs.any { it.equals(l, true) } }
+        val cur = _state.value.selectedLanguage
+        val default = cur.takeIf { l -> langs.any { it.equals(l, true) } }
             ?: langs.firstOrNull { it.contains("Hindi", ignoreCase = true) }
             ?: langs.firstOrNull()
-            ?: _state.value.selectedLanguage
+            ?: cur
         _state.update { it.copy(availableLanguages = langs, selectedLanguage = default) }
     }
 
@@ -413,7 +405,8 @@ class SeriesWatchViewModel @Inject constructor(
         playOption(first)
     }
 
-    private fun playOption(opt: PlaybackOption) {
+    private fun playOption(opt: PlaybackOption, trackLang: String? = null) {
+        val playUrl = resolveUrl(opt, trackLang)
         altCursor[opt.id] = 0
         _state.update {
             it.copy(
@@ -422,21 +415,20 @@ class SeriesWatchViewModel @Inject constructor(
                 selectedOptionId = opt.id,
                 activeSource = opt.kind,
                 activeService = opt.service,
-                selectedLanguage = opt.language ?: it.selectedLanguage,
+                selectedLanguage = trackLang ?: opt.language ?: it.selectedLanguage,
                 error = null,
                 playToken = it.playToken + 1
             )
         }
         viewModelScope.launch {
-            val url = opt.url
-            if (url.isNullOrEmpty()) {
+            if (playUrl.isNullOrEmpty()) {
                 advanceFrom(opt.id)
                 return@launch
             }
             _state.update {
                 it.copy(
                     isLoading = false,
-                    currentM3u8 = url,
+                    currentM3u8 = playUrl,
                     currentHeaders = opt.headers,
                     currentPlaybackType = opt.playbackType,
                     selectedOptionId = opt.id,
@@ -446,6 +438,15 @@ class SeriesWatchViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /** A per-language group's stream for [trackLang]; falls back to the row's default url. */
+    private fun resolveUrl(opt: PlaybackOption, trackLang: String?): String {
+        if (trackLang != null) {
+            val t = opt.tracks.firstOrNull { it.language.equals(trackLang, true) }
+            if (t != null && t.url.isNotBlank()) return t.url
+        }
+        return opt.url
     }
 
     private fun advanceFrom(failedId: String) {

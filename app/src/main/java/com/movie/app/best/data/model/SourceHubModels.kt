@@ -18,50 +18,24 @@ data class SourceHubSource(
     val url: String = "",
     val playback: SourceHubPlayback? = null
 ) {
-    val id: String
-        get() = "$service|${server ?: ""}|${language ?: ""}|$quality|$url"
-
-    val allLanguages: List<String>
-        get() = (languages + listOfNotNull(language)).map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinctBy { it.lowercase() }
-
-    private val serviceDisplayName: String
-        get() = when (service.lowercase()) {
-            "vidsrc" -> "VidSrc"
-            "filmu" -> "FilmU"
-            "vidly" -> "Vidly"
-            "vidlove" -> "VidLove"
-            "vidnest" -> "VidNest"
-            "gemma" -> "Gemma"
-            "native" -> "Native"
-            else -> service.replaceFirstChar { it.uppercase() }
-        }
-
-    /** Server-only label — language(s) are rendered separately (red) by the Server picker. */
-    val serverLabel: String
-        get() {
-            val parts = mutableListOf(serviceDisplayName)
-            server?.takeIf { it.isNotBlank() }?.let { parts.add(it.replaceFirstChar { c -> c.uppercase() }) }
-            val t = playback?.type?.lowercase()?.takeIf { it.isNotBlank() && it != "hls" }
-            if (t != null) parts.add(if (url.substringBefore('?').lowercase().endsWith(".mkv")) "MKV" else t.uppercase())
-            return parts.joinToString(" • ")
-        }
-
-    val displayLabel: String
-        get() {
-            val parts = mutableListOf(serverLabel)
-            quality.takeIf { it.isNotBlank() && !it.equals("auto", true) }?.let { parts.add(it) }
-            return parts.joinToString(" • ")
-        }
-
     fun playbackHeaders(): Map<String, String> = playback?.headers ?: emptyMap()
 }
 
+/** One independent audio stream inside a group (service-driven, no client-side language logic). */
+data class SourceHubTrack(
+    val language: String = "",
+    val url: String = ""
+)
+
 /**
  * A ready-to-render picker row composed by the source-hub (the old client-side
- * `groupByServer()` / `buildMasterPlaylist()` live on the server now). The client only writes
- * [master] to a local file (or plays [variants].first()) and attaches [headers].
+ * `groupByServer()` / `buildMasterPlaylist()` live on the server now). The client only prints
+ * [label] + [languages] (the red text — verbatim from the server), writes [master] to a local
+ * file (or plays a [tracks] entry / [variants].first()), and attaches [headers].
+ *
+ * [audio]/[tracks] are generic: when the service exposes independent per-language streams the
+ * row declares `audio = true` and lists them in [tracks]. [languages] never follows the playing
+ * track — it is exactly what the server sent.
  */
 data class SourceHubGroup(
     val key: String = "",
@@ -71,14 +45,17 @@ data class SourceHubGroup(
     val playbackType: String = "hls",
     val languages: List<String> = emptyList(),
     val master: String? = null,
-    val variants: List<String> = emptyList()
+    val variants: List<String> = emptyList(),
+    val tracks: List<SourceHubTrack> = emptyList(),
+    val audio: Boolean = false,
+    val pinned: Int = 0
 ) {
     fun fileBaseName(): String = key.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")
     val sortedLanguages: List<String> get() = languages
     val language: String? get() = languages.firstOrNull()
 }
 
-/** Gemma's season/episode tree, carried on the `gemma` service event. */
+/** Season/episode tree for episodic content, carried on a service event. */
 data class SourceHubTree(val seasons: List<SourceHubTreeSeason> = emptyList())
 
 data class SourceHubTreeSeason(
@@ -153,6 +130,9 @@ data class PlaybackOption(
     val service: String = "",
     val language: String? = null,
     val languages: List<String> = emptyList(),
+    val tracks: List<SourceHubTrack> = emptyList(),
+    val audio: Boolean = false,
+    val pinned: Int = 0,
     val alternates: List<String> = emptyList(),
     val playbackType: String = "hls"
 )

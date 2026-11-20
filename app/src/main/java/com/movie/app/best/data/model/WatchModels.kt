@@ -36,7 +36,7 @@ data class ExtractionState(
     val isLoading: Boolean = false,
     /** Bumped on every playOption() so the player subtree rebuilds even when the URL/id repeats. */
     val playToken: Long = 0L,
-    /** Gemma season/episode tree supplied by the source-hub (used to paint the episode list). */
+    /** Season/episode tree supplied by the source-hub (used to paint the episode list). */
     val hubTree: SourceHubTree? = null,
     val imdbEpisodes: Map<Int, List<ImdbEpisode>> = emptyMap(),
     val selectedSeason: Int = 1,

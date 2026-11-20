@@ -450,16 +450,11 @@ fun MovieWatchScreen(
         viewModel.selectOption(id)
     }
 
-    // Gemma has per-language entries (used by the Audio selector); the Server picker only
-    // needs one "Gemma" row — pick the option matching the currently-selected audio language.
-    val repGemma = state.options.firstOrNull { it.service == "gemma" && it.language == state.selectedLanguage }
-        ?: state.options.firstOrNull { it.service == "gemma" }
-    val serverOptions = state.options
-        .filter { it.service != "gemma" || it == repGemma }
-        .takeIf { it.isNotEmpty() }
+    // Server picker shows exactly what the hub composed — one row per server, with its full
+    // language list in red (server-sent, never the playing track's language).
+    val serverOptions = state.options.takeIf { it.isNotEmpty() }
 
-    val customAudioTracks = state.availableLanguages
-        .takeIf { it.size > 1 && state.activeService == "gemma" }
+    val customAudioTracks = state.availableLanguages.takeIf { it.size > 1 }
 
     BackHandler {
         if (isFullscreen) {
