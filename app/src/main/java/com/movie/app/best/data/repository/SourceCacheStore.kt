@@ -107,7 +107,10 @@ class SourceCacheStore @Inject constructor(
 
     companion object {
         const val TTL_MS = 30L * 60L * 1000L
-        private const val KEY_DATA = "entries"
+        // v2: SourceHubGroup gained `tracks`/`audio`/`pinned`. Gson leaves absent non-null fields
+        // as null (Kotlin defaults are not applied), so entries written by older builds would
+        // deserialize with a null `tracks` and crash the option builder — the key bump discards them.
+        private const val KEY_DATA = "entries_v2"
 
         fun movieKey(imdbId: String) = "$imdbId:movie"
         fun episodeKey(imdbId: String, season: Int, episode: Int) = "$imdbId:tv:$season:$episode"
