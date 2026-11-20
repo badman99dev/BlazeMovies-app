@@ -221,7 +221,7 @@ class SportsViewModel @Inject constructor(
     private fun sortEvents(events: List<SportEvent>): List<SportEvent> {
         val live = events.filter { it.isLive }.sortedWith(
             compareByDescending<SportEvent> { it.isCricket }
-                .thenBy { it.startDate?.time ?: 0L }
+                .thenByDescending { it.startDate?.time ?: 0L }
         )
 
         val upcoming = events.filter { it.isUpcoming }.sortedBy {
