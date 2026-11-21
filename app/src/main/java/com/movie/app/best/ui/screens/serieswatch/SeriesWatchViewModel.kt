@@ -189,9 +189,12 @@ class SeriesWatchViewModel @Inject constructor(
     }
 
     fun selectLanguage(lang: String) {
+        // Audio tracks belong to the playing server: only switch a track this row actually exposes,
+        // never jump to a different server that happens to carry the language.
+        val cur = options.firstOrNull { it.id == _state.value.selectedOptionId }
+        if (cur == null || !cur.audio || cur.languages.none { it.equals(lang, true) }) return
         _state.update { it.copy(selectedLanguage = lang) }
-        val opt = options.firstOrNull { it.audio && it.languages.any { l -> l.equals(lang, true) } } ?: return
-        playOption(opt, lang)
+        playOption(cur, lang)
     }
 
     fun onEpisodeClick(episode: WatchEpisode) {
@@ -266,10 +269,10 @@ class SeriesWatchViewModel @Inject constructor(
         updateLanguages()
     }
 
-    /** Audio languages come from rows declaring independent per-language streams (`audio`). */
+    /** Audio tracks are per-server: the menu reflects ONLY the currently playing row's languages. */
     private fun updateLanguages() {
-        val langs = options.filter { it.audio }
-            .flatMap { it.languages }
+        val current = options.firstOrNull { it.id == _state.value.selectedOptionId }
+        val langs = (if (current?.audio == true) current.languages else emptyList())
             .distinctBy { it.lowercase() }
             .sortedWith(compareBy<String> { lang ->
                 when {
@@ -420,6 +423,7 @@ class SeriesWatchViewModel @Inject constructor(
                 playToken = it.playToken + 1
             )
         }
+        updateLanguages()
         viewModelScope.launch {
             if (playUrl.isNullOrEmpty()) {
                 advanceFrom(opt.id)

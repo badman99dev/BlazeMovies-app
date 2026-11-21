@@ -139,13 +139,13 @@ class MovieWatchViewModel @Inject constructor(
     }
 
     /**
-     * Audio languages come from whichever rows declare independent per-language streams
-     * (`audio`). Nothing here follows the currently-playing track — rows show all their
-     * languages, and switching swaps the row's track only.
+     * Audio tracks are per-server: the menu reflects ONLY the currently playing row's languages.
+     * A row declares independent per-language streams via `audio`; switching a language swaps that
+     * row's track in place. Servers without per-language tracks expose no languages (menu hides).
      */
     private fun updateLanguages() {
-        val langs = options.filter { it.audio }
-            .flatMap { it.languages }
+        val current = options.firstOrNull { it.id == _state.value.selectedOptionId }
+        val langs = (if (current?.audio == true) current.languages else emptyList())
             .distinctBy { it.lowercase() }
             .sortedWith(languageComparator())
         val cur = _state.value.selectedLanguage
@@ -343,6 +343,7 @@ class MovieWatchViewModel @Inject constructor(
                 playToken = it.playToken + 1
             )
         }
+        updateLanguages()
         viewModelScope.launch {
             if (playUrl.isNullOrEmpty()) {
                 advanceFrom(opt.id)
@@ -418,9 +419,12 @@ class MovieWatchViewModel @Inject constructor(
     }
 
     fun selectLanguage(lang: String) {
+        // Audio tracks belong to the playing server: only switch a track this row actually exposes,
+        // never jump to a different server that happens to carry the language.
+        val cur = options.firstOrNull { it.id == _state.value.selectedOptionId }
+        if (cur == null || !cur.audio || cur.languages.none { it.equals(lang, true) }) return
         _state.update { it.copy(selectedLanguage = lang) }
-        val opt = options.firstOrNull { it.audio && it.languages.any { l -> l.equals(lang, true) } } ?: return
-        playOption(opt, lang)
+        playOption(cur, lang)
     }
 
     fun toggleBookmark() {
