@@ -42,7 +42,7 @@ data class SourceHubGroup(
     val service: String = "",
     val label: String = "",
     val headers: Map<String, String> = emptyMap(),
-    val playbackType: String = "hls",
+    @SerializedName("playbackType") val playbackType: String = "hls",
     val languages: List<String> = emptyList(),
     val master: String? = null,
     val variants: List<String> = emptyList(),
