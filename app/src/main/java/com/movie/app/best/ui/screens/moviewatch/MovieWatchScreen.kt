@@ -330,6 +330,13 @@ fun MovieWatchScreen(
             }
             override fun onPlayerError(error: PlaybackException) {
                 val currentPos = player.currentPosition
+                runCatching {
+                    com.movie.app.best.data.debug.NetworkLogger.logAction(
+                        "PLAYER_ERR",
+                        "code=${error.errorCodeName} msg=${error.message} cause=${error.cause?.javaClass?.simpleName}: ${error.cause?.message} " +
+                            "state=${player.playbackState} pos=$currentPos url=${state.currentM3u8}"
+                    )
+                }
                 if (currentPos > 0L) {
                     serverFailoverSeek = currentPos
                 }
