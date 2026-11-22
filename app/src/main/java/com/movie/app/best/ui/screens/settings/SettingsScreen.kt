@@ -392,119 +392,121 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // SECTION 2: DEVELOPER & DIAGNOSTICS
-            SettingsSectionHeader(title = "Developer & Diagnostics")
+            if (BuildConfig.DEBUG) {
+                // SECTION 2: DEVELOPER & DIAGNOSTICS
+                SettingsSectionHeader(title = "Developer & Diagnostics")
 
-            SettingsGroupCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconBadge(
-                        icon = Icons.Default.BugReport,
-                        gradientColors = listOf(Color(0xFFF59E0B).copy(alpha = 0.3f), Color(0xFFB45309).copy(alpha = 0.15f)),
-                        contentColor = Color(0xFFFBBF24)
-                    )
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Debug Mode",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp
+                SettingsGroupCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconBadge(
+                            icon = Icons.Default.BugReport,
+                            gradientColors = listOf(Color(0xFFF59E0B).copy(alpha = 0.3f), Color(0xFFB45309).copy(alpha = 0.15f)),
+                            contentColor = Color(0xFFFBBF24)
                         )
-                        Text(
-                            text = if (debugEnabled) {
-                                "Capturing ${NetworkLogger.getLogCount()} network requests & errors"
-                            } else {
-                                "Record network requests & diagnose issues"
-                            },
-                            color = Color.White.copy(alpha = 0.55f),
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    MakkhanSwitch(
-                        checked = debugEnabled,
-                        onCheckedChange = { debugEnabled = it }
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = debugEnabled,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    logs = NetworkLogger.getLogs()
-                                    showLogs = true
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Debug Mode",
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp
+                            )
+                            Text(
+                                text = if (debugEnabled) {
+                                    "Capturing ${NetworkLogger.getLogCount()} network requests & errors"
+                                } else {
+                                    "Record network requests & diagnose issues"
                                 },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.BugReport,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color.White.copy(alpha = 0.85f)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("View Logs", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            }
+                                color = Color.White.copy(alpha = 0.55f),
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        MakkhanSwitch(
+                            checked = debugEnabled,
+                            onCheckedChange = { debugEnabled = it }
+                        )
+                    }
 
-                            Button(
-                                onClick = { NetworkLogger.clear() },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
+                    AnimatedVisibility(
+                        visible = debugEnabled,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color(0xFFFF5252)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Clear", color = Color(0xFFFF5252), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                Button(
+                                    onClick = {
+                                        logs = NetworkLogger.getLogs()
+                                        showLogs = true
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.BugReport,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color.White.copy(alpha = 0.85f)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("View Logs", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                Button(
+                                    onClick = { NetworkLogger.clear() },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color(0xFFFF5252)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Clear", color = Color(0xFFFF5252), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    SettingsClickableRow(
+                        icon = Icons.Default.Security,
+                        iconGradient = listOf(Color(0xFFE50914).copy(alpha = 0.3f), Color(0xFFFF2E93).copy(alpha = 0.15f)),
+                        iconTint = Color(0xFFFF4D8D),
+                        title = "Test Firebase Diagnostics",
+                        subtitle = "Send a safe test signal to Crashlytics (no app crash)",
+                        onClick = {
+                            try {
+                                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().apply {
+                                    log("Diagnostic Safe Ping triggered manually by user from Settings")
+                                    setCustomKey("manual_test_time", System.currentTimeMillis().toString())
+                                    recordException(Exception("BlazeMovies Crashlytics Safe Test - Everything is working!"))
+                                }
+                                android.widget.Toast.makeText(context, "Safe test report sent to Firebase! Check Crashlytics console.", android.widget.Toast.LENGTH_LONG).show()
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, "Firebase ping failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
-                Spacer(modifier = Modifier.height(12.dp))
-
-                SettingsClickableRow(
-                    icon = Icons.Default.Security,
-                    iconGradient = listOf(Color(0xFFE50914).copy(alpha = 0.3f), Color(0xFFFF2E93).copy(alpha = 0.15f)),
-                    iconTint = Color(0xFFFF4D8D),
-                    title = "Test Firebase Diagnostics",
-                    subtitle = "Send a safe test signal to Crashlytics (no app crash)",
-                    onClick = {
-                        try {
-                            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().apply {
-                                log("Diagnostic Safe Ping triggered manually by user from Settings")
-                                setCustomKey("manual_test_time", System.currentTimeMillis().toString())
-                                recordException(Exception("BlazeMovies Crashlytics Safe Test - Everything is working!"))
-                            }
-                            android.widget.Toast.makeText(context, "Safe test report sent to Firebase! Check Crashlytics console.", android.widget.Toast.LENGTH_LONG).show()
-                        } catch (e: Exception) {
-                            android.widget.Toast.makeText(context, "Firebase ping failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
+                Spacer(modifier = Modifier.height(18.dp))
             }
-
-            Spacer(modifier = Modifier.height(18.dp))
 
             // SECTION 3: SYSTEM & UPDATES
             SettingsSectionHeader(title = "App & System")
