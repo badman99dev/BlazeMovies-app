@@ -19,6 +19,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import com.movie.app.best.data.telemetry.IncidentReporter
+import com.movie.app.best.data.telemetry.PlayerFailure
+import com.movie.app.best.data.telemetry.PlayerIncidents
 import javax.inject.Inject
 
 data class LiveTvWatchUiState(
@@ -40,6 +45,7 @@ class LiveTvWatchViewModel @Inject constructor(
     private val repository: MovieRepository,
     private val chatManager: LiveChatManager,
     private val authRepository: AuthRepository,
+    private val incidentReporter: IncidentReporter,
 ) : ViewModel() {
 
     /** Channel identity — the list only ships slug/name/logo; servers come from the detail call. */
@@ -239,6 +245,32 @@ class LiveTvWatchViewModel @Inject constructor(
     }
 
     fun switchServer(optionId: String) = selectServer(optionId)
+
+    /** Ship a playback-source incident: a silent failover, or "no server left". */
+    fun reportPlayerFailure(error: PlaybackException?, player: Player?) {
+        val s = _uiState.value
+        val failed = s.selectedOptionId
+        val idx = s.serverOptions.indexOfFirst { it.id == failed }
+        val opt = s.serverOptions.firstOrNull { it.id == failed }
+        val stream = s.currentStream
+        incidentReporter.report(
+            PlayerIncidents.build(
+                PlayerFailure(
+                    slug = slug,
+                    contentTitle = channelName,
+                    serverName = opt?.label.orEmpty().ifEmpty { stream?.label.orEmpty() },
+                    serverKind = opt?.kind ?: "",
+                    serverService = stream?.host ?: "",
+                    url = stream?.url ?: "",
+                    serverIndex = idx,
+                    totalServers = s.serverOptions.size,
+                    hasMoreServers = s.streams.getOrNull(idx + 1) != null,
+                    error = error,
+                    player = player
+                )
+            )
+        )
+    }
 
     private fun loadSimilarChannels() {
         viewModelScope.launch {

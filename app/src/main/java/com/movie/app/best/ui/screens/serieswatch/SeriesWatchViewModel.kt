@@ -25,6 +25,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import com.movie.app.best.data.telemetry.IncidentReporter
+import com.movie.app.best.data.telemetry.PlayerFailure
+import com.movie.app.best.data.telemetry.PlayerIncidents
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,6 +37,7 @@ class SeriesWatchViewModel @Inject constructor(
     private val imdbApi: ImdbApiService,
     private val sourceHubClient: SourceHubClient,
     private val sourceCache: SourceCacheStore,
+    private val incidentReporter: IncidentReporter,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -492,6 +498,33 @@ class SeriesWatchViewModel @Inject constructor(
         }
         _state.update { it.copy(currentM3u8 = null) }
         if (failed != null) advanceFrom(failed)
+    }
+
+    /** Ship a playback-source incident: a silent failover, or "no server left". */
+    fun reportPlayerFailure(error: PlaybackException?, player: Player?) {
+        val failed = _state.value.selectedOptionId
+        val opt = options.firstOrNull { it.id == failed }
+        val idx = options.indexOfFirst { it.id == failed }
+        val hasNext = options.getOrNull(idx + 1) != null
+        val hasAlt = failed != null && opt != null && (altCursor[failed] ?: 0) < opt.alternates.size
+        incidentReporter.report(
+            PlayerIncidents.build(
+                PlayerFailure(
+                    imdbId = imdbId,
+                    slug = slug,
+                    contentTitle = _state.value.currentEpisode?.displayTitle ?: seriesTitle,
+                    serverName = opt?.label ?: "",
+                    serverKind = opt?.kind ?: "",
+                    serverService = opt?.service ?: "",
+                    url = _state.value.currentM3u8 ?: opt?.url ?: "",
+                    serverIndex = idx,
+                    totalServers = options.size,
+                    hasMoreServers = hasNext || hasAlt,
+                    error = error,
+                    player = player
+                )
+            )
+        )
     }
 
     private fun extractAgeRating(response: com.movie.app.best.data.model.ImdbCertificatesResponse): String {

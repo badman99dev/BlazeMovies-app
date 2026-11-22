@@ -1,5 +1,6 @@
 package com.movie.app.best.data.telemetry
 
+import android.content.Context
 import android.os.Build
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
@@ -7,6 +8,7 @@ import com.google.firebase.installations.FirebaseInstallations
 import com.movie.app.best.data.config.RemoteConfig
 import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.remote.AppInfoInterceptor
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,6 +18,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,6 +56,7 @@ data class Incident(
  */
 @Singleton
 class IncidentReporter @Inject constructor(
+    @ApplicationContext private val context: Context,
     okHttpClient: OkHttpClient
 ) {
 
@@ -114,7 +120,16 @@ class IncidentReporter @Inject constructor(
             if (incident.log.isNotEmpty()) put("log", incident.log.take(60_000))
             if (fid.isNotEmpty()) put("fid", fid)
             put("device_name", Build.MODEL)
-            if (incident.extra.isNotEmpty()) put("extra", JSONObject(incident.extra))
+
+            // Every incident carries the device/CPU/decoder fingerprint so the backend
+            // can reason about the silicon (useful to guess the decoder).
+            val extraMap = LinkedHashMap<String, Any?>(incident.extra)
+            if (!extraMap.containsKey("device")) extraMap["device"] = DeviceProfile.build(context)
+            if (!extraMap.containsKey("client_time")) {
+                extraMap["client_time"] = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+            }
+            if (extraMap.isNotEmpty()) put("extra", JSONObject(extraMap))
+
             put("ts", System.currentTimeMillis())
         }
 

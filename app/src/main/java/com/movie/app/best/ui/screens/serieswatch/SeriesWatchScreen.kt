@@ -203,7 +203,8 @@ fun SeriesWatchScreen(
         val okClient = OkHttpClient.Builder()
             .followRedirects(true).followSslRedirects(true)
             .addInterceptor(Zee5False404Interceptor())
-            .addInterceptor(DebugInterceptor()).build()
+            .addInterceptor(DebugInterceptor())
+            .addInterceptor(com.movie.app.best.data.telemetry.NetTraceInterceptor()).build()
 
         // SourceHub sources are strict about headers: some origins 403 on ANY Referer/Origin
         // (anti-hotlink), so send ONLY the headers the source itself declares — no defaults.
@@ -291,6 +292,7 @@ fun SeriesWatchScreen(
                 val isDeadOnArrival = player.currentPosition == 0L && player.playbackState == Player.STATE_IDLE
                 if (isDeadOnArrival) {
                     consecutiveErrors = 0
+                    viewModel.reportPlayerFailure(error, player)
                     viewModel.onPlaybackError()
                     return
                 }
@@ -304,6 +306,7 @@ fun SeriesWatchScreen(
                 } else {
                     // Strike 3: Dead server confirmed -> Switch to next candidate/server with preserved position!
                     consecutiveErrors = 0
+                    viewModel.reportPlayerFailure(error, player)
                     viewModel.onPlaybackError()
                 }
             }

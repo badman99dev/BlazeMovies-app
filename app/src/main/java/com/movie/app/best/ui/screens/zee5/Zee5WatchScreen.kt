@@ -120,7 +120,8 @@ fun Zee5WatchScreen(
         val okClient = OkHttpClient.Builder()
             .followRedirects(true).followSslRedirects(true)
             .addInterceptor(Zee5False404Interceptor())
-            .addInterceptor(DebugInterceptor()).build()
+            .addInterceptor(DebugInterceptor())
+            .addInterceptor(com.movie.app.best.data.telemetry.NetTraceInterceptor()).build()
 
         val okFactory = OkHttpDataSource.Factory(okClient)
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
@@ -165,6 +166,7 @@ fun Zee5WatchScreen(
                     }
                     return
                 }
+                viewModel.reportPlayerFailure(error, exoPlayer)
                 playerError = error.message ?: "Playback error"
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {

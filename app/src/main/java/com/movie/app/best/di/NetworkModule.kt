@@ -114,6 +114,7 @@ object NetworkModule {
             .addInterceptor(userAgentInterceptor)
             .addInterceptor(loggingInterceptor)
             .addInterceptor(DebugInterceptor())
+            .addInterceptor(com.movie.app.best.data.telemetry.NetTraceInterceptor())
             .authenticator(FirebaseTokenAuthenticator(context))
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

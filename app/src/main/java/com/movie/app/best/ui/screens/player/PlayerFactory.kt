@@ -1,12 +1,16 @@
 package com.movie.app.best.ui.screens.player
 
 import android.content.Context
+import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.movie.app.best.data.settings.VideoQualitySettings
+import com.movie.app.best.data.telemetry.CodecTracker
 
 object PlayerFactory {
 
@@ -38,6 +42,7 @@ object PlayerFactory {
             .setBackBuffer(backBufferMs, true)
             .build()
 
+    @OptIn(UnstableApi::class)
     fun build(
         context: Context,
         trackSelector: DefaultTrackSelector? = null,
@@ -51,7 +56,12 @@ object PlayerFactory {
         // selector crashes the next build with IllegalStateException. Always hand
         // each player its own selector unless the caller explicitly creates one.
         val selector = trackSelector ?: trackSelector(context, disableSubtitles)
+        // Default renderers + a recording codec selector (pure delegation) so an
+        // incident can name the decoder that was actually used.
+        val renderers = DefaultRenderersFactory(context)
+            .setMediaCodecSelector(CodecTracker.selector)
         val builder = ExoPlayer.Builder(context)
+            .setRenderersFactory(renderers)
             .setTrackSelector(selector)
             .setLoadControl(defaultLoadControl(backBufferMs))
             .setSeekBackIncrementMs(SEEK_INCREMENT_MS.toLong())

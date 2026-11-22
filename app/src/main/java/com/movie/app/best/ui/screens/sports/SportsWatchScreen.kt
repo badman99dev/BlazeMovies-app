@@ -318,6 +318,7 @@ fun SportsWatchScreen(
                     isPlayerBuffering = false
                     consecutiveSegmentErrors = 0
                     isSyncingLive = false
+                    viewModel.reportPlayerFailure(error, newPlayer)
                     viewModel.onPlaybackError()
                     return
                 }
@@ -337,6 +338,7 @@ fun SportsWatchScreen(
                     consecutiveSegmentErrors = 0
                     isSyncingLive = false
                     isPlayerBuffering = false
+                    viewModel.reportPlayerFailure(error, newPlayer)
                     viewModel.onPlaybackError()
                 }
             }

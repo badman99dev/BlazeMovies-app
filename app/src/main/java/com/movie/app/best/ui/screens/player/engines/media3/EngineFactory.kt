@@ -34,6 +34,7 @@ object Media3EngineFactory {
             .followSslRedirects(true)
             .addInterceptor(Zee5False404Interceptor())
             .addInterceptor(DebugInterceptor())
+            .addInterceptor(com.movie.app.best.data.telemetry.NetTraceInterceptor())
             .build()
 
         val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)

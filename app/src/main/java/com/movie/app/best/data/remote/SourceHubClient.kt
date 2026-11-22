@@ -41,6 +41,7 @@ class SourceHubClient @Inject constructor(private val gson: Gson) {
     private val executorBase = OkHttpClient.Builder()
         .followRedirects(true)
         .followSslRedirects(true)
+        .addInterceptor(com.movie.app.best.data.telemetry.NetTraceInterceptor())
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)

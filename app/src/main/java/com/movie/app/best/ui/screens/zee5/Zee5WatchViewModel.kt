@@ -14,6 +14,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import com.movie.app.best.data.telemetry.IncidentReporter
+import com.movie.app.best.data.telemetry.PlayerFailure
+import com.movie.app.best.data.telemetry.PlayerIncidents
 import javax.inject.Inject
 
 data class Zee5WatchState(
@@ -34,12 +39,34 @@ data class Zee5WatchState(
 @HiltViewModel
 class Zee5WatchViewModel @Inject constructor(
     val apiService: Zee5ApiService,
+    private val incidentReporter: IncidentReporter,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val contentId: String = savedStateHandle["contentId"] ?: ""
     private val epId: String? = savedStateHandle["epId"]
     private val epNum: Int = savedStateHandle["epNum"] ?: -1
+
+    /** Ship a playback incident for the single Zee5 source (no failover available). */
+    fun reportPlayerFailure(error: PlaybackException?, player: Player?) {
+        incidentReporter.report(
+            PlayerIncidents.build(
+                PlayerFailure(
+                    slug = contentId,
+                    contentTitle = _state.value.detail?.title ?: _state.value.currentEpisode?.title ?: "",
+                    serverName = "zee5",
+                    serverKind = "zee5",
+                    serverService = "zee5",
+                    url = _state.value.currentM3u8 ?: "",
+                    serverIndex = 0,
+                    totalServers = 1,
+                    hasMoreServers = false,
+                    error = error,
+                    player = player
+                )
+            )
+        )
+    }
 
     private val _state = MutableStateFlow(Zee5WatchState())
     private val loadedEpisodeIds = mutableSetOf<String>()

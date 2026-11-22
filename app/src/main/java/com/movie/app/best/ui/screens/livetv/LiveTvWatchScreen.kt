@@ -277,6 +277,7 @@ fun LiveTvWatchScreen(
         val okHttpClient = OkHttpClient.Builder()
             .followRedirects(true)
             .followSslRedirects(true)
+            .addInterceptor(com.movie.app.best.data.telemetry.NetTraceInterceptor())
             .build()
         val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36")
@@ -350,6 +351,7 @@ fun LiveTvWatchScreen(
                     // This server is dead → move to the next one silently.
                     consecutiveErrors = 0
                     isPlayerBuffering = false
+                    viewModel.reportPlayerFailure(error, player)
                     viewModel.advanceFrom(optionId)
                 }
             }

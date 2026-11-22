@@ -23,6 +23,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import com.movie.app.best.data.telemetry.IncidentReporter
+import com.movie.app.best.data.telemetry.PlayerFailure
+import com.movie.app.best.data.telemetry.PlayerIncidents
 import javax.inject.Inject
 
 data class SportsWatchUiState(
@@ -70,7 +75,8 @@ class SportsWatchViewModel @Inject constructor(
     private val repository: SportsRepository,
     private val cricketRepository: CricketScoreRepository,
     private val chatManager: LiveChatManager,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val incidentReporter: IncidentReporter
 ) : ViewModel() {
 
     val liveChatState: StateFlow<LiveChatState> = chatManager.chatState
@@ -358,6 +364,32 @@ class SportsWatchViewModel @Inject constructor(
         if (_uiState.value.isSwitchingServer) {
             _uiState.update { it.copy(isSwitchingServer = false) }
         }
+    }
+
+    /** Ship a playback-source incident: a silent failover, or "no server left". */
+    fun reportPlayerFailure(error: PlaybackException?, player: Player?) {
+        val s = _uiState.value
+        val failed = s.selectedOptionId
+        val idx = s.playbackOptions.indexOfFirst { it.id == failed }
+        val opt = s.playbackOptions.firstOrNull { it.id == failed }
+        val stream = s.currentStream
+        incidentReporter.report(
+            PlayerIncidents.build(
+                PlayerFailure(
+                    slug = s.slug,
+                    contentTitle = s.displayTitle,
+                    serverName = opt?.label.orEmpty().ifEmpty { stream?.title.orEmpty() },
+                    serverKind = opt?.kind ?: "",
+                    serverService = stream?.format ?: "",
+                    url = stream?.url ?: "",
+                    serverIndex = idx,
+                    totalServers = s.playbackOptions.size,
+                    hasMoreServers = s.streams.getOrNull(idx + 1) != null,
+                    error = error,
+                    player = player
+                )
+            )
+        )
     }
 
     override fun onCleared() {
