@@ -168,6 +168,11 @@ fun AppNavigation(
     LaunchedEffect(pendingExternal) {
         val ext = pendingExternal ?: return@LaunchedEffect
         ExternalVideoOpen.consume()
+        // Safety net: the player only accepts local media (content:// / file://).
+        // Anything else (e.g. an https App Link that slipped through) must never
+        // land in the player.
+        val scheme = runCatching { Uri.parse(ext.uri).scheme?.lowercase() }.getOrNull()
+        if (scheme != "content" && scheme != "file") return@LaunchedEffect
         navController.navigate(
             Screen.VideoPlayer.createRoute(
                 playerUrl = ext.uri,
