@@ -320,26 +320,32 @@ private fun SkeletonHeroPoster() {
 
 @Composable
 private fun SkeletonActionButtons() {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val compact = screenWidth < 380.dp
+    val iconWidth = if (compact) 46.dp else 52.dp
+    val gap = if (compact) 4.dp else 6.dp
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(20.dp)
+        horizontalArrangement = Arrangement.spacedBy(gap)
     ) {
         SkeletonBox(
             modifier = Modifier
-                .width(158.dp)
-                .height(50.dp),
-            shape = RoundedCornerShape(50)
+                .weight(1f)
+                .height(48.dp),
+            shape = RoundedCornerShape(24.dp)
         )
-        repeat(3) {
+        repeat(4) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(5.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.width(iconWidth)
             ) {
                 SkeletonCircle(size = 28.dp)
-                SkeletonLine(width = 46.dp, height = 11.dp)
+                SkeletonLine(width = 34.dp, height = 9.dp)
             }
         }
     }
