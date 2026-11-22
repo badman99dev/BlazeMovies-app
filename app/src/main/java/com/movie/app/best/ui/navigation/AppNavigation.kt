@@ -47,6 +47,7 @@ import com.movie.app.best.ui.screens.player.VideoPlayerScreen
 import com.movie.app.best.util.ExternalVideoOpen
 import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.settings.SettingsScreen
+import com.movie.app.best.ui.screens.browser.InAppBrowserScreen
 import com.movie.app.best.ui.screens.trending.TrendingScreen
 import com.movie.app.best.ui.screens.newreleases.NewReleaseScreen
 import com.movie.app.best.ui.screens.celebs.CelebBioScreen
@@ -110,6 +111,10 @@ sealed class Screen(val route: String) {
     object Message : Screen("message?docId={docId}&md={md}&t={t}") {
         fun createRoute(docId: String?, md: String?, t: String?): String =
             "message?docId=${docId?.let { Uri.encode(it) } ?: ""}&md=${md?.let { Uri.encode(it) } ?: ""}&t=${Uri.encode(t ?: "Message")}"
+    }
+    object InAppBrowser : Screen("inAppBrowser?url={url}&heading={heading}") {
+        fun createRoute(url: String, heading: String = ""): String =
+            "inAppBrowser?url=${URLEncoder.encode(url, "UTF-8")}&heading=${Uri.encode(heading)}"
     }
     object ExtractedSeries : Screen("extractedSeries/{extractPath}/{slug}/{posterPath}") {
         fun createRoute(extractPath: String, slug: String, posterPath: String): String {
@@ -843,7 +848,10 @@ fun AppNavigation(
 
         composable(Screen.Settings.route, deepLinks = refLinks("app://settings")) {
             SettingsScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onOpenUrl = { url, heading ->
+                    navController.navigate(Screen.InAppBrowser.createRoute(url, heading))
+                }
             )
         }
 
@@ -855,7 +863,10 @@ fun AppNavigation(
         ) {
             SettingsScreen(
                 onBackClick = { navController.popBackStack() },
-                autoCheckUpdate = true
+                autoCheckUpdate = true,
+                onOpenUrl = { url, heading ->
+                    navController.navigate(Screen.InAppBrowser.createRoute(url, heading))
+                }
             )
         }
 
@@ -949,7 +960,28 @@ fun AppNavigation(
             MessageScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateLink = { url ->
-                    runCatching { navController.navigate(Uri.parse(url)) }
+                    if (!AppDeepLinkRouter.navigateInternal(navController, url)) {
+                        runCatching { navController.navigate(Uri.parse(url)) }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = Screen.InAppBrowser.route,
+            arguments = listOf(
+                navArgument("url") { type = NavType.StringType; defaultValue = "" },
+                navArgument("heading") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { entry ->
+            InAppBrowserScreen(
+                url = entry.arguments?.getString("url").orEmpty(),
+                heading = entry.arguments?.getString("heading").orEmpty(),
+                onBackClick = { navController.popBackStack() },
+                onOpenAppLink = { link ->
+                    if (!AppDeepLinkRouter.navigateInternal(navController, link)) {
+                        runCatching { navController.navigate(Uri.parse(link)) }
+                    }
                 }
             )
         }

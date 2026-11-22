@@ -88,6 +88,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.movie.app.best.BuildConfig
+import com.movie.app.best.data.config.RemoteConfig
 import com.movie.app.best.data.debug.NetworkLogger
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.data.settings.VideoQualitySettings
@@ -103,6 +104,7 @@ import java.net.URLEncoder
 fun SettingsScreen(
     onBackClick: () -> Unit = {},
     autoCheckUpdate: Boolean = false,
+    onOpenUrl: (String, String) -> Unit = { _, _ -> },
     updateViewModel: UpdateViewModel = hiltViewModel()
 ) {
     var debugEnabled by remember { mutableStateOf(NetworkLogger.isEnabled()) }
@@ -531,7 +533,12 @@ fun SettingsScreen(
                     iconTint = Color.White,
                     title = "About BlazeMovies",
                     subtitle = "Fastest stream aggregation & failover player",
-                    onClick = {}
+                    onClick = {
+                        onOpenUrl(
+                            "${RemoteConfig.apiOrigin()}/app/about?v=${BuildConfig.VERSION_NAME}",
+                            ""
+                        )
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -541,11 +548,12 @@ fun SettingsScreen(
                 SettingsClickableRow(
                     icon = Icons.AutoMirrored.Filled.HelpOutline,
                     iconGradient = listOf(Color.White.copy(alpha = 0.1f), Color.White.copy(alpha = 0.03f)),
-                    iconTint = Color.White.copy(alpha = 0.4f),
+                    iconTint = Color.White,
                     title = "Help & Feedback",
-                    subtitle = "Coming soon in upcoming release",
-                    onClick = {},
-                    enabled = false
+                    subtitle = "FAQs & how to get help",
+                    onClick = {
+                        onOpenUrl("${RemoteConfig.apiOrigin()}/app/help", "")
+                    }
                 )
             }
 

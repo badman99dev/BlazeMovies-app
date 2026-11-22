@@ -97,6 +97,7 @@ import com.movie.app.best.data.model.UpdateResponse
 import com.movie.app.best.ui.components.AppDrawerContent
 import com.movie.app.best.ui.components.DrawerLinkRouter
 import android.widget.Toast
+import com.movie.app.best.ui.navigation.AppDeepLinkRouter
 import com.movie.app.best.ui.navigation.AppNavigation
 import com.movie.app.best.ui.navigation.BottomNavigationBar
 import com.movie.app.best.ui.navigation.Screen
@@ -347,6 +348,8 @@ fun MainContent(
                         }
                         if (bottomTabRoute != null) {
                             navController.navigateToBottomTab(bottomTabRoute)
+                        } else if (AppDeepLinkRouter.navigateInternal(navController, uri)) {
+                            // app://internal/<link> -> in-app browser
                         } else {
                             val ok = runCatching { navController.navigate(Uri.parse(uri)) }.isSuccess
                             if (!ok) {
