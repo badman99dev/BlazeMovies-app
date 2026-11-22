@@ -235,7 +235,7 @@ class MovieDetailViewModel @Inject constructor(
                     expandedLogsLinkId = linkId
                 )
             }
-            downloadRepository.resolveDownloadUrls(linkUrl, onLog = { line ->
+            downloadRepository.resolveDownloadUrls(linkUrl, slug = slug, movieId = movie?.id ?: 0, linkId = linkId ?: 0, onLog = { line ->
                 _uiState.update { state ->
                     val prev = state.downloadLogs[linkId] ?: emptyList()
                     state.copy(downloadLogs = state.downloadLogs + (linkId to (prev + line).takeLast(200)))
@@ -266,7 +266,7 @@ class MovieDetailViewModel @Inject constructor(
                         // A collector failure would propagate back through the flow's emit and
                         // crash with a Flow exception-transparency violation, so contain it here.
                         val ketchId = try {
-                            downloadRepository.startDownloadWithMetadata(first, slug, posterUrl, title, "movie")
+                            downloadRepository.startDownloadWithMetadata(first, slug, posterUrl, title, "movie", movieId = movie?.id ?: 0)
                         } catch (e: Exception) {
                             NetworkLogger.logAction("DOWNLOAD_START_ERR", e.message ?: "unknown")
                             -1
@@ -331,7 +331,7 @@ class MovieDetailViewModel @Inject constructor(
         val posterUrl = movie?.posterUrl ?: ""
         viewModelScope.launch {
             _uiState.update { it.copy(downloadPhase = DownloadPhase.INITIALIZING, expandedLinkId = null, downloadTitle = title, downloadIsZip = mirror.isZip) }
-            val ketchId = downloadRepository.startDownloadWithMetadata(mirror, slug, posterUrl, title, "movie")
+            val ketchId = downloadRepository.startDownloadWithMetadata(mirror, slug, posterUrl, title, "movie", movieId = movie?.id ?: 0)
             val meta = downloadRepository.getMetadata(slug)
             _uiState.update {
                 it.copy(
@@ -499,7 +499,7 @@ class MovieDetailViewModel @Inject constructor(
             downloadRepository.getMetadata(metaKey)?.let {
                 downloadRepository.saveMetadataDirect(metaKey, it.copy(bypassAttempts = 0))
             }
-            val ketchId = downloadRepository.startDownloadWithMetadata(next, slug, posterUrl, title, "movie")
+            val ketchId = downloadRepository.startDownloadWithMetadata(next, slug, posterUrl, title, "movie", movieId = movie?.id ?: 0)
             val meta = downloadRepository.getMetadata(metaKey)
             _uiState.update {
                 it.copy(

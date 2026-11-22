@@ -204,7 +204,7 @@ class TVShowDetailViewModel @Inject constructor(
                     expandedLogsLinkId = linkId
                 )
             }
-            downloadRepository.resolveDownloadUrls(linkUrl, onLog = { line ->
+            downloadRepository.resolveDownloadUrls(linkUrl, slug = slug, movieId = series?.id ?: 0, linkId = linkId ?: 0, onLog = { line ->
                 _uiState.update { state ->
                     val prev = state.downloadLogs[linkId] ?: emptyList()
                     state.copy(downloadLogs = state.downloadLogs + (linkId to (prev + line).takeLast(200)))
@@ -239,7 +239,7 @@ class TVShowDetailViewModel @Inject constructor(
                         // emit and crashes with a Flow exception-transparency violation.
                         val ketchId = try {
                             downloadRepository.startDownloadWithMetadata(
-                                first, slug, posterUrl, title, "series", episodeId, episodeLabel
+                                first, slug, posterUrl, title, "series", episodeId, episodeLabel, movieId = series?.id ?: 0
                             )
                         } catch (e: Exception) {
                             com.movie.app.best.data.debug.NetworkLogger.logAction("DOWNLOAD_START_ERR", e.message ?: "unknown")
@@ -308,7 +308,7 @@ class TVShowDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(downloadPhase = DownloadPhase.INITIALIZING, expandedLinkId = null, downloadTitle = title, downloadIsZip = mirror.isZip) }
             val ketchId = downloadRepository.startDownloadWithMetadata(
-                mirror, slug, posterUrl, title, "series", episodeId, episodeLabel
+                mirror, slug, posterUrl, title, "series", episodeId, episodeLabel, movieId = series?.id ?: 0
             )
             val meta = downloadRepository.getMetadata(slug + (episodeLabel ?: ""))
             _uiState.update {
@@ -483,7 +483,7 @@ class TVShowDetailViewModel @Inject constructor(
                 downloadRepository.saveMetadataDirect(metaKey, it.copy(bypassAttempts = 0))
             }
             val ketchId = downloadRepository.startDownloadWithMetadata(
-                next, slug, posterUrl, title, "series", episodeId, episodeLabel
+                next, slug, posterUrl, title, "series", episodeId, episodeLabel, movieId = series?.id ?: 0
             )
             val meta = downloadRepository.getMetadata(metaKey)
             _uiState.update {

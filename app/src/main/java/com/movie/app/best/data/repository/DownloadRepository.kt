@@ -10,6 +10,8 @@ import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.remote.BypassConfirmEvent
 import com.movie.app.best.data.remote.BypassWsClient
 import com.movie.app.best.data.remote.ConfirmCancelledException
+import com.movie.app.best.data.telemetry.Incident
+import com.movie.app.best.data.telemetry.IncidentReporter
 import com.ketch.Ketch
 import com.ketch.Status
 import com.ketch.DownloadModel
@@ -57,6 +59,7 @@ class DownloadRepository @Inject constructor(
     private val ketch: Ketch,
     private val metadataStore: DownloadMetadataStore,
     private val zipExtractor: ZipExtractor,
+    private val incidentReporter: IncidentReporter,
     @ApplicationContext private val context: Context
 ) {
 
@@ -128,35 +131,64 @@ class DownloadRepository @Inject constructor(
 
     fun resolveDownloadUrls(
         linkUrl: String,
+        slug: String = "",
+        movieId: Int = 0,
+        linkId: Int = 0,
         onLog: (String) -> Unit = {},
         onConfirm: (suspend (BypassConfirmEvent) -> String?)? = null
-    ): Flow<Resource<List<ResolvedMirror>>> = flow {
-        emit(Resource.Loading())
-        emit(resolveMirrors(linkUrl, onLog, onConfirm))
-    }.catch { e ->
-        // Emissions from a flow builder's catch block are forbidden: if the collector
-        // throws, that failure travels back through emit, gets caught here and the
-        // second emit crashes with a Flow exception-transparency violation. The catch
-        // operator only sees upstream failures, which is exactly what we want.
-        if (e is ConfirmCancelledException) {
-            NetworkLogger.logAction("RESOLVE_CANCELLED", "confirm cancelled by user/timeout")
-            emit(Resource.Error(CONFIRM_CANCELLED))
-        } else {
-            NetworkLogger.logAction("RESOLVE_ERR", e.message ?: "unknown")
-            emit(Resource.Error(e.message ?: "Failed to resolve download URL"))
+    ): Flow<Resource<List<ResolvedMirror>>> {
+        // Capture the full resolver log so a failure can be reported verbatim.
+        val logLines: MutableList<String> = Collections.synchronizedList(ArrayList<String>())
+        val teeLog: (String) -> Unit = { line -> logLines.add(line); onLog(line) }
+        return flow {
+            emit(Resource.Loading())
+            emit(resolveMirrors(linkUrl, slug, movieId, linkId, teeLog, logLines, onConfirm))
+        }.catch { e ->
+            // Emissions from a flow builder's catch block are forbidden: if the collector
+            // throws, that failure travels back through emit, gets caught here and the
+            // second emit crashes with a Flow exception-transparency violation. The catch
+            // operator only sees upstream failures, which is exactly what we want.
+            if (e is ConfirmCancelledException) {
+                NetworkLogger.logAction("RESOLVE_CANCELLED", "confirm cancelled by user/timeout")
+                emit(Resource.Error(CONFIRM_CANCELLED))
+            } else {
+                NetworkLogger.logAction("RESOLVE_ERR", e.message ?: "unknown")
+                reportDownloadIncident(
+                    reason = "resolve_exception",
+                    title = "Download link resolve failed",
+                    linkUrl = linkUrl, slug = slug, movieId = movieId, linkId = linkId,
+                    logLines = logLines,
+                    extra = mapOf("error" to (e.message ?: "unknown"))
+                )
+                emit(Resource.Error(e.message ?: "Failed to resolve download URL"))
+            }
         }
     }
 
     private suspend fun resolveMirrors(
         linkUrl: String,
+        slug: String,
+        movieId: Int,
+        linkId: Int,
         onLog: (String) -> Unit,
+        logLines: MutableList<String>,
         onConfirm: (suspend (BypassConfirmEvent) -> String?)?
     ): Resource<List<ResolvedMirror>> {
         NetworkLogger.logAction("RESOLVE", "linkUrl=$linkUrl (ws)")
         val done = bypassWsClient.resolve(linkUrl, fetchInfo = true, onLog = onLog, onConfirm = onConfirm)
         val results = done.results
         val successItems = results.filter { it.status == "SUCCESS" && !it.jackpot.isNullOrEmpty() }
-        if (successItems.isEmpty()) return Resource.Error("No direct download URL found")
+        if (successItems.isEmpty()) {
+            // State 1: the link was resolved but no direct URL came back.
+            reportDownloadIncident(
+                reason = "no_link_found",
+                title = "No download link found",
+                linkUrl = linkUrl, slug = slug, movieId = movieId, linkId = linkId,
+                logLines = logLines,
+                extra = mapOf("results" to results.size)
+            )
+            return Resource.Error("No direct download URL found")
+        }
 
         val mirrors = successItems.mapIndexedNotNull { idx, item ->
             val jackpot = item.jackpot ?: return@mapIndexedNotNull null
@@ -177,9 +209,51 @@ class DownloadRepository @Inject constructor(
             )
         }.distinctBy { it.jackpot }
 
-        if (mirrors.isEmpty()) return Resource.Error("No valid direct download URLs found")
+        if (mirrors.isEmpty()) {
+            reportDownloadIncident(
+                reason = "no_valid_url",
+                title = "No valid download link found",
+                linkUrl = linkUrl, slug = slug, movieId = movieId, linkId = linkId,
+                logLines = logLines,
+                extra = mapOf("successItems" to successItems.size)
+            )
+            return Resource.Error("No valid direct download URLs found")
+        }
         NetworkLogger.logAction("RESOLVE", "mirrors=${mirrors.size}")
         return Resource.Success(mirrors)
+    }
+
+    /**
+     * Ship a download-pipeline incident to the backend (fire-and-forget).
+     * Both states the app cares about funnel through here:
+     *   • resolve finished but no link      → reason "no_link_found" / "no_valid_url"
+     *   • link found but start failed       → reason "download_start_failed"
+     */
+    private fun reportDownloadIncident(
+        reason: String,
+        title: String,
+        linkUrl: String,
+        slug: String,
+        movieId: Int,
+        linkId: Int,
+        logLines: List<String>,
+        extra: Map<String, Any?> = emptyMap()
+    ) {
+        incidentReporter.report(
+            Incident(
+                category = "download_link",
+                severity = "high",
+                title = title,
+                linkUrl = linkUrl,
+                slug = slug,
+                movieId = movieId,
+                linkId = linkId,
+                source = "download_bypass",
+                reason = reason,
+                log = logLines.joinToString("\n"),
+                extra = extra
+            )
+        )
     }
 
     suspend fun startDownloadWithMetadata(
@@ -189,7 +263,8 @@ class DownloadRepository @Inject constructor(
         title: String,
         contentType: String = "movie",
         episodeId: Int? = null,
-        episodeLabel: String? = null
+        episodeLabel: String? = null,
+        movieId: Int = 0
     ): Int {
         val safeFileName = sanitizeFileName(mirror.fileName)
         val isZip = metadataStore.isZipFile(safeFileName)
@@ -238,6 +313,14 @@ class DownloadRepository @Inject constructor(
         } catch (e: Exception) {
             NetworkLogger.logAction("DOWNLOAD_ENQUEUE_ERR", "path=$downloadPath file=$safeFileName err=${e.message}")
             metadataStore.updateMetadata(metaKey) { it.copy(status = "failed") }
+            // State 2: the link was found but starting the download failed.
+            reportDownloadIncident(
+                reason = "download_start_failed",
+                title = "Download could not start",
+                linkUrl = mirror.jackpot, slug = slug, movieId = movieId, linkId = 0,
+                logLines = emptyList(),
+                extra = mapOf("error" to (e.message ?: "unknown"), "file" to safeFileName)
+            )
             return -1
         }
 
