@@ -51,6 +51,7 @@ class IncidentCrashSender : ReportSender {
         extra["build_type"] = BuildConfig.BUILD_TYPE
         extra["android"] = s("ANDROID_VERSION").ifEmpty { Build.VERSION.RELEASE }
         extra["phone_model"] = s("PHONE_MODEL").ifEmpty { Build.MODEL }
+        extra["logcat"] = s("LOGCAT").take(30_000)
         if (userComment.isNotEmpty()) extra["user_comment"] = userComment
 
         val body = JSONObject().apply {
