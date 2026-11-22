@@ -40,6 +40,7 @@ import com.movie.app.best.ui.screens.auth.AuthViewModel
 import com.movie.app.best.ui.screens.moviedetail.components.*
 import com.movie.app.best.data.model.DownloadPhase
 import com.movie.app.best.ui.util.CfBypassHost
+import com.movie.app.best.util.ShareLinks
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -389,6 +390,7 @@ private fun MovieDetailContent(
             movie       = movie,
             onBackClick = onBackClick,
             onReportClick = onReportClick,
+            onShareClick = { ShareLinks.share(context, ShareLinks.movie(slug), movie.title) },
             overrideRating = displayRating,
             overrideVotes = displayVotes
         )

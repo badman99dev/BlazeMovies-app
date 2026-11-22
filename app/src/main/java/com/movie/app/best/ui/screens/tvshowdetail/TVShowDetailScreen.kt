@@ -128,6 +128,7 @@ import com.movie.app.best.ui.screens.moviedetail.components.ReportResultModal
 import com.movie.app.best.ui.theme.SuccessGreen
 import com.movie.app.best.ui.theme.AccentPurple
 import com.movie.app.best.ui.theme.AppRed
+import com.movie.app.best.util.ShareLinks
 import kotlinx.coroutines.delay
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -514,6 +515,7 @@ private fun TVShowDetailContent(
             movie = series,
             onBackClick = onBackClick,
             onReportClick = onReportClick,
+            onShareClick = { ShareLinks.share(context, ShareLinks.series(slug), series.title) },
             overrideRating = displayRating,
             overrideVotes = displayVotes
         )

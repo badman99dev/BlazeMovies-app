@@ -108,6 +108,7 @@ import com.movie.app.best.ui.screens.splash.SplashScreen
 import com.movie.app.best.ui.screens.settings.UpdateViewModel
 import com.movie.app.best.ui.screens.settings.UpdateUiState
 import com.movie.app.best.data.update.UpdateState
+import com.movie.app.best.util.ShareLinks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -346,10 +347,19 @@ fun MainContent(
                             "app://library", "app://profile", "app://my-list" -> Screen.Library.route
                             else -> null
                         }
+                        val shareTarget = ShareLinks.parse(uri)
                         if (bottomTabRoute != null) {
                             navController.navigateToBottomTab(bottomTabRoute)
                         } else if (AppDeepLinkRouter.navigateInternal(navController, uri)) {
                             // app://internal/<link> -> in-app browser
+                        } else if (shareTarget != null) {
+                            when (shareTarget) {
+                                is ShareLinks.Target.Route -> navController.navigate(shareTarget.route)
+                                is ShareLinks.Target.Browser -> navController.navigate(
+                                    Screen.InAppBrowser.createRoute(shareTarget.url, shareTarget.heading)
+                                )
+                                ShareLinks.Target.Home -> navController.navigateToBottomTab(Screen.Home.route)
+                            }
                         } else {
                             val ok = runCatching { navController.navigate(Uri.parse(uri)) }.isSuccess
                             if (!ok) {
