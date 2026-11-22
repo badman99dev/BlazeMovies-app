@@ -65,6 +65,8 @@ fun MovieDetailScreen(
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsState()
     var showLoginDialog by remember { mutableStateOf(false) }
+    var showComments by remember { mutableStateOf(false) }
+    val commentsViewModel: CommentsViewModel = hiltViewModel()
     var lastTap by remember { mutableStateOf(Offset.Unspecified) }
     var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val gate: (() -> Unit) -> Unit = { action ->
@@ -155,9 +157,8 @@ fun MovieDetailScreen(
                     onTrailerClick     = onTrailerClick,
                     onWatchClick       = onWatchClick,
                     onDownloadClick    = { showDownloadSheet = true },
-                    onPostComment      = { name, msg -> gate { viewModel.postComment(name, msg) } },
+                    onCommentClick     = { showComments = true },
                     onRequestStream    = { gate { viewModel.requestStream() } },
-                    onResetCommentState = viewModel::resetCommentState,
                     onSeriesClick      = onSeriesClick,
                     onToggleBookmark   = { gate { viewModel.toggleBookmark() } },
                     onToggleLike       = { gate { viewModel.toggleLike() } },
@@ -241,6 +242,17 @@ fun MovieDetailScreen(
             }
         }
 
+        if (showComments && uiState.movie != null) {
+            CommentsSheet(
+                movieId = uiState.movie!!.id,
+                slug = uiState.movie!!.slug,
+                isLoggedIn = authState.isLoggedIn,
+                onLoginRequired = { showLoginDialog = true },
+                onDismiss = { showComments = false },
+                viewModel = commentsViewModel
+            )
+        }
+
         if (uiState.showReportWaiting) {
             Box(
                 modifier = Modifier
@@ -314,9 +326,8 @@ private fun MovieDetailContent(
     onTrailerClick: (String, String, String) -> Unit = { _, _, _ -> },
     onWatchClick: (String, String, String, String, Boolean, String, String, String, String, String, String) -> Unit,
     onDownloadClick: () -> Unit,
-    onPostComment: (String, String) -> Unit,
+    onCommentClick: () -> Unit,
     onRequestStream: () -> Unit,
-    onResetCommentState: () -> Unit,
     onSeriesClick: (String, String) -> Unit,
     onToggleBookmark: () -> Unit,
     onToggleLike: () -> Unit,
@@ -414,7 +425,8 @@ private fun MovieDetailContent(
                 onDownloadClick = onDownloadClick,
                 onMyListClick   = onToggleBookmark,
                 onLikeClick     = onToggleLike,
-                onRequestStream = onRequestStream
+                onRequestStream = onRequestStream,
+                onCommentClick  = onCommentClick
             )
 
             // 3. Meta info chips
@@ -500,17 +512,7 @@ private fun MovieDetailContent(
                 }
             }
 
-            // 10. Comments
-            Divider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(horizontal = 18.dp))
-            CommentsSection(
-                comments          = uiState.comments,
-                isPosting         = uiState.isCommentPosting,
-                posted            = uiState.commentPosted,
-                error             = uiState.commentError,
-                onPost            = onPostComment,
-                onReset           = onResetCommentState
-            )
-
+            // 10. Comments live in the bottom sheet now (Comment button above)
             Spacer(Modifier.height(40.dp))
         }
     }

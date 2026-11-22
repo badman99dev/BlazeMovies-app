@@ -93,7 +93,6 @@ class MovieDetailViewModel @Inject constructor(
                             it.copy(
                                 movie = detailData?.movie,
                                 downloadLinks = detailData?.downloadLinks ?: emptyList(),
-                                comments = detailData?.comments ?: emptyList(),
                                 screenshots = detailData?.screenshots ?: emptyList(),
                                 categories = emptyList(),
                                 allMovies = emptyList(),
@@ -146,41 +145,6 @@ class MovieDetailViewModel @Inject constructor(
                 conn.inputStream.bufferedReader().readText()
                 conn.disconnect()
             } catch (_: Exception) {}
-        }
-    }
-
-    fun postComment(name: String, msg: String) {
-        val movieId = _uiState.value.movie?.id ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isCommentPosting = true) }
-            val authHeader = try {
-                val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-                val tokenResult = user?.getIdToken(false)?.await()
-                "Bearer ${tokenResult?.token ?: ""}"
-            } catch (_: Exception) { "" }
-            repository.postComment(authHeader, movieId, msg).collect { result ->
-                when (result) {
-                    is Resource.Loading -> {}
-                    is Resource.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                isCommentPosting = false,
-                                commentPosted = true,
-                                commentError = null
-                            )
-                        }
-                    }
-                    is Resource.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                isCommentPosting = false,
-                                commentPosted = false,
-                                commentError = result.error
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -603,10 +567,6 @@ class MovieDetailViewModel @Inject constructor(
         }
     }
 
-    fun resetCommentState() {
-        _uiState.update { it.copy(commentPosted = false, commentError = null) }
-    }
-
     fun checkBookmarkAndLikeStatus() {
         viewModelScope.launch {
             val bookmarked = firebaseRepository.isBookmarked(slug)
@@ -862,7 +822,6 @@ data class MovieDetailUiState(
     val error: String? = null,
 
     val downloadLinks: List<DownloadLink> = emptyList(),
-    val comments: List<com.movie.app.best.data.model.Comment> = emptyList(),
     val screenshots: List<String> = emptyList(),
     val categories: List<com.movie.app.best.data.model.CategorySimple> = emptyList(),
     val allMovies: List<com.movie.app.best.data.model.Movie> = emptyList(),
@@ -878,10 +837,6 @@ data class MovieDetailUiState(
     val fallbackGenres: List<String> = emptyList(),
     val contentReady: Boolean = false,
     val imdbReady: Boolean = false,
-
-    val isCommentPosting: Boolean = false,
-    val commentPosted: Boolean = false,
-    val commentError: String? = null,
 
     val streamRequested: Boolean = false,
     val isStreamRequesting: Boolean = false,

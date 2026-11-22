@@ -72,13 +72,21 @@ interface MovieApiService {
     @GET("drawer")
     suspend fun getDrawerMenu(): ApiResponse<com.movie.app.best.data.model.DrawerMenuResponse>
 
+    @GET("comment")
+    suspend fun getComments(
+        @Query("movie_id") movieId: Int,
+        @Query("slug") slug: String? = null,
+        @Query("offset") offset: Int = 0,
+        @Query("limit") limit: Int = 20
+    ): ApiResponse<com.movie.app.best.data.model.CommentsPage>
+
     @POST("comment")
     @FormUrlEncoded
     suspend fun postComment(
         @Header("X-Auth-Token") authHeader: String,
         @Field("movie_id") movieId: Int,
         @Field("msg") msg: String
-    ): ApiResponse<Map<String, String>>
+    ): ApiResponse<com.movie.app.best.data.model.CommentApi>
 
     @POST("stream-request")
     suspend fun postStreamRequest(

@@ -202,10 +202,16 @@ class MovieRepository @Inject constructor(
         }
     }
 
-    fun postComment(authHeader: String, movieId: Int, msg: String): Flow<Resource<Map<String, String>>> = flow {
-        emit(Resource.Loading())
-        emit(safeApiCall { apiService.postComment(authHeader, movieId, msg) })
-    }
+    suspend fun postComment(authHeader: String, movieId: Int, msg: String): Resource<com.movie.app.best.data.model.CommentApi> =
+        safeApiCall { apiService.postComment(authHeader, movieId, msg) }
+
+    suspend fun getComments(
+        movieId: Int,
+        slug: String = "",
+        offset: Int = 0,
+        limit: Int = 20
+    ): Resource<com.movie.app.best.data.model.CommentsPage> =
+        safeApiCall { apiService.getComments(movieId, slug.ifBlank { null }, offset, limit) }
 
     suspend fun submitStreamRequest(authHeader: String, slug: String): com.movie.app.best.data.remote.StreamRequestApiResponse {
         val response = apiService.postStreamRequest(authHeader, mapOf("slug" to slug))

@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,13 +50,22 @@ fun DetailActionButtons(
     onDownloadClick: () -> Unit,
     onMyListClick: () -> Unit,
     onLikeClick: () -> Unit,
-    onRequestStream: () -> Unit
+    onRequestStream: () -> Unit,
+    onCommentClick: () -> Unit = {}
 ) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val compact = screenWidth < 380.dp
+    val iconWidth = if (compact) 46.dp else 52.dp
+    val iconSize = if (compact) 21.dp else 23.dp
+    val labelSize = if (compact) 8.5.sp else 9.sp
+    val gap = if (compact) 4.dp else 6.dp
+    val watchLabel = if (screenWidth < 340.dp) "Watch" else "Watch Now"
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(gap),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (hasStream || isSeries || alwaysShowWatch) {
@@ -74,7 +85,7 @@ fun DetailActionButtons(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(22.dp), tint = Color.White)
                     Spacer(Modifier.width(6.dp))
-                    Text("Watch Now", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                    Text(watchLabel, fontWeight = FontWeight.Bold, fontSize = if (compact) 13.5.sp else 15.sp, color = Color.White, maxLines = 1)
                 }
             }
         } else {
@@ -124,6 +135,9 @@ fun DetailActionButtons(
             icon = Icons.Default.Download,
             label = "Download",
             tint = if (hasDownloadLinks) Color.White else Color.Gray.copy(alpha = 0.5f),
+            iconWidth = iconWidth,
+            iconSize = iconSize,
+            labelSize = labelSize,
             onClick = if (hasDownloadLinks) onDownloadClick else ({})
         )
 
@@ -132,6 +146,9 @@ fun DetailActionButtons(
             label = if (isLiked) "Liked" else "Like",
             isActive = isLiked,
             activeTint = Color(0xFFFF1744),
+            iconWidth = iconWidth,
+            iconSize = iconSize,
+            labelSize = labelSize,
             onClick = onLikeClick
         )
 
@@ -140,7 +157,20 @@ fun DetailActionButtons(
             label = if (isInMyList) "Saved" else "My List",
             isActive = isInMyList,
             activeTint = Color(0xFFE50914),
+            iconWidth = iconWidth,
+            iconSize = iconSize,
+            labelSize = labelSize,
             onClick = onMyListClick
+        )
+
+        ActionIconButton(
+            icon = Icons.Outlined.ChatBubbleOutline,
+            label = "Comment",
+            tint = Color.White.copy(alpha = 0.85f),
+            iconWidth = iconWidth,
+            iconSize = iconSize,
+            labelSize = labelSize,
+            onClick = onCommentClick
         )
     }
 }
@@ -153,6 +183,9 @@ private fun AnimatedActionIconButton(
     activeTint: Color,
     inactiveTint: Color = Color.White.copy(alpha = 0.85f),
     hasBurstEffect: Boolean = true,
+    iconWidth: androidx.compose.ui.unit.Dp = 60.dp,
+    iconSize: androidx.compose.ui.unit.Dp = 26.dp,
+    labelSize: androidx.compose.ui.unit.TextUnit = 10.sp,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -169,7 +202,7 @@ private fun AnimatedActionIconButton(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(60.dp)
+        modifier = Modifier.width(iconWidth)
     ) {
         Box(
             modifier = Modifier.size(44.dp),
@@ -236,7 +269,7 @@ private fun AnimatedActionIconButton(
                     imageVector = icon,
                     contentDescription = label,
                     tint = tint,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(iconSize)
                 )
             }
         }
@@ -244,7 +277,7 @@ private fun AnimatedActionIconButton(
         Text(
             text = label,
             color = tint.copy(alpha = 0.85f),
-            fontSize = 10.sp,
+            fontSize = labelSize,
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
         )
     }
@@ -255,22 +288,25 @@ private fun ActionIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     tint: Color = Color.White,
+    iconWidth: androidx.compose.ui.unit.Dp = 60.dp,
+    iconSize: androidx.compose.ui.unit.Dp = 26.dp,
+    labelSize: androidx.compose.ui.unit.TextUnit = 10.sp,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(60.dp)
+        modifier = Modifier.width(iconWidth)
     ) {
         IconButton(
             onClick = onClick,
             modifier = Modifier.size(44.dp)
         ) {
-            Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(26.dp))
+            Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(iconSize))
         }
         Text(
             text = label,
             color = tint.copy(alpha = 0.75f),
-            fontSize = 10.sp,
+            fontSize = labelSize,
             fontWeight = FontWeight.Medium
         )
     }

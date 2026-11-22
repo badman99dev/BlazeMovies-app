@@ -124,6 +124,23 @@ data class Comment(
     @SerializedName("created_at") val createdAt: String
 ) : Parcelable
 
+data class CommentApi(
+    val id: Int = 0,
+    val handle: String = "",
+    val comment: String = "",
+    @SerializedName("created_at") val createdAt: String = "",
+    @SerializedName("created_ts") val createdTs: Long = 0
+)
+
+data class CommentsPage(
+    @SerializedName("movie_id") val movieId: Int = 0,
+    val comments: List<CommentApi> = emptyList(),
+    @SerializedName("has_more") val hasMore: Boolean = false,
+    val total: Int = 0,
+    val offset: Int = 0,
+    val limit: Int = 20
+)
+
 @Parcelize
 data class Episode(
     val id: Int,

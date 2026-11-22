@@ -92,7 +92,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.movie.app.best.data.model.Comment
 import com.movie.app.best.data.model.DownloadLink
 import com.movie.app.best.data.model.Episode
 import com.movie.app.best.data.model.Season
@@ -110,6 +109,8 @@ import com.movie.app.best.ui.components.LoginRequiredDialog
 import com.movie.app.best.ui.components.QualityConfirmDialog
 import com.movie.app.best.ui.components.StorylineWarningBadge
 import com.movie.app.best.ui.screens.auth.AuthViewModel
+import com.movie.app.best.ui.screens.moviedetail.components.CommentsSheet
+import com.movie.app.best.ui.screens.moviedetail.components.CommentsViewModel
 import com.movie.app.best.ui.screens.moviedetail.components.DetailActionButtons
 import com.movie.app.best.ui.screens.moviedetail.components.DetailHeroSection
 import com.movie.app.best.ui.screens.moviedetail.components.MetaChipsRow
@@ -153,6 +154,8 @@ fun TVShowDetailScreen(
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsState()
     var showLoginDialog by remember { mutableStateOf(false) }
+    var showComments by remember { mutableStateOf(false) }
+    val commentsViewModel: CommentsViewModel = hiltViewModel()
     var lastTap by remember { mutableStateOf(Offset.Unspecified) }
     var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val gate: (() -> Unit) -> Unit = { action ->
@@ -255,10 +258,9 @@ fun TVShowDetailScreen(
                     onPlayClick = onPlayClick,
                     onTrailerClick = onTrailerClick,
                     onWatchNow = onWatchNow,
-                    onPostComment = { name, msg -> gate { viewModel.postComment(name, msg) } },
+                    onCommentClick = { showComments = true },
                     onRequestStream = { gate { viewModel.requestStream() } },
                     onOpenEpisodeDownloadSheet = { links, title -> openEpisodeDownloadSheet(links, title) },
-                    onResetCommentState = viewModel::resetCommentState,
                     onToggleBookmark = { gate { viewModel.toggleBookmark() } },
                     onToggleLike = { gate { viewModel.toggleLike() } },
                     onReportClick = { gate { viewModel.openReportDrawer() } },
@@ -370,6 +372,17 @@ fun TVShowDetailScreen(
             }
         }
 
+        if (showComments && uiState.series != null) {
+            CommentsSheet(
+                movieId = uiState.series!!.id,
+                slug = uiState.series!!.slug,
+                isLoggedIn = authState.isLoggedIn,
+                onLoginRequired = { showLoginDialog = true },
+                onDismiss = { showComments = false },
+                viewModel = commentsViewModel
+            )
+        }
+
         if (showDownloadSheet && sheetDownloadLinks.isNotEmpty()) {
             androidx.compose.material3.ModalBottomSheet(
                 onDismissRequest = { showDownloadSheet = false },
@@ -436,10 +449,9 @@ private fun TVShowDetailContent(
     onPlayClick: (playerUrl: String, streamUrl: String, title: String, youtubeId: String, movieId: String, slug: String) -> Unit,
     onTrailerClick: (youtubeId: String, title: String, imdbId: String) -> Unit = { _, _, _ -> },
     onWatchNow: (imdbId: String, title: String, movieId: String, slug: String, targetSeason: Int, cast: String, director: String, description: String, genres: String) -> Unit,
-    onPostComment: (name: String, msg: String) -> Unit,
+    onCommentClick: () -> Unit,
     onRequestStream: () -> Unit,
     onOpenEpisodeDownloadSheet: (List<DownloadLink>, String) -> Unit,
-    onResetCommentState: () -> Unit,
     onToggleBookmark: () -> Unit,
     onToggleLike: () -> Unit,
     onReportClick: () -> Unit = {},
@@ -542,7 +554,8 @@ private fun TVShowDetailContent(
             },
             onMyListClick = onToggleBookmark,
             onLikeClick = onToggleLike,
-            onRequestStream = onRequestStream
+            onRequestStream = onRequestStream,
+            onCommentClick = onCommentClick
         )
 
         MetaChipsRow(movie = series)
@@ -695,19 +708,6 @@ private fun TVShowDetailContent(
             }
         }
 
-        if (uiState.comments.isNotEmpty()) {
-            SectionTitle("Comments")
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                uiState.comments.forEach { comment ->
-                    CommentItem(comment)
-                    HorizontalDivider(
-                        color = Color.DarkGray.copy(alpha = 0.3f),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                }
-            }
-        }
-
         if (uiState.moreSeasons.isNotEmpty()) {
             CollapsibleSeasonsSection(
                 seasons = uiState.moreSeasons,
@@ -736,15 +736,6 @@ private fun TVShowDetailContent(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        TVCommentFormSection(
-            isPosting = uiState.isCommentPosting,
-            posted = uiState.commentPosted,
-            error = uiState.commentError,
-            onPost = onPostComment,
-            onReset = onResetCommentState
-        )
 
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -929,28 +920,6 @@ private fun EpisodeItem(
 }
 
 @Composable
-private fun CommentItem(comment: Comment) {
-    Column(modifier = Modifier.padding(vertical = 6.dp)) {
-        Text(
-            text = comment.userName,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = comment.comment,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.8f)
-        )
-        Text(
-            text = comment.createdAt,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.4f)
-        )
-    }
-}
-
-@Composable
 private fun CollapsibleSeasonsSection(
     seasons: List<Season>,
     onSeasonClick: (Season) -> Unit
@@ -1086,101 +1055,6 @@ private fun MoreSeasonCard(
         }
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TVCommentFormSection(
-    isPosting: Boolean,
-    posted: Boolean,
-    error: String?,
-    onPost: (name: String, msg: String) -> Unit,
-    onReset: () -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        SectionTitle("Post a Comment")
-
-        if (posted) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20))
-            ) {
-                Text(
-                    text = "Comment posted successfully!",
-                    color = Color.White,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-            LaunchedEffect(posted) {
-                if (posted) {
-                    delay(2000)
-                    onReset()
-                }
-            }
-        }
-
-        if (error != null) {
-            Text(
-                text = error,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Your Name") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.DarkGray.copy(alpha = 0.3f),
-                focusedContainerColor = Color.DarkGray.copy(alpha = 0.3f)
-            )
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = message,
-            onValueChange = { message = it },
-            label = { Text("Comment") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-            maxLines = 5,
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.DarkGray.copy(alpha = 0.3f),
-                focusedContainerColor = Color.DarkGray.copy(alpha = 0.3f)
-            )
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
-            onClick = {
-                if (name.isNotBlank() && message.isNotBlank()) {
-                    onPost(name, message)
-                }
-            },
-            enabled = !isPosting && name.isNotBlank() && message.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isPosting) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-            } else {
-                Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Post Comment")
-            }
-        }
-    }
-}
-
 private fun formatVoteCount(count: Int): String = when {
     count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
     count >= 1_000 -> String.format("%.1fK", count / 1_000.0)

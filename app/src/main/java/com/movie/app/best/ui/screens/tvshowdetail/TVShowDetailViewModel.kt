@@ -7,7 +7,6 @@ import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.LikeItem
 import com.movie.app.best.data.model.Resource
-import com.movie.app.best.data.model.Comment
 import com.movie.app.best.data.model.DownloadLink
 import com.movie.app.best.data.model.Episode
 import com.movie.app.best.data.model.MovieDetails
@@ -90,7 +89,6 @@ class TVShowDetailViewModel @Inject constructor(
                                     series = data.movie,
                                     episodesBySeason = data.episodesBySeason.mapKeys { it.key.toIntOrNull() ?: 0 },
                                     linksByEpisode = data.linksByEpisode.mapKeys { it.key.toIntOrNull() ?: 0 },
-                                    comments = data.comments,
                                     screenshots = data.screenshots,
                                     moreSeasons = data.moreSeasons,
                                     moreVersions = data.moreVersions,
@@ -119,33 +117,6 @@ class TVShowDetailViewModel @Inject constructor(
                                 isLoading = false,
                                 error = result.error
                             )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fun postComment(name: String, msg: String) {
-        val seriesId = _uiState.value.series?.id ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isCommentPosting = true) }
-            val authHeader = try {
-                val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-                val tokenResult = user?.getIdToken(false)?.await()
-                "Bearer ${tokenResult?.token ?: ""}"
-            } catch (_: Exception) { "" }
-            repository.postComment(authHeader, seriesId, msg).collect { result ->
-                when (result) {
-                    is Resource.Loading -> {}
-                    is Resource.Success -> {
-                        _uiState.update {
-                            it.copy(isCommentPosting = false, commentPosted = true, commentError = null)
-                        }
-                    }
-                    is Resource.Error -> {
-                        _uiState.update {
-                            it.copy(isCommentPosting = false, commentPosted = false, commentError = result.error)
                         }
                     }
                 }
@@ -588,10 +559,6 @@ class TVShowDetailViewModel @Inject constructor(
         }
     }
 
-    fun resetCommentState() {
-        _uiState.update { it.copy(commentPosted = false, commentError = null) }
-    }
-
     fun checkBookmarkAndLikeStatus() {
         viewModelScope.launch {
             val bookmarked = firebaseRepository.isBookmarked(slug)
@@ -849,7 +816,6 @@ data class TVShowDetailUiState(
     val episodesBySeason: Map<Int, List<Episode>> = emptyMap(),
     val linksByEpisode: Map<Int, List<DownloadLink>> = emptyMap(),
     val downloadLinks: List<DownloadLink> = emptyList(),
-    val comments: List<Comment> = emptyList(),
     val screenshots: List<String> = emptyList(),
     val moreSeasons: List<Season> = emptyList(),
     val moreVersions: List<com.movie.app.best.data.model.Movie> = emptyList(),
@@ -863,10 +829,6 @@ data class TVShowDetailUiState(
     val fallbackGenres: List<String> = emptyList(),
     val contentReady: Boolean = false,
     val imdbReady: Boolean = false,
-
-    val isCommentPosting: Boolean = false,
-    val commentPosted: Boolean = false,
-    val commentError: String? = null,
 
     val streamRequested: Boolean = false,
     val isStreamRequesting: Boolean = false,
