@@ -56,8 +56,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val SheetBg = Color(0xFF0B0B0F)
-private val SheetSurface = Color(0xFF18181B)
+private val SheetBg = Color.Black
+private val SheetSurface = Color(0xFF141416)
 private val SheetHairline = Color(0xFF27272A)
 private val SheetText = Color(0xFFF4F4F5)
 private val SheetMuted = Color(0xFF71717A)
@@ -234,7 +234,7 @@ fun CommentsSheet(
                     )
                 }
 
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 64.dp)) {
                     when {
                         state.isLoading && state.comments.isEmpty() -> {
                             CircularProgressIndicator(
@@ -290,7 +290,7 @@ fun CommentsSheet(
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(top = 6.dp, bottom = 80.dp)
+                                contentPadding = PaddingValues(top = 6.dp, bottom = 16.dp)
                             ) {
                                 items(state.comments, key = { it.id }) { comment ->
                                     CommentRow(comment)
