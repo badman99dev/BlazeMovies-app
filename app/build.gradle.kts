@@ -117,6 +117,9 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    androidResources {
+        noCompress += listOf("html", "js", "css")
+    }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }

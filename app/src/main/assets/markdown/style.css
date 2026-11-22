@@ -1,0 +1,151 @@
+:root {
+  --red: #E50914;
+  --red-dark: #B81D24;
+  --text: #E7E7EA;
+  --muted: #9A9AA0;
+  --line: #232326;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+}
+
+body {
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#root {
+  padding: 16px 18px 56px;
+  min-height: 100vh;
+  background:
+    radial-gradient(120% 46% at 50% -8%, rgba(229, 9, 20, 0.20), transparent 62%) no-repeat;
+  background-size: 100% 340px;
+}
+
+#root:empty { display: none; }
+
+p { margin: 0 0 14px; }
+p:last-child { margin-bottom: 0; }
+
+h1, h2, h3, h4, h5, h6 {
+  color: #fff;
+  font-weight: 800;
+  line-height: 1.28;
+  margin: 26px 0 10px;
+  letter-spacing: 0.1px;
+}
+h1:first-child, h2:first-child, h3:first-child { margin-top: 0; }
+
+h1 { font-size: 23px; }
+h2 { font-size: 19px; }
+h3 { font-size: 17px; }
+h4, h5, h6 { font-size: 15px; }
+
+h1::after, h2::after {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--red), var(--red-dark));
+}
+
+strong, b { color: #fff; font-weight: 700; }
+em, i { color: #F0D7D9; }
+
+a {
+  color: var(--red);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(229, 9, 20, 0.35);
+}
+a:active { opacity: 0.7; }
+
+ul, ol { margin: 0 0 14px; padding-left: 22px; }
+li { margin: 5px 0; }
+li::marker { color: var(--red); }
+
+blockquote {
+  margin: 16px 0;
+  padding: 12px 15px;
+  border-left: 3px solid var(--red);
+  border-radius: 0 12px 12px 0;
+  background: rgba(229, 9, 20, 0.07);
+  color: #CCCCD0;
+}
+blockquote p:last-child { margin-bottom: 0; }
+
+code {
+  font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  background: #1B1B1E;
+  color: #FFB4B9;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid #2A2A2E;
+}
+
+pre {
+  margin: 16px 0;
+  padding: 14px 15px;
+  background: #101012;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow-x: auto;
+}
+pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: #D6D6DB;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  margin: 22px 0;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 14px 0;
+  border-radius: 12px;
+}
+
+table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: 9px 11px;
+  text-align: left;
+}
+th { background: #141416; color: #fff; font-weight: 700; }
+tr:nth-child(even) td { background: #0B0B0D; }
+
+::selection { background: rgba(229, 9, 20, 0.4); color: #fff; }
+
+input[type="checkbox"] { accent-color: var(--red); margin-right: 6px; }
+
+figure { margin: 16px 0; }
+figcaption { color: var(--muted); font-size: 12px; text-align: center; margin-top: 6px; }
