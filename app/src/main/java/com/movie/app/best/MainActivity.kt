@@ -36,5 +36,6 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         com.movie.app.best.util.ExternalVideoOpen.handle(this, intent)
+        com.movie.app.best.util.DeepLinkBus.offer(intent)
     }
 }

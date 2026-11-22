@@ -299,6 +299,14 @@ fun MainContent(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    val busLink = com.movie.app.best.util.DeepLinkBus.pending
+    LaunchedEffect(busLink) {
+        if (busLink != null) {
+            pendingDeepLink = busLink
+            com.movie.app.best.util.DeepLinkBus.consume()
+        }
+    }
+
     LaunchedEffect(pendingDeepLink) {
         val uri = pendingDeepLink
         if (uri != null) {
