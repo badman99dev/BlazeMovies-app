@@ -1,7 +1,13 @@
 package com.movie.app.best.ui.screens.moviedetail.components
 
+import android.view.WindowManager
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,35 +22,36 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import com.movie.app.best.data.model.CommentApi
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -57,7 +64,6 @@ private val SheetMuted = Color(0xFF71717A)
 private val Accent = Color(0xFFE50914)
 private const val MAX_COMMENT_INPUT = 500
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentsSheet(
     movieId: Int,
@@ -68,12 +74,11 @@ fun CommentsSheet(
     viewModel: CommentsViewModel
 ) {
     val state by viewModel.state.collectAsState()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
     var input by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(movieId, slug) { viewModel.open(movieId, slug) }
 
@@ -111,133 +116,197 @@ fun CommentsSheet(
         focusManager.clearFocus()
     }
 
-    ModalBottomSheet(
+    Dialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = SheetBg,
-        contentColor = SheetText,
-        dragHandle = null,
-        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.82f)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 18.dp, end = 8.dp, top = 14.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Comments",
-                        color = SheetText,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = when {
-                            state.total > 0 -> if (state.total == 1) "1 comment" else "${state.total} comments"
-                            state.isLoading -> "Loading…"
-                            else -> "Be the first to comment"
-                        },
-                        color = SheetMuted,
-                        fontSize = 12.sp
-                    )
-                }
-                IconButton(
-                    onClick = {
-                        scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            if (!sheetState.isVisible) onDismiss()
-                        }
-                    }
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = SheetMuted)
-                }
+        // Keep the window full-size when the IME shows up: we lift the composer
+        // ourselves (Android insets), so the sheet itself must not be resized.
+        val view = LocalView.current
+        LaunchedEffect(Unit) {
+            runCatching {
+                (view.parent as? DialogWindowProvider)?.window
+                    ?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
             }
+        }
+
+        val density = LocalDensity.current
+        val bottomLiftPx = maxOf(
+            WindowInsets.navigationBars.getBottom(density),
+            WindowInsets.ime.getBottom(density)
+        )
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val fullHeight = maxHeight * 0.88f
+            val partialHeight = maxHeight * 0.5f
+            val sheetHeight by animateDpAsState(
+                targetValue = if (expanded) fullHeight else partialHeight,
+                animationSpec = tween(220),
+                label = "commentsSheetHeight"
+            )
 
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 18.dp)
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(SheetHairline)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onDismiss() }
             )
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                when {
-                    state.isLoading && state.comments.isEmpty() -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center).size(34.dp),
-                            color = Accent,
-                            strokeWidth = 3.dp
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(sheetHeight)
+                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                    .background(SheetBg)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures { _, dragAmount ->
+                                if (dragAmount < -6f) expanded = true
+                                else if (dragAmount > 6f) expanded = false
+                            }
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 9.dp, bottom = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(38.dp)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(SheetHairline)
                         )
                     }
 
-                    state.error != null && state.comments.isEmpty() -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 18.dp, end = 8.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = state.error ?: "Could not load comments",
-                                color = Color(0xFFA1A1AA),
-                                fontSize = 13.sp
-                            )
-                            TextButton(onClick = viewModel::retry) {
-                                Text("Retry", color = Accent, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    }
-
-                    state.comments.isEmpty() -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Outlined.ChatBubbleOutline,
-                                contentDescription = null,
-                                tint = SheetHairline,
-                                modifier = Modifier.size(42.dp)
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = "No comments yet",
-                                color = Color(0xFFA1A1AA),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
+                                text = "Comments",
+                                color = SheetText,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Be the first to share your thoughts",
+                                text = when {
+                                    state.total > 0 -> if (state.total == 1) "1 comment" else "${state.total} comments"
+                                    state.isLoading -> "Loading…"
+                                    else -> "Be the first to comment"
+                                },
                                 color = SheetMuted,
                                 fontSize = 12.sp
                             )
                         }
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = SheetMuted)
+                        }
                     }
 
-                    else -> {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 6.dp, bottom = 8.dp)
-                        ) {
-                            items(state.comments, key = { it.id }) { comment ->
-                                CommentRow(comment)
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 18.dp)
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(SheetHairline)
+                    )
+                }
+
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    when {
+                        state.isLoading && state.comments.isEmpty() -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center).size(34.dp),
+                                color = Accent,
+                                strokeWidth = 3.dp
+                            )
+                        }
+
+                        state.error != null && state.comments.isEmpty() -> {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = state.error ?: "Could not load comments",
+                                    color = Color(0xFFA1A1AA),
+                                    fontSize = 13.sp
+                                )
+                                TextButton(onClick = viewModel::retry) {
+                                    Text("Retry", color = Accent, fontWeight = FontWeight.SemiBold)
+                                }
                             }
-                            if (state.isLoadingMore) {
-                                item(key = "loading_more") {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            color = Accent,
-                                            strokeWidth = 2.dp
-                                        )
+                        }
+
+                        state.comments.isEmpty() -> {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Outlined.ChatBubbleOutline,
+                                    contentDescription = null,
+                                    tint = SheetHairline,
+                                    modifier = Modifier.size(42.dp)
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    text = "No comments yet",
+                                    color = Color(0xFFA1A1AA),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Be the first to share your thoughts",
+                                    color = SheetMuted,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        else -> {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(top = 6.dp, bottom = 80.dp)
+                            ) {
+                                items(state.comments, key = { it.id }) { comment ->
+                                    CommentRow(comment)
+                                }
+                                if (state.isLoadingMore) {
+                                    item(key = "loading_more") {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                color = Accent,
+                                                strokeWidth = 2.dp
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -246,6 +315,7 @@ fun CommentsSheet(
                 }
             }
 
+            // Independent composer layer: follows the keyboard, not the sheet.
             CommentsComposer(
                 value = input,
                 onValueChange = {
@@ -254,7 +324,10 @@ fun CommentsSheet(
                 },
                 isSending = state.isPosting,
                 error = state.postError,
-                onSend = { submit() }
+                onSend = { submit() },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = with(density) { bottomLiftPx.toDp() })
             )
         }
     }
@@ -316,21 +389,28 @@ private fun CommentsComposer(
     onValueChange: (String) -> Unit,
     isSending: Boolean,
     error: String?,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val canSend = value.trim().isNotEmpty() && !isSending
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(SheetBg)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(SheetHairline)
+        )
         if (error != null) {
             Text(
                 text = error,
                 color = Color(0xFFFF6B6B),
                 fontSize = 11.5.sp,
-                modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 4.dp)
+                modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 6.dp)
             )
         }
         Row(
