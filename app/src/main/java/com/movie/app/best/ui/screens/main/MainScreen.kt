@@ -355,18 +355,18 @@ fun MainContent(
                             "app://library", "app://profile", "app://my-list" -> Screen.Library.route
                             else -> null
                         }
-                        val shareTarget = ShareLinks.parse(uri)
+                        val shareDeepLink = ShareLinks.toAppDeepLink(uri)
                         if (bottomTabRoute != null) {
                             navController.navigateToBottomTab(bottomTabRoute)
                         } else if (AppDeepLinkRouter.navigateInternal(navController, uri)) {
                             // app://internal/<link> -> in-app browser
-                        } else if (shareTarget != null) {
-                            when (shareTarget) {
-                                is ShareLinks.Target.Route -> navController.navigate(shareTarget.route)
-                                is ShareLinks.Target.Browser -> navController.navigate(
-                                    Screen.InAppBrowser.createRoute(shareTarget.url, shareTarget.heading)
-                                )
-                                ShareLinks.Target.Home -> navController.navigateToBottomTab(Screen.Home.route)
+                        } else if (shareDeepLink != null) {
+                            // https share link -> app deep link (app://movie/<slug> etc.)
+                            when {
+                                shareDeepLink == "app://home" ->
+                                    navController.navigateToBottomTab(Screen.Home.route)
+                                AppDeepLinkRouter.navigateInternal(navController, shareDeepLink) -> Unit
+                                else -> navController.navigate(Uri.parse(shareDeepLink))
                             }
                         } else {
                             val ok = runCatching { navController.navigate(Uri.parse(uri)) }.isSuccess

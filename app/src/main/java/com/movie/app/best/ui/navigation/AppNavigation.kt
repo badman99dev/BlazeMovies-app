@@ -267,7 +267,7 @@ fun AppNavigation(
 
         composable(
             route = Screen.MovieDetail.route,
-            deepLinks = refLinks("app://content/movie/{slug}"),
+            deepLinks = refLinks("app://content/movie/{slug}", "app://movie/{slug}"),
             arguments = listOf(
                 navArgument("slug") { type = NavType.StringType },
                 navArgument("imdbId") { type = NavType.StringType; defaultValue = "" }
@@ -314,7 +314,7 @@ fun AppNavigation(
 
         composable(
             route = Screen.SeriesDetail.route,
-            deepLinks = refLinks("app://content/series/{slug}"),
+            deepLinks = refLinks("app://content/series/{slug}", "app://series/{slug}"),
             arguments = listOf(
                 navArgument("slug") { type = NavType.StringType },
                 navArgument("imdbId") { type = NavType.StringType; defaultValue = "" }
