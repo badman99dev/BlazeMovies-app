@@ -48,7 +48,7 @@ fun HomeScreen(
     onContentClick: (String, Boolean, String) -> Unit,
     navController: NavController,
     onSearchClick: () -> Unit = {},
-    onDownloadClick: () -> Unit = {},
+    onRequestClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -256,7 +256,7 @@ fun HomeScreen(
         AppHeader(
             onMenuClick         = onMenuClick,
             onSearchClick       = onSearchClick,
-            onDownloadClick     = onDownloadClick,
+            onRequestClick      = onRequestClick,
             onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
             hasNotification     = uiState.notification?.isActive == true,
             modifier            = Modifier

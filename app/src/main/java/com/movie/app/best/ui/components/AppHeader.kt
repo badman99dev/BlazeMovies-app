@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
@@ -37,7 +37,7 @@ fun AppHeader(
     onMenuClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
-    onDownloadClick: () -> Unit = {},
+    onRequestClick: () -> Unit = {},
     hasNotification: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -100,10 +100,10 @@ fun AppHeader(
                     modifier = Modifier.size(24.dp)
                 )
             }
-            HeaderIconButton(onClick = onDownloadClick) {
+            HeaderIconButton(onClick = onRequestClick) {
                 Icon(
-                    imageVector = Icons.Default.Download,
-                    contentDescription = "Downloads",
+                    imageVector = Icons.Default.AddCircle,
+                    contentDescription = "New Request",
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )

@@ -14,6 +14,7 @@ import com.movie.app.best.data.model.LiveChannelDetail
 import com.movie.app.best.data.model.TvStreamCategoriesResponse
 import com.movie.app.best.data.model.TvStreamCategory
 import com.movie.app.best.data.model.UpdateResponse
+import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
@@ -174,7 +175,19 @@ interface MovieApiService {
 
     @GET("app-update")
     suspend fun checkForUpdate(@Query("currentCode") currentCode: Int): ApiResponse<UpdateResponse>
+
+    @POST("request")
+    suspend fun postMovieRequest(
+        @Header("X-Auth-Token") authHeader: String,
+        @Body request: Map<String, @JvmSuppressWildcards Any>
+    ): ApiResponse<MovieRequestApiResponse>
 }
+
+data class MovieRequestApiResponse(
+    val id: Int = 0,
+    @SerializedName("media_type") val mediaType: String = "",
+    @SerializedName("report_type") val reportType: String = ""
+)
 
 data class ContentModerationApiResponse(
     val verdict: String? = null,

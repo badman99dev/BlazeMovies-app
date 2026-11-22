@@ -4,12 +4,18 @@ import com.movie.app.best.data.model.ImdbCertificatesResponse
 import com.movie.app.best.data.model.ImdbCreditsResponse
 import com.movie.app.best.data.model.ImdbEpisodeResponse
 import com.movie.app.best.data.model.ImdbNameDetails
+import com.movie.app.best.data.model.ImdbSearchResponse
 import com.movie.app.best.data.model.ImdbTitleDetails
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ImdbApiService {
+
+    @GET("search/titles")
+    suspend fun searchTitles(
+        @Query("query") query: String
+    ): ImdbSearchResponse
 
     @GET("names/{nameId}")
     suspend fun getNameDetails(

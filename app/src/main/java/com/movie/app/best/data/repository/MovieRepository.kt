@@ -212,6 +212,12 @@ class MovieRepository @Inject constructor(
         return response.data ?: com.movie.app.best.data.remote.StreamRequestApiResponse()
     }
 
+    suspend fun submitMovieRequest(
+        authHeader: String,
+        body: Map<String, @JvmSuppressWildcards Any>
+    ): Resource<com.movie.app.best.data.remote.MovieRequestApiResponse> =
+        safeApiCall { apiService.postMovieRequest(authHeader, body) }
+
     suspend fun submitContentModeration(authHeader: String, movieId: Int, reportType: String, reason: String): com.movie.app.best.data.remote.ContentModerationApiResponse {
         val response = apiService.postContentModeration(authHeader, mapOf(
             "movie_id" to movieId,

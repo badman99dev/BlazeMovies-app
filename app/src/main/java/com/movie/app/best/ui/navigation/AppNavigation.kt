@@ -35,6 +35,7 @@ import com.movie.app.best.ui.screens.library.HistoryScreen
 import com.movie.app.best.ui.screens.library.PlaylistDetailScreen
 import com.movie.app.best.ui.screens.moviedetail.MovieDetailScreen
 import com.movie.app.best.ui.screens.search.SearchScreen
+import com.movie.app.best.ui.screens.request.RequestScreen
 import com.movie.app.best.ui.screens.tvshowdetail.TVShowDetailScreen
 import com.movie.app.best.ui.screens.tvshows.TVShowsScreen
 import com.movie.app.best.ui.screens.livetv.LiveTvScreen
@@ -91,6 +92,7 @@ sealed class Screen(val route: String) {
         fun createRoute(slug: String, imdbId: String = "") = "movie/${Uri.encode(slug)}?imdbId=${Uri.encode(imdbId)}"
     }
     object Search : Screen("search")
+    object Request : Screen("request")
     object TVShows : Screen("tv-shows")
     object LiveTv : Screen("live-tv")
     object Downloads : Screen("downloads")
@@ -248,7 +250,7 @@ fun AppNavigation(
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
-                onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
+                onRequestClick = { navController.navigate(Screen.Request.route) },
                 onMenuClick = onMenuClick
             )
         }
@@ -425,6 +427,15 @@ fun AppNavigation(
                             logo = channel.logoUrl
                         )
                     )
+                }
+            )
+        }
+
+        composable(Screen.Request.route, deepLinks = refLinks("app://request", "app://new-request")) {
+            RequestScreen(
+                onBackClick = { navController.popBackStack() },
+                onLoginClick = {
+                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
                 }
             )
         }
