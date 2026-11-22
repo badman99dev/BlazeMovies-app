@@ -515,7 +515,7 @@ private fun TVShowDetailContent(
             movie = series,
             onBackClick = onBackClick,
             onReportClick = onReportClick,
-            onShareClick = { ShareLinks.share(context, ShareLinks.series(slug), series.title) },
+            onShareClick = { ShareLinks.share(context, ShareLinks.series(series.slug), series.title) },
             overrideRating = displayRating,
             overrideVotes = displayVotes
         )

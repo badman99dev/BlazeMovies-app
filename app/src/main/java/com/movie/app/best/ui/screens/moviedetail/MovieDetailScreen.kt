@@ -390,7 +390,7 @@ private fun MovieDetailContent(
             movie       = movie,
             onBackClick = onBackClick,
             onReportClick = onReportClick,
-            onShareClick = { ShareLinks.share(context, ShareLinks.movie(slug), movie.title) },
+            onShareClick = { ShareLinks.share(context, ShareLinks.movie(movie.slug), movie.title) },
             overrideRating = displayRating,
             overrideVotes = displayVotes
         )
