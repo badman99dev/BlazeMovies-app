@@ -52,6 +52,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.movie.app.best.data.model.CommentApi
+import com.movie.app.best.ui.components.LoginRequiredDialog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,6 +80,7 @@ fun CommentsSheet(
 
     var input by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    var showLogin by remember { mutableStateOf(false) }
 
     LaunchedEffect(movieId, slug) { viewModel.open(movieId, slug) }
 
@@ -108,7 +110,7 @@ fun CommentsSheet(
         val text = input.trim()
         if (text.isEmpty() || state.isPosting) return
         if (!isLoggedIn) {
-            onLoginRequired()
+            showLogin = true
             return
         }
         viewModel.post(text)
@@ -329,6 +331,19 @@ fun CommentsSheet(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = with(density) { bottomLiftPx.toDp() })
             )
+
+            // Login prompt lives inside this dialog window so it paints ABOVE the
+            // sheet instead of being hidden behind it (separate window z-order).
+            if (showLogin) {
+                LoginRequiredDialog(
+                    onLoginClick = {
+                        showLogin = false
+                        onDismiss()
+                        onLoginRequired()
+                    },
+                    onDismiss = { showLogin = false }
+                )
+            }
         }
     }
 }

@@ -377,7 +377,7 @@ fun TVShowDetailScreen(
                 movieId = uiState.series!!.id,
                 slug = uiState.series!!.slug,
                 isLoggedIn = authState.isLoggedIn,
-                onLoginRequired = { showLoginDialog = true },
+                onLoginRequired = onLoginRequired,
                 onDismiss = { showComments = false },
                 viewModel = commentsViewModel
             )

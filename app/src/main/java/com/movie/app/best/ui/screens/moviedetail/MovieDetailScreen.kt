@@ -247,7 +247,7 @@ fun MovieDetailScreen(
                 movieId = uiState.movie!!.id,
                 slug = uiState.movie!!.slug,
                 isLoggedIn = authState.isLoggedIn,
-                onLoginRequired = { showLoginDialog = true },
+                onLoginRequired = onLoginRequired,
                 onDismiss = { showComments = false },
                 viewModel = commentsViewModel
             )
