@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -97,13 +98,30 @@ fun InAppBrowserScreen(
             return@Column
         }
 
-        BrowserWebView(
-            url = url,
-            onOpenAppLink = { openAppLink.value(it) },
-            onProgress = { p -> progress = p },
-            onLoading = { loading = it },
-            modifier = Modifier.fillMaxSize()
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            BrowserWebView(
+                url = url,
+                onOpenAppLink = { openAppLink.value(it) },
+                onProgress = { p -> progress = p },
+                onLoading = { loading = it },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = AppRed,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(38.dp)
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -22,9 +22,22 @@ object ExternalVideoOpen {
 
     fun handle(context: Context, intent: Intent?) {
         val i = intent ?: return
+        val mime = i.type?.lowercase().orEmpty()
         val fromIntent: Uri? = when (i.action) {
-            Intent.ACTION_VIEW -> i.data
-            Intent.ACTION_SEND -> @Suppress("DEPRECATION") i.getParcelableExtra(Intent.EXTRA_STREAM)
+            // "Open with" → only local files. http(s) App Links are handled by
+            // the deep-link router; never treat them as videos here.
+            Intent.ACTION_VIEW -> {
+                if (mime.isNotEmpty() && !mime.startsWith("video/")) return
+                val data = i.data ?: return
+                val scheme = data.scheme?.lowercase()
+                if (scheme != "content" && scheme != "file") return
+                data
+            }
+            // Share sheet → only explicit video shares.
+            Intent.ACTION_SEND -> {
+                if (!mime.startsWith("video/")) return
+                @Suppress("DEPRECATION") i.getParcelableExtra(Intent.EXTRA_STREAM)
+            }
             else -> null
         }
         val uri: Uri = fromIntent ?: return
