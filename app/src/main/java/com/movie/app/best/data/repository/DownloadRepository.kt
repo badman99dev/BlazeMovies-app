@@ -66,6 +66,26 @@ class DownloadRepository @Inject constructor(
     private val extractingKeys = Collections.synchronizedSet(mutableSetOf<String>())
     private val cookieCache = Collections.synchronizedMap(mutableMapOf<String, CachedCookie>())
 
+    // Resolver log kept per resolved URL, so a *later* start/queue failure can ship the
+    // same context (which file/mirror it was). Bounded to the most recent entries.
+    private val resolveLogCache = Collections.synchronizedMap(mutableMapOf<String, List<String>>())
+    private val resolveLogOrder = Collections.synchronizedList(mutableListOf<String>())
+    private val reportedKetchFailures = Collections.synchronizedSet(mutableSetOf<Int>())
+
+    private fun cacheResolveLog(url: String, lines: List<String>) {
+        if (url.isEmpty() || lines.isEmpty()) return
+        resolveLogCache[url] = lines
+        synchronized(resolveLogOrder) {
+            resolveLogOrder.remove(url)
+            resolveLogOrder.add(url)
+            while (resolveLogOrder.size > 50) {
+                val old = resolveLogOrder.removeAt(0)
+                resolveLogCache.remove(old)
+            }
+        }
+    }
+
+
     private fun hostOf(url: String): String? = runCatching { URL(url).host }.getOrNull()
 
     private fun publicDownloadDir(): File =
@@ -220,6 +240,10 @@ class DownloadRepository @Inject constructor(
             return Resource.Error("No valid direct download URLs found")
         }
         NetworkLogger.logAction("RESOLVE", "mirrors=${mirrors.size}")
+        // Remember the resolver log per resolved URL so a later start/queue failure can
+        // attach the same file/mirror context.
+        val snapshot = logLines.toList()
+        mirrors.forEach { cacheResolveLog(it.jackpot, snapshot) }
         return Resource.Success(mirrors)
     }
 
@@ -318,7 +342,7 @@ class DownloadRepository @Inject constructor(
                 reason = "download_start_failed",
                 title = "Download could not start",
                 linkUrl = mirror.jackpot, slug = slug, movieId = movieId, linkId = 0,
-                logLines = emptyList(),
+                logLines = resolveLogCache[mirror.jackpot] ?: emptyList(),
                 extra = mapOf("error" to (e.message ?: "unknown"), "file" to safeFileName)
             )
             return -1
@@ -437,6 +461,9 @@ class DownloadRepository @Inject constructor(
                     Status.PAUSED -> DownloadPhase.DOWNLOADING
                     Status.DEFAULT -> DownloadPhase.NONE
                 }
+                // State 2b: the link resolved and the download was queued, but it later
+                // failed in flight (ketch reported FAILED). Report once per ketch id.
+                if (dl.status == Status.FAILED) reportKetchFailureOnce(ketchId, dl.failureReason)
                 DownloadStatusInfo(
                     phase = phase,
                     progress = dl.progress,
@@ -445,6 +472,31 @@ class DownloadRepository @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * State 2b: ketch queued the download but it failed in flight. Reports once per
+     * ketch id, attaching the file/mirror context (metadata + cached resolver log).
+     */
+    private fun reportKetchFailureOnce(ketchId: Int, failureReason: String?) {
+        if (!reportedKetchFailures.add(ketchId)) return
+        val meta = runCatching { getAllMetadata().find { it.ketchId == ketchId } }.getOrNull()
+        val url = meta?.url ?: ""
+        reportDownloadIncident(
+            reason = "download_failed",
+            title = "Download failed",
+            linkUrl = url,
+            slug = meta?.slug ?: "",
+            movieId = 0,
+            linkId = 0,
+            logLines = resolveLogCache[url] ?: emptyList(),
+            extra = hashMapOf<String, Any?>().apply {
+                put("ketch_id", ketchId)
+                failureReason?.let { put("failure_reason", it) }
+                meta?.fileName?.let { put("file", it) }
+                meta?.episodeLabel?.let { put("episode", it) }
+            }
+        )
     }
 
     fun postProcessDownload(ketchId: Int, metaKey: String): Flow<ExtractionProgress> = flow {
