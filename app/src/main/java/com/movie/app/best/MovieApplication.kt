@@ -64,8 +64,6 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
                     )
                 ).build(this)
 
-            Thread { CrashPasteManager.ensurePasteExists(this) }.start()
-
             // Firebase Crashlytics collection
             try {
                 com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().apply {
@@ -90,13 +88,13 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
             alsoReportToAndroidFramework = true
 
             toast {
-                text = "Crash report Tempserv pe bhej raha hoon... 📤"
+                text = "Crash report bhej raha hoon... 📤"
                 length = android.widget.Toast.LENGTH_LONG
             }
 
             dialog {
                 title = "Crash Report"
-                text = "App crash ho gaya! Report Tempserv pe upload ho raha hai.\n\nLink copy karke developer ko bhej do."
+                text = "App crash ho gaya! Report developer ko chali jaayegi.\n\n'OK' dabao bhejne ke liye."
                 commentPrompt = "Kya kar rahe the jab crash hua? (optional)"
                 positiveButtonText = "OK"
                 negativeButtonText = "Close"
