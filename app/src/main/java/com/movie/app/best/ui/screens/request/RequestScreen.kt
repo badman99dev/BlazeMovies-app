@@ -252,9 +252,12 @@ fun RequestScreen(
 private fun RequestBackground() {
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(360.dp)
+            .fillMaxSize()
             .drawWithCache {
+                // Bloom lives in the top ~360dp, but the canvas is full-screen so
+                // the radial gradient can decay to transparent instead of being
+                // clipped into a hard horizontal line at the box edge.
+                val bloomBottom = 360.dp.toPx()
                 val top = Brush.radialGradient(
                     colors = listOf(AppRed.copy(alpha = 0.26f), Color.Transparent),
                     center = Offset(size.width * 0.5f, 0f),
@@ -262,7 +265,7 @@ private fun RequestBackground() {
                 )
                 val bottom = Brush.radialGradient(
                     colors = listOf(AppRed.copy(alpha = 0.12f), Color.Transparent),
-                    center = Offset(size.width * 0.85f, size.height),
+                    center = Offset(size.width * 0.85f, bloomBottom),
                     radius = size.width * 1.0f
                 )
                 onDrawWithContent {
