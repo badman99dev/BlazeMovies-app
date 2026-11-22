@@ -250,7 +250,7 @@ fun AppNavigation(
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
                 navController = navController,
                 onSearchClick = { navController.navigate(Screen.Search.route) },
-                onRequestClick = { navController.navigate(Screen.Request.route) },
+                onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
                 onMenuClick = onMenuClick
             )
         }

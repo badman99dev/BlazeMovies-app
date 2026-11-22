@@ -130,7 +130,6 @@ fun TVShowsScreen(
                     onMenuClick = onMenuClick,
                     onSearchClick = onSearchClick,
                     onNotificationClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Notifications.route) },
-                    onRequestClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.Request.route) },
                     hasNotification = false
                 )
             }

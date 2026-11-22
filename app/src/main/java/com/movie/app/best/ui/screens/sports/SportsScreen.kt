@@ -234,7 +234,7 @@ fun SportsScreen(
                 onMenuClick = onMenuClick,
                 onSearchClick = onSearchClick,
                 onNotificationClick = onNotificationClick,
-                onRequestClick = { navController.navigate(Screen.Request.route) },
+                onDownloadClick = { navController.navigateToBottomTab(Screen.Downloads.route) },
                 hasNotification = false
             )
 
