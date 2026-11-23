@@ -44,6 +44,7 @@ import com.movie.app.best.ui.screens.moviewatch.MovieWatchScreen
 import java.net.URLEncoder
 import com.movie.app.best.ui.screens.player.VideoPlayerScreen
 import com.movie.app.best.util.ExternalVideoOpen
+import com.movie.app.best.util.isRealImdbId
 import com.movie.app.best.ui.screens.latestupload.LatestUploadScreen
 import com.movie.app.best.ui.screens.settings.SettingsScreen
 import com.movie.app.best.ui.screens.browser.InAppBrowserScreen
@@ -182,10 +183,38 @@ fun AppNavigation(
     }
 
     fun navigateToContent(slug: String, isSeries: Boolean, imdbId: String = "") {
+        // A slug that is really an IMDb id (from a watch deep link or an IMDb-keyed
+        // history/playlist entry) can't be resolved by the detail API — go straight
+        // to the watch screen instead.
+        if (isRealImdbId(slug) || (slug.isBlank() && isRealImdbId(imdbId))) {
+            navigateToWatch(slug, isSeries, imdbId)
+            return
+        }
         if (isSeries) {
             navController.navigate(Screen.SeriesDetail.createRoute(slug, imdbId))
         } else {
             navController.navigate(Screen.MovieDetail.createRoute(slug, imdbId))
+        }
+    }
+
+    /**
+     * Opens the watch screen straight from an IMDb id (or a slug) via the deep-link
+     * route, so missing route args fall back to their defaults. `season`/`episode`
+     * apply to series only; -1 means "latest season" / "first episode".
+     */
+    fun navigateToWatch(slug: String, isSeries: Boolean, imdbId: String = "", season: Int = -1, episode: Int = -1) {
+        val id = when {
+            isRealImdbId(imdbId) -> imdbId
+            isRealImdbId(slug) -> slug
+            else -> slug
+        }
+        val uri = if (isSeries) {
+            Uri.parse("app://watch-series/$id?season=$season&episode=$episode")
+        } else {
+            Uri.parse("app://watch-movie/$id")
+        }
+        navController.navigate(uri) {
+            launchSingleTop = true
         }
     }
 
@@ -271,6 +300,16 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
+            val imdbIdArg = backStackEntry.arguments?.getString("imdbId") ?: ""
+            if (isRealImdbId(slug) || (slug.isBlank() && isRealImdbId(imdbIdArg))) {
+                // Slug is really an IMDb id → don't try to load a detail page, go straight to watch.
+                val imdb = if (isRealImdbId(slug)) slug else imdbIdArg
+                LaunchedEffect(imdb) {
+                    navController.navigate(Uri.parse("app://watch-movie/$imdb")) {
+                        popUpTo(Screen.MovieDetail.route) { inclusive = true }
+                    }
+                }
+            } else {
             MovieDetailScreen(
                 slug = slug,
                 onBackClick = { navController.popBackStack() },
@@ -307,6 +346,7 @@ fun AppNavigation(
                     }
                 }
             )
+            }
         }
 
         composable(
@@ -318,6 +358,16 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
+            val imdbIdArg = backStackEntry.arguments?.getString("imdbId") ?: ""
+            if (isRealImdbId(slug) || (slug.isBlank() && isRealImdbId(imdbIdArg))) {
+                // Slug is really an IMDb id → don't try to load a detail page, go straight to watch.
+                val imdb = if (isRealImdbId(slug)) slug else imdbIdArg
+                LaunchedEffect(imdb) {
+                    navController.navigate(Uri.parse("app://watch-series/$imdb")) {
+                        popUpTo(Screen.SeriesDetail.route) { inclusive = true }
+                    }
+                }
+            } else {
             TVShowDetailScreen(
                 slug = slug,
                 onBackClick = { navController.popBackStack() },
@@ -354,16 +404,24 @@ fun AppNavigation(
                     }
                 }
             )
+            }
         }
 
         composable(
             route = Screen.SeriesWatch.route,
+            deepLinks = refLinks(
+                "app://watch-series/{imdbId}?season={targetSeason}&episode={episode}"
+            ),
             arguments = listOf(
                 navArgument("imdbId") { type = NavType.StringType },
-                navArgument("title") { type = NavType.StringType },
-                navArgument("movieId") { type = NavType.StringType },
-                navArgument("slug") { type = NavType.StringType },
+                navArgument("title") { type = NavType.StringType; defaultValue = "" },
+                navArgument("movieId") { type = NavType.StringType; defaultValue = "" },
+                navArgument("slug") { type = NavType.StringType; defaultValue = "" },
                 navArgument("targetSeason") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument("episode") {
                     type = NavType.IntType
                     defaultValue = -1
                 },
@@ -374,7 +432,11 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             SeriesWatchScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Home.route) { launchSingleTop = true }
+                    }
+                },
                 onCelebClick = { nameId, name ->
                     navController.navigate(Screen.Celebs.createRoute(nameId, name))
                 },
@@ -386,8 +448,9 @@ fun AppNavigation(
 
         composable(
             route = Screen.MovieWatch.route,
+            deepLinks = refLinks("app://watch-movie/{imdbId}"),
             arguments = listOf(
-                navArgument("slug") { type = NavType.StringType },
+                navArgument("slug") { type = NavType.StringType; defaultValue = "" },
                 navArgument("imdbId") { type = NavType.StringType; defaultValue = "" },
                 navArgument("title") { type = NavType.StringType; defaultValue = "" },
                 navArgument("movieId") { type = NavType.StringType; defaultValue = "" },
@@ -401,7 +464,11 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             MovieWatchScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Home.route) { launchSingleTop = true }
+                    }
+                },
                 onMovieClick = { movieSlug, movieImdbId ->
                     navController.navigate(Screen.MovieDetail.createRoute(movieSlug, movieImdbId)) {
                         popUpTo(Screen.MovieWatch.route) { inclusive = true }
@@ -618,7 +685,7 @@ fun AppNavigation(
 
         composable(
             route = Screen.SportsWatch.route,
-            deepLinks = refLinks("app://sport/{slug}", "app://sports/{slug}"),
+            deepLinks = refLinks("app://sport/{slug}", "app://sports/{slug}", "app://watch-sports/{slug}"),
             arguments = listOf(
                 navArgument("slug") { type = NavType.StringType }
             )

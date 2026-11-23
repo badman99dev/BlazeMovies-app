@@ -36,6 +36,7 @@ import androidx.media3.common.Player
 import com.movie.app.best.data.telemetry.IncidentReporter
 import com.movie.app.best.data.telemetry.PlayerFailure
 import com.movie.app.best.data.telemetry.PlayerIncidents
+import com.movie.app.best.util.isRealImdbId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -49,10 +50,15 @@ class MovieWatchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val imdbId: String = savedStateHandle["imdbId"] ?: ""
+    private val rawImdbId: String = savedStateHandle["imdbId"] ?: ""
     private val movieTitle: String = savedStateHandle["title"] ?: ""
     private val movieId: String = savedStateHandle["movieId"] ?: ""
-    private val slug: String = savedStateHandle["slug"] ?: ""
+    // A watch deep link may carry only an IMDb id. If the slug itself is an IMDb id,
+    // use it as the imdbId, and keep (slug ?: imdbId) as the single content identity
+    // for history, bookmarks, stream requests and telemetry.
+    private val slugRaw: String = savedStateHandle["slug"] ?: ""
+    private val imdbId: String = rawImdbId.ifBlank { slugRaw.takeIf { isRealImdbId(it) }.orEmpty() }
+    private val slug: String = slugRaw.ifBlank { imdbId }
     private val hasStream: Boolean = savedStateHandle["hasStream"] ?: false
     private val playerUrl: String = savedStateHandle["playerUrl"] ?: ""
     val posterUrl: String = savedStateHandle["posterUrl"] ?: ""

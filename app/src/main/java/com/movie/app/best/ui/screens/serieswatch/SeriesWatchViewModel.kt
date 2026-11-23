@@ -30,6 +30,7 @@ import androidx.media3.common.Player
 import com.movie.app.best.data.telemetry.IncidentReporter
 import com.movie.app.best.data.telemetry.PlayerFailure
 import com.movie.app.best.data.telemetry.PlayerIncidents
+import com.movie.app.best.util.isRealImdbId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,11 +42,16 @@ class SeriesWatchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val imdbId: String = savedStateHandle["imdbId"] ?: ""
+    private val rawImdbId: String = savedStateHandle["imdbId"] ?: ""
     val seriesTitle: String = savedStateHandle["title"] ?: ""
     private val movieId: String = savedStateHandle["movieId"] ?: ""
-    private val slug: String = savedStateHandle["slug"] ?: ""
+    // Watch deep links carry only an IMDb id; treat an IMDb-shaped slug as the imdbId
+    // and keep (slug ?: imdbId) as the identity for telemetry/bookmarks.
+    private val slugRaw: String = savedStateHandle["slug"] ?: ""
+    private val imdbId: String = rawImdbId.ifBlank { slugRaw.takeIf { isRealImdbId(it) }.orEmpty() }
+    private val slug: String = slugRaw.ifBlank { imdbId }
     private val targetSeason: Int = savedStateHandle["targetSeason"] ?: -1
+    private val targetEpisode: Int = savedStateHandle["episode"] ?: -1
     val backendCast: String = savedStateHandle["cast"] ?: ""
     val backendDirector: String = savedStateHandle["director"] ?: ""
     val backendDescription: String = savedStateHandle["description"] ?: ""
@@ -140,9 +146,13 @@ class SeriesWatchViewModel @Inject constructor(
                 )
             }
 
-            // Auto-select the first episode of the selected season. If IMDb has none yet, still
-            // resolve season/episode 1 so the hub can hand back the tree and sources.
-            val first = _state.value.mergedEpisodes.firstOrNull() ?: placeholderEpisode(selectedSeason)
+            // Auto-select the first episode of the selected season (or a deep-linked episode).
+            // If IMDb has none yet, still resolve season/episode 1 so the hub can hand back
+            // the tree and sources.
+            val episodes = _state.value.mergedEpisodes
+            val first = (if (targetEpisode > 0) episodes.firstOrNull { it.episodeNo == targetEpisode } else null)
+                ?: episodes.firstOrNull()
+                ?: placeholderEpisode(selectedSeason)
             _state.update { it.copy(currentEpisode = first) }
             onEpisodeClick(first)
         }
