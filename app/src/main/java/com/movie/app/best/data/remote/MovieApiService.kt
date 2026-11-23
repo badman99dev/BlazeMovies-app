@@ -4,7 +4,7 @@ import com.movie.app.best.data.model.ApiResponse
 import com.movie.app.best.data.model.CelebsResult
 import com.movie.app.best.data.model.NewReleaseResult
 import com.movie.app.best.data.model.SearchResult
-import com.movie.app.best.data.model.SliderResult
+import com.movie.app.best.data.model.SliderResponse
 import com.movie.app.best.data.model.OffsetResult
 import com.movie.app.best.data.model.CategoryOffsetResult
 import com.movie.app.best.data.model.HomeFeedResponse
@@ -30,7 +30,7 @@ interface MovieApiService {
     suspend fun getNotification(): ApiResponse<com.movie.app.best.data.model.AppNotification?>
 
     @GET("slider")
-    suspend fun getSlider(): ApiResponse<SliderResult>
+    suspend fun getSlider(): ApiResponse<SliderResponse>
 
     @GET("content/{slug}")
     suspend fun getContentDetails(@Path("slug") slug: String): ApiResponse<com.movie.app.best.data.model.ContentDetailResponse>

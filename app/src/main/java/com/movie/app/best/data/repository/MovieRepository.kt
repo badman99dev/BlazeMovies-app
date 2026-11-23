@@ -11,7 +11,7 @@ import com.movie.app.best.data.model.NewReleaseResult
 import com.movie.app.best.data.model.CelebsResult
 import com.movie.app.best.data.model.HomeFeedResponse
 import com.movie.app.best.data.model.SearchResult
-import com.movie.app.best.data.model.SliderResult
+import com.movie.app.best.data.model.SliderResponse
 import com.movie.app.best.data.model.LiveChannelDetail
 import com.movie.app.best.data.model.TvStreamResponse
 import com.movie.app.best.data.model.TvStreamCategoriesResponse
@@ -46,7 +46,7 @@ class MovieRepository @Inject constructor(
         emit(safeApiCall { apiService.getNotification() })
     }
 
-    fun getSlider(): Flow<Resource<SliderResult>> = flow {
+    fun getSlider(): Flow<Resource<SliderResponse>> = flow {
         emit(Resource.Loading())
         emit(safeApiCall { apiService.getSlider() })
     }

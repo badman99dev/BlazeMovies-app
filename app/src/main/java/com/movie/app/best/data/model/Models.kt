@@ -228,14 +228,21 @@ data class CategoryOffsetResult(
     val limit: Int
 )
 
-data class SliderResult(
-    val mode: String,
-    val limit: Int,
-    val movies: List<Movie>
+data class SliderItem(
+    val id: Int = 0,
+    @SerializedName("image_url") val imageUrl: String = "",
+    val title: String = "",
+    @SerializedName("middle_text") val middleText: String = "",
+    @SerializedName("small_text") val smallText: String = "",
+    @SerializedName("deep_link") val deepLink: String = ""
+)
+
+data class SliderResponse(
+    val items: List<SliderItem> = emptyList()
 )
 
 data class HomeFeedResponse(
-    val slider: SliderResult? = null,
+    val slider: SliderResponse? = null,
     val trending: NewReleaseResult? = null,
     @SerializedName("new_release_in") val newReleaseIn: NewReleaseResult? = null,
     @SerializedName("new_release_us") val newReleaseUs: NewReleaseResult? = null,

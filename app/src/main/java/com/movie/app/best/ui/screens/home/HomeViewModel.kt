@@ -5,13 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.model.AppNotification
-import com.movie.app.best.data.model.SliderResult
+import com.movie.app.best.data.model.SliderItem
 import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.model.toUnified
+import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.debug.NetworkMonitor
+import com.movie.app.best.data.repository.FirebaseRepository
 import com.movie.app.best.data.repository.MeiliSearchRepository
 import com.movie.app.best.data.repository.MovieRepository
+import com.movie.app.best.data.repository.MyListRefreshState
 import com.movie.app.best.data.repository.Zee5TokenRepository
+import com.movie.app.best.util.SliderLink
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +29,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: MovieRepository,
     private val meiliRepository: MeiliSearchRepository,
-    private val zee5TokenRepository: Zee5TokenRepository
+    private val zee5TokenRepository: Zee5TokenRepository,
+    private val firebaseRepository: FirebaseRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -39,6 +44,29 @@ class HomeViewModel @Inject constructor(
         loadAllContent()
         viewModelScope.launch { meiliRepository.pingAndPrefetchKey() }
         viewModelScope.launch { zee5TokenRepository.prefetchTokens() }
+    }
+
+    fun isLoggedIn(): Boolean = firebaseRepository.isLoggedIn()
+
+    /**
+     * Adds a home-slider slide to My List. The slide's deep link drives the bookmark:
+     * movie/series links only (sports and generic links are ignored). The slider poster
+     * image is used as the My List artwork.
+     */
+    fun addSliderToMyList(item: SliderItem) {
+        val target = SliderLink.parse(item.deepLink)
+        if (!target.isContent || target.slug.isBlank()) return
+        viewModelScope.launch {
+            firebaseRepository.addBookmark(
+                BookmarkItem(
+                    slug = target.slug,
+                    title = item.title.ifBlank { target.slug },
+                    posterUrl = item.imageUrl,
+                    isSeries = target.isSeries
+                )
+            )
+            MyListRefreshState.markStale()
+        }
     }
 
     fun loadAllContent() {
@@ -94,7 +122,7 @@ class HomeViewModel @Inject constructor(
                         val data = result.data
                         _uiState.update { state ->
                             state.copy(
-                                sliderMovies = data?.slider?.movies?.filter { it.hasStream } ?: state.sliderMovies,
+                                sliderItems = data?.slider?.items ?: state.sliderItems,
                                 isSliderLoading = false,
                                 sliderError = null,
                                 trendingMovies = data?.trending?.items ?: state.trendingMovies,
@@ -291,7 +319,7 @@ class HomeViewModel @Inject constructor(
 
 data class HomeUiState(
     val isRefreshing: Boolean = false,
-    val sliderMovies: List<Movie> = emptyList(),
+    val sliderItems: List<SliderItem> = emptyList(),
     val isSliderLoading: Boolean = false,
     val sliderError: String? = null,
 

@@ -29,15 +29,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.movie.app.best.ui.components.AppHeader
+import com.movie.app.best.ui.components.DrawerLinkRouter
+import com.movie.app.best.util.ShareLinks
+import com.movie.app.best.util.SliderLink
 import com.movie.app.best.data.settings.ModerationSettings
 import com.movie.app.best.ui.screens.home.components.*
 import com.movie.app.best.ui.screens.home.components.LiveChannelsCarousel
@@ -69,6 +82,12 @@ fun HomeScreen(
     val barsState = LocalCollapsibleBarsState.current
     val isBarsVisible = barsState?.isBarsVisible?.value ?: true
 
+    // Hero slider: track the current page (for the blurred backdrop) and the slider's
+    // on-screen top so the backdrop covers exactly the region above it.
+    var currentSliderPage by remember { mutableIntStateOf(0) }
+    val sliderTopPx = remember { mutableFloatStateOf(0f) }
+    val sliderItems = uiState.sliderItems
+
     LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
         if (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0) {
             barsState?.show()
@@ -92,6 +111,14 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // Blurred poster backdrop behind the top region (header + Live TV row), covering
+        // only the area above the hero slider. Below the slider stays AMOLED black.
+        SliderBackdrop(
+            imageUrl = sliderItems.getOrNull(currentSliderPage)?.imageUrl,
+            heightProvider = { sliderTopPx.floatValue },
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = { viewModel.refresh() },
@@ -131,6 +158,30 @@ fun HomeScreen(
                         },
                         onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
                         applyTopPadding = true
+                    )
+                }
+            }
+
+            // Hero slider — sits between the Live TV row and Trending.
+            if (uiState.sliderItems.isNotEmpty()) {
+                item {
+                    HomeSliderSection(
+                        items = uiState.sliderItems,
+                        onItemClick = { item -> DrawerLinkRouter.open(context, navController, item.deepLink) },
+                        onShareClick = { item ->
+                            val target = SliderLink.parse(item.deepLink)
+                            if (target.isContent && target.slug.isNotBlank()) {
+                                val url = if (target.isSeries) ShareLinks.series(target.slug) else ShareLinks.movie(target.slug)
+                                ShareLinks.share(context, url, item.title)
+                            }
+                        },
+                        onAddToListClick = { item ->
+                            if (viewModel.isLoggedIn()) viewModel.addSliderToMyList(item)
+                            else navController.navigate(com.movie.app.best.ui.navigation.Screen.Login.route)
+                        },
+                        onWatchClick = { item -> DrawerLinkRouter.open(context, navController, item.deepLink) },
+                        onPageChanged = { currentSliderPage = it },
+                        modifier = Modifier.onGloballyPositioned { sliderTopPx.floatValue = it.positionInRoot().y }
                     )
                 }
             }
@@ -262,6 +313,50 @@ fun HomeScreen(
             modifier            = Modifier
                 .align(Alignment.TopCenter)
                 .offset { IntOffset(0, (barsState?.headerOffset ?: 0f).roundToInt()) }
+        )
+    }
+}
+
+/**
+ * Blurred copy of the current hero-slide poster, sized to the region above the slider.
+ * Reads its height through [heightProvider] so only this layer recomposes while the
+ * list scrolls. Fades into the black background at its bottom edge.
+ */
+@Composable
+private fun SliderBackdrop(
+    imageUrl: String?,
+    heightProvider: () -> Float,
+    modifier: Modifier = Modifier
+) {
+    if (imageUrl.isNullOrBlank()) return
+    val heightPx = heightProvider()
+    if (heightPx < 8f) return
+    val density = LocalDensity.current
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(with(density) { heightPx.toDp() })
+            .clipToBounds()
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(38.dp)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0.0f to Color.Black.copy(alpha = 0.30f),
+                        0.55f to Color.Black.copy(alpha = 0.45f),
+                        1.0f to Color.Black
+                    )
+                )
         )
     }
 }
