@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.BookmarkItem
 import com.movie.app.best.data.model.CrewPerson
+import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.ImdbCertificatesResponse
 import com.movie.app.best.data.model.ImdbTitleDetails
 import com.movie.app.best.data.model.Resource
@@ -68,6 +69,8 @@ class MovieWatchViewModel @Inject constructor(
     val backendGenres: String = savedStateHandle["genres"] ?: ""
     val title: String get() = movieTitle
     val contentSlug: String get() = slug
+
+    private var historyRecorded = false
 
     private val _state = MutableStateFlow(MovieWatchState())
     val state: StateFlow<MovieWatchState> = _state.asStateFlow()
@@ -490,6 +493,35 @@ class MovieWatchViewModel @Inject constructor(
         viewModelScope.launch {
             val bookmarked = firebaseRepository.isBookmarked(slug)
             _state.update { it.copy(isBookmarked = bookmarked) }
+        }
+    }
+
+    /**
+     * Mirror the detail screen: record this title in history the first time it plays.
+     * Keyed by [slug] (the IMDb id for a deep-linked watch), so an IMDb-keyed entry
+     * round-trips through History straight back to this screen. Existing progress is
+     * preserved so re-opening a title never resets resume position.
+     */
+    fun recordHistory() {
+        if (historyRecorded || slug.isBlank()) return
+        val t = _state.value.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() }
+            ?: movieTitle.takeIf { it.isNotBlank() }
+            ?: return
+        historyRecorded = true
+        viewModelScope.launch {
+            val prev = firebaseRepository.getLocalProgress(slug)
+            firebaseRepository.addToHistory(
+                FirebaseHistoryItem(
+                    slug = slug,
+                    title = t,
+                    posterUrl = _state.value.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() } ?: posterUrl,
+                    isSeries = false,
+                    imdbId = imdbId,
+                    progressMs = prev?.progressMs ?: 0,
+                    durationMs = prev?.durationMs ?: 0,
+                    progressPercent = prev?.progressPercent ?: 0f
+                )
+            )
         }
     }
 

@@ -157,6 +157,11 @@ fun MovieWatchScreen(
     val title = viewModel.title
     val playerTitle = state.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() } ?: title
 
+    // Write to History once playback actually starts (retried when title details arrive later).
+    LaunchedEffect(state.currentM3u8, state.titleDetails) {
+        if (!state.currentM3u8.isNullOrBlank()) viewModel.recordHistory()
+    }
+
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
     var langSwitchSeek by remember { mutableStateOf(0L) }

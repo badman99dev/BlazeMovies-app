@@ -126,6 +126,11 @@ fun SeriesWatchScreen(
     val activity = context as? android.app.Activity
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // Write to History once playback actually starts (retried when title/episode details arrive).
+    LaunchedEffect(state.currentM3u8, state.titleDetails, state.currentEpisode) {
+        if (!state.currentM3u8.isNullOrBlank()) viewModel.recordHistory()
+    }
+
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isFullscreen by remember { mutableStateOf(false) }
     var langSwitchSeek by remember { mutableStateOf(0L) }

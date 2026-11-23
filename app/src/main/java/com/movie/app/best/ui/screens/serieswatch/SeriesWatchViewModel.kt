@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movie.app.best.data.model.CrewPerson
 import com.movie.app.best.data.model.ExtractionState
+import com.movie.app.best.data.model.FirebaseHistoryItem
 import com.movie.app.best.data.model.ImdbEpisode
 import com.movie.app.best.data.model.PlaybackKind
 import com.movie.app.best.data.model.PlaybackOption
@@ -17,6 +18,7 @@ import com.movie.app.best.data.remote.ImdbApiService
 import com.movie.app.best.data.remote.SourceHubClient
 import com.movie.app.best.data.repository.SourceCacheEntry
 import com.movie.app.best.data.repository.SourceCacheStore
+import com.movie.app.best.data.repository.FirebaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +40,7 @@ class SeriesWatchViewModel @Inject constructor(
     private val imdbApi: ImdbApiService,
     private val sourceHubClient: SourceHubClient,
     private val sourceCache: SourceCacheStore,
+    private val firebaseRepository: FirebaseRepository,
     private val incidentReporter: IncidentReporter,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -56,6 +59,8 @@ class SeriesWatchViewModel @Inject constructor(
     val backendDirector: String = savedStateHandle["director"] ?: ""
     val backendDescription: String = savedStateHandle["description"] ?: ""
     val backendGenres: String = savedStateHandle["genres"] ?: ""
+
+    private var historyRecorded = false
 
     private val _state = MutableStateFlow(ExtractionState())
     val state: StateFlow<ExtractionState> = _state.asStateFlow()
@@ -535,6 +540,37 @@ class SeriesWatchViewModel @Inject constructor(
                 )
             )
         )
+    }
+
+    /**
+     * Mirror the detail screen: record this series in history the first time it plays.
+     * Keyed by [slug] (the IMDb id for a deep-linked watch), so an IMDb-keyed entry
+     * round-trips through History straight back to this screen. Existing progress is
+     * preserved so re-opening a series never resets resume position.
+     */
+    fun recordHistory() {
+        if (historyRecorded || slug.isBlank()) return
+        val t = _state.value.titleDetails?.primaryTitle?.takeIf { it.isNotBlank() }
+            ?: seriesTitle.takeIf { it.isNotBlank() }
+            ?: return
+        historyRecorded = true
+        viewModelScope.launch {
+            val prev = firebaseRepository.getLocalProgress(slug)
+            firebaseRepository.addToHistory(
+                FirebaseHistoryItem(
+                    slug = slug,
+                    title = t,
+                    posterUrl = _state.value.currentEpisode?.stillImageUrl?.takeIf { it.isNotEmpty() }
+                        ?: _state.value.titleDetails?.posterUrl?.takeIf { it.isNotEmpty() }
+                        ?: "",
+                    isSeries = true,
+                    imdbId = imdbId,
+                    progressMs = prev?.progressMs ?: 0,
+                    durationMs = prev?.durationMs ?: 0,
+                    progressPercent = prev?.progressPercent ?: 0f
+                )
+            )
+        }
     }
 
     private fun extractAgeRating(response: com.movie.app.best.data.model.ImdbCertificatesResponse): String {
