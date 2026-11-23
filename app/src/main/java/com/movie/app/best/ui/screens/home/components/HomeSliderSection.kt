@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -78,6 +79,7 @@ fun HomeSliderSection(
     onWatchClick: (SliderItem) -> Unit,
     onPageChanged: (Int) -> Unit,
     onPosterBottom: (Float) -> Unit = {},
+    bookmarkedSlugs: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
     if (items.isEmpty()) return
@@ -112,7 +114,8 @@ fun HomeSliderSection(
                 onShareClick = { onShareClick(item) },
                 onAddToListClick = { onAddToListClick(item) },
                 onWatchClick = { onWatchClick(item) },
-                onPosterBottom = onPosterBottom
+                onPosterBottom = onPosterBottom,
+                isBookmarked = bookmarkedSlugs.contains(SliderLink.parse(item.deepLink).slug)
             )
         }
 
@@ -157,7 +160,8 @@ private fun SliderCard(
     onShareClick: () -> Unit,
     onAddToListClick: () -> Unit,
     onWatchClick: () -> Unit,
-    onPosterBottom: (Float) -> Unit
+    onPosterBottom: (Float) -> Unit,
+    isBookmarked: Boolean
 ) {
     val target = remember(item.deepLink) { SliderLink.parse(item.deepLink) }
     val isContent = target.isContent
@@ -219,7 +223,11 @@ private fun SliderCard(
             ) {
                 if (isContent) {
                     GlassActionButton(Icons.Default.Share, "Share", onShareClick)
-                    GlassActionButton(Icons.Default.Add, "Add to My List", onAddToListClick)
+                    GlassActionButton(
+                        if (isBookmarked) Icons.Default.Check else Icons.Default.Add,
+                        if (isBookmarked) "In My List" else "Add to My List",
+                        onAddToListClick
+                    )
                 }
                 when {
                     isContent -> PlayActionButton(onWatchClick)

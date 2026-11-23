@@ -23,6 +23,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import androidx.navigation.navOptions
 import com.movie.app.best.FcmService
 import com.movie.app.best.ui.screens.categories.CategoriesScreen
 import com.movie.app.best.ui.screens.categories.CategoryPageScreen
@@ -198,9 +199,7 @@ fun AppNavigation(
         } else {
             Uri.parse("app://watch-movie/$id")
         }
-        navController.navigate(uri) {
-            launchSingleTop = true
-        }
+        navController.navigate(uri, navOptions { launchSingleTop = true })
     }
 
     fun navigateToContent(slug: String, isSeries: Boolean, imdbId: String = "") {
@@ -305,9 +304,10 @@ fun AppNavigation(
                 // Slug is really an IMDb id → don't try to load a detail page, go straight to watch.
                 val imdb = if (isRealImdbId(slug)) slug else imdbIdArg
                 LaunchedEffect(imdb) {
-                    navController.navigate(Uri.parse("app://watch-movie/$imdb")) {
-                        popUpTo(Screen.MovieDetail.route) { inclusive = true }
-                    }
+                    navController.navigate(
+                        Uri.parse("app://watch-movie/$imdb"),
+                        navOptions { popUpTo(Screen.MovieDetail.route) { inclusive = true } }
+                    )
                 }
             } else {
             MovieDetailScreen(
@@ -363,9 +363,10 @@ fun AppNavigation(
                 // Slug is really an IMDb id → don't try to load a detail page, go straight to watch.
                 val imdb = if (isRealImdbId(slug)) slug else imdbIdArg
                 LaunchedEffect(imdb) {
-                    navController.navigate(Uri.parse("app://watch-series/$imdb")) {
-                        popUpTo(Screen.SeriesDetail.route) { inclusive = true }
-                    }
+                    navController.navigate(
+                        Uri.parse("app://watch-series/$imdb"),
+                        navOptions { popUpTo(Screen.SeriesDetail.route) { inclusive = true } }
+                    )
                 }
             } else {
             TVShowDetailScreen(

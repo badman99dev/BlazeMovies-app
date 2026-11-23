@@ -42,29 +42,47 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadAllContent()
+        loadBookmarks()
         viewModelScope.launch { meiliRepository.pingAndPrefetchKey() }
         viewModelScope.launch { zee5TokenRepository.prefetchTokens() }
     }
 
     fun isLoggedIn(): Boolean = firebaseRepository.isLoggedIn()
 
+    private fun loadBookmarks() {
+        if (!firebaseRepository.isLoggedIn()) return
+        viewModelScope.launch {
+            val slugs = firebaseRepository.getBookmarks().map { it.slug }.toSet()
+            _uiState.update { it.copy(bookmarkedSlugs = slugs) }
+        }
+    }
+
     /**
-     * Adds a home-slider slide to My List. The slide's deep link drives the bookmark:
-     * movie/series links only (sports and generic links are ignored). The slider poster
-     * image is used as the My List artwork.
+     * Adds/removes a home-slider slide from My List. The slide's deep link drives the
+     * bookmark: movie/series links only (sports and generic links are ignored). The
+     * slider poster image is used as the My List artwork. The state drives the
+     * card's Plus ⇄ Tick toggle.
      */
-    fun addSliderToMyList(item: SliderItem) {
+    fun toggleSliderInMyList(item: SliderItem) {
         val target = SliderLink.parse(item.deepLink)
         if (!target.isContent || target.slug.isBlank()) return
+        val slug = target.slug
+        val wasSaved = _uiState.value.bookmarkedSlugs.contains(slug)
         viewModelScope.launch {
-            firebaseRepository.addBookmark(
-                BookmarkItem(
-                    slug = target.slug,
-                    title = item.title.ifBlank { target.slug },
-                    posterUrl = item.imageUrl,
-                    isSeries = target.isSeries
+            if (wasSaved) {
+                firebaseRepository.removeBookmark(slug)
+                _uiState.update { it.copy(bookmarkedSlugs = it.bookmarkedSlugs - slug) }
+            } else {
+                firebaseRepository.addBookmark(
+                    BookmarkItem(
+                        slug = slug,
+                        title = item.title.ifBlank { slug },
+                        posterUrl = item.imageUrl,
+                        isSeries = target.isSeries
+                    )
                 )
-            )
+                _uiState.update { it.copy(bookmarkedSlugs = it.bookmarkedSlugs + slug) }
+            }
             MyListRefreshState.markStale()
         }
     }
@@ -81,6 +99,7 @@ class HomeViewModel @Inject constructor(
         if (_uiState.value.isRefreshing) return
         _uiState.update { it.copy(isRefreshing = true) }
         loadAllContent()
+        loadBookmarks()
         viewModelScope.launch {
             delay(400)
             val deadline = System.currentTimeMillis() + 20_000
@@ -322,6 +341,7 @@ data class HomeUiState(
     val sliderItems: List<SliderItem> = emptyList(),
     val isSliderLoading: Boolean = false,
     val sliderError: String? = null,
+    val bookmarkedSlugs: Set<String> = emptySet(),
 
     val trendingMovies: List<Movie> = emptyList(),
     val isTrendingLoading: Boolean = false,

@@ -175,12 +175,13 @@ fun HomeScreen(
                             }
                         },
                         onAddToListClick = { item ->
-                            if (viewModel.isLoggedIn()) viewModel.addSliderToMyList(item)
+                            if (viewModel.isLoggedIn()) viewModel.toggleSliderInMyList(item)
                             else navController.navigate(com.movie.app.best.ui.navigation.Screen.Login.route)
                         },
                         onWatchClick = { item -> DrawerLinkRouter.open(context, navController, item.deepLink) },
                         onPageChanged = { currentSliderPage = it },
-                        onPosterBottom = { sliderBottomPx.floatValue = it }
+                        onPosterBottom = { sliderBottomPx.floatValue = it },
+                        bookmarkedSlugs = uiState.bookmarkedSlugs
                     )
                 }
             }
