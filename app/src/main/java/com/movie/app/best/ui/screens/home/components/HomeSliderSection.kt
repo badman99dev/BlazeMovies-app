@@ -101,8 +101,8 @@ fun HomeSliderSection(
     Column(modifier = modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp)) {
         HorizontalPager(
             state = pagerState,
-            contentPadding = PaddingValues(horizontal = 22.dp),
-            pageSpacing = 14.dp,
+            contentPadding = PaddingValues(horizontal = 64.dp),
+            pageSpacing = 16.dp,
             modifier = Modifier.fillMaxWidth()
         ) { page ->
             val item = items[page]
