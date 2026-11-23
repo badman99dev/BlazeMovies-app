@@ -40,8 +40,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -85,7 +83,7 @@ fun HomeScreen(
     // Hero slider: track the current page (for the blurred backdrop) and the slider's
     // on-screen top so the backdrop covers exactly the region above it.
     var currentSliderPage by remember { mutableIntStateOf(0) }
-    val sliderTopPx = remember { mutableFloatStateOf(0f) }
+    val sliderBottomPx = remember { mutableFloatStateOf(0f) }
     val sliderItems = uiState.sliderItems
 
     LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
@@ -111,11 +109,12 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Blurred poster backdrop behind the top region (header + Live TV row), covering
-        // only the area above the hero slider. Below the slider stays AMOLED black.
+        // Blurred poster backdrop covering the header + Live TV row down to the bottom of
+        // the hero poster (so the area around the slider is blurred too). It fades into
+        // the AMOLED black background at its lower edge.
         SliderBackdrop(
             imageUrl = sliderItems.getOrNull(currentSliderPage)?.imageUrl,
-            heightProvider = { sliderTopPx.floatValue },
+            heightProvider = { sliderBottomPx.floatValue },
             modifier = Modifier.align(Alignment.TopCenter)
         )
 
@@ -181,7 +180,7 @@ fun HomeScreen(
                         },
                         onWatchClick = { item -> DrawerLinkRouter.open(context, navController, item.deepLink) },
                         onPageChanged = { currentSliderPage = it },
-                        modifier = Modifier.onGloballyPositioned { sliderTopPx.floatValue = it.positionInRoot().y }
+                        onPosterBottom = { sliderBottomPx.floatValue = it }
                     )
                 }
             }

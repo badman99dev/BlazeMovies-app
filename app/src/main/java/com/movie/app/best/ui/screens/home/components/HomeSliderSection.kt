@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -75,6 +77,7 @@ fun HomeSliderSection(
     onAddToListClick: (SliderItem) -> Unit,
     onWatchClick: (SliderItem) -> Unit,
     onPageChanged: (Int) -> Unit,
+    onPosterBottom: (Float) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (items.isEmpty()) return
@@ -108,7 +111,8 @@ fun HomeSliderSection(
                 onClick = { onItemClick(item) },
                 onShareClick = { onShareClick(item) },
                 onAddToListClick = { onAddToListClick(item) },
-                onWatchClick = { onWatchClick(item) }
+                onWatchClick = { onWatchClick(item) },
+                onPosterBottom = onPosterBottom
             )
         }
 
@@ -152,7 +156,8 @@ private fun SliderCard(
     onClick: () -> Unit,
     onShareClick: () -> Unit,
     onAddToListClick: () -> Unit,
-    onWatchClick: () -> Unit
+    onWatchClick: () -> Unit,
+    onPosterBottom: (Float) -> Unit
 ) {
     val target = remember(item.deepLink) { SliderLink.parse(item.deepLink) }
     val isContent = target.isContent
@@ -163,6 +168,7 @@ private fun SliderCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(0.667f)
+                .onGloballyPositioned { onPosterBottom(it.positionInRoot().y + it.size.height) }
                 .clip(RoundedCornerShape(22.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
