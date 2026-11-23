@@ -182,21 +182,6 @@ fun AppNavigation(
         )
     }
 
-    fun navigateToContent(slug: String, isSeries: Boolean, imdbId: String = "") {
-        // A slug that is really an IMDb id (from a watch deep link or an IMDb-keyed
-        // history/playlist entry) can't be resolved by the detail API — go straight
-        // to the watch screen instead.
-        if (isRealImdbId(slug) || (slug.isBlank() && isRealImdbId(imdbId))) {
-            navigateToWatch(slug, isSeries, imdbId)
-            return
-        }
-        if (isSeries) {
-            navController.navigate(Screen.SeriesDetail.createRoute(slug, imdbId))
-        } else {
-            navController.navigate(Screen.MovieDetail.createRoute(slug, imdbId))
-        }
-    }
-
     /**
      * Opens the watch screen straight from an IMDb id (or a slug) via the deep-link
      * route, so missing route args fall back to their defaults. `season`/`episode`
@@ -215,6 +200,21 @@ fun AppNavigation(
         }
         navController.navigate(uri) {
             launchSingleTop = true
+        }
+    }
+
+    fun navigateToContent(slug: String, isSeries: Boolean, imdbId: String = "") {
+        // A slug that is really an IMDb id (from a watch deep link or an IMDb-keyed
+        // history/playlist entry) can't be resolved by the detail API — go straight
+        // to the watch screen instead.
+        if (isRealImdbId(slug) || (slug.isBlank() && isRealImdbId(imdbId))) {
+            navigateToWatch(slug, isSeries, imdbId)
+            return
+        }
+        if (isSeries) {
+            navController.navigate(Screen.SeriesDetail.createRoute(slug, imdbId))
+        } else {
+            navController.navigate(Screen.MovieDetail.createRoute(slug, imdbId))
         }
     }
 
