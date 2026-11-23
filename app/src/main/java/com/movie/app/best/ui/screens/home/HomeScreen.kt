@@ -50,6 +50,7 @@ import com.movie.app.best.ui.components.DrawerLinkRouter
 import com.movie.app.best.util.ShareLinks
 import com.movie.app.best.util.SliderLink
 import com.movie.app.best.data.settings.ModerationSettings
+import com.movie.app.best.data.settings.VisualSettings
 import com.movie.app.best.ui.screens.home.components.*
 import com.movie.app.best.ui.screens.home.components.LiveChannelsCarousel
 import com.movie.app.best.data.model.UnifiedChannel
@@ -112,11 +113,13 @@ fun HomeScreen(
         // Blurred poster backdrop covering the header + Live TV row down to the bottom of
         // the hero poster (so the area around the slider is blurred too). It fades into
         // the AMOLED black background at its lower edge.
-        SliderBackdrop(
-            imageUrl = sliderItems.getOrNull(currentSliderPage)?.imageUrl,
-            heightProvider = { sliderBottomPx.floatValue },
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
+        if (!VisualSettings.sliderBlurDisabled) {
+            SliderBackdrop(
+                imageUrl = sliderItems.getOrNull(currentSliderPage)?.imageUrl,
+                heightProvider = { sliderBottomPx.floatValue },
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
 
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,

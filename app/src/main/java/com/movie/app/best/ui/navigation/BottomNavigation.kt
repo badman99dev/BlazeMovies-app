@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.movie.app.best.data.settings.VisualSettings
 import com.movie.app.best.ui.theme.AppRed
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -96,31 +97,39 @@ fun BottomNavigationBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val glassOn = !VisualSettings.navGlassDisabled && hazeState != null
     val glassShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(glassShape)
-            .hazeEffect(
-                state = hazeState,
-                style = HazeStyle(
-                    backgroundColor = Color(0xFF0C0C0C),
-                    tint = HazeTint(Color(0xFF0C0C0C).copy(alpha = 0.55f)),
-                    blurRadius = 24.dp,
-                    noiseFactor = 0.05f
-                )
-            )
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.08f), Color.Transparent)
-                )
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.04f))
-                ),
-                shape = glassShape
+            .then(
+                if (glassOn) {
+                    Modifier
+                        .clip(glassShape)
+                        .hazeEffect(
+                            state = hazeState,
+                            style = HazeStyle(
+                                backgroundColor = Color(0xFF0C0C0C),
+                                tint = HazeTint(Color(0xFF0C0C0C).copy(alpha = 0.55f)),
+                                blurRadius = 24.dp,
+                                noiseFactor = 0.05f
+                            )
+                        )
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.08f), Color.Transparent)
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.04f))
+                            ),
+                            shape = glassShape
+                        )
+                } else {
+                    Modifier.background(Color(0xFF0C0C0C))
+                }
             )
             .navigationBarsPadding()
     ) {

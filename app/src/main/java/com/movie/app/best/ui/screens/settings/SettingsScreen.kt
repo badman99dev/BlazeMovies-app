@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Videocam
@@ -105,6 +106,7 @@ fun SettingsScreen(
     onBackClick: () -> Unit = {},
     autoCheckUpdate: Boolean = false,
     onOpenUrl: (String, String) -> Unit = { _, _ -> },
+    onOpenVisualSettings: () -> Unit = {},
     updateViewModel: UpdateViewModel = hiltViewModel()
 ) {
     var debugEnabled by remember { mutableStateOf(NetworkLogger.isEnabled()) }
@@ -509,6 +511,25 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(18.dp))
             }
+
+            // SECTION: VISUAL CUSTOMIZATION
+            SettingsSectionHeader(title = "Visual Customization")
+
+            SettingsGroupCard {
+                SettingsClickableRow(
+                    icon = Icons.Default.Palette,
+                    iconGradient = listOf(
+                        Color(0xFF6366F1).copy(alpha = 0.30f),
+                        Color(0xFF4338CA).copy(alpha = 0.15f)
+                    ),
+                    iconTint = Color(0xFF818CF8),
+                    title = "Visual Customization",
+                    subtitle = "Nav bar glass, slider blur & performance options",
+                    onClick = onOpenVisualSettings
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
 
             // SECTION 3: SYSTEM & UPDATES
             SettingsSectionHeader(title = "App & System")

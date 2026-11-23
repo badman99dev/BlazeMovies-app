@@ -104,6 +104,7 @@ sealed class Screen(val route: String) {
     }
     object Settings : Screen("settings")
     object SettingsCheckUpdate : Screen("settings/check-for-update")
+    object VisualCustomization : Screen("visual-customization")
     object Profile : Screen("profile")
     object Login : Screen("login")
     object LocalVideos : Screen("localVideos")
@@ -915,6 +916,9 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onOpenUrl = { url, heading ->
                     navController.navigate(Screen.InAppBrowser.createRoute(url, heading))
+                },
+                onOpenVisualSettings = {
+                    navController.navigate(Screen.VisualCustomization.route)
                 }
             )
         }
@@ -930,7 +934,16 @@ fun AppNavigation(
                 autoCheckUpdate = true,
                 onOpenUrl = { url, heading ->
                     navController.navigate(Screen.InAppBrowser.createRoute(url, heading))
+                },
+                onOpenVisualSettings = {
+                    navController.navigate(Screen.VisualCustomization.route)
                 }
+            )
+        }
+
+        composable(Screen.VisualCustomization.route) {
+            com.movie.app.best.ui.screens.settings.VisualCustomizationScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
 

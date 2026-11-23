@@ -49,6 +49,7 @@ class MovieApplication : Application(), Configuration.Provider, ImageLoaderFacto
         com.movie.app.best.data.config.RemoteConfig.startRefresh(this)
 
         VideoQualitySettings.initCache(this)
+        com.movie.app.best.data.settings.VisualSettings.initCache(this)
 
         createNotificationChannel()
 
