@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,30 +85,47 @@ fun HomeSliderSection(
 ) {
     if (items.isEmpty()) return
 
-    val pagerState = rememberPagerState(pageCount = { items.size })
+    val count = items.size
+    val infinite = count > 1
+    // Start near the middle of a huge virtual page range so the user can swipe
+    // left/right forever (the first slide's left neighbour is the last slide).
+    val initialPage = remember(count) {
+        if (count > 1) {
+            val mid = Int.MAX_VALUE / 2
+            mid - (mid % count)
+        } else 0
+    }
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { if (infinite) Int.MAX_VALUE else 1 }
+    )
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(pagerState.currentPage) {
-        onPageChanged(pagerState.currentPage)
-    }
-
-    LaunchedEffect(items.size) {
-        if (items.size <= 1) return@LaunchedEffect
-        while (true) {
-            delay(6_000)
-            val next = (pagerState.currentPage + 1) % items.size
-            pagerState.animateScrollToPage(next, animationSpec = tween(700, easing = FastOutSlowInEasing))
+    LaunchedEffect(pagerState, count) {
+        snapshotFlow { pagerState.currentPage }.collect { p ->
+            onPageChanged(if (infinite) p % count else 0)
         }
     }
 
-    Column(modifier = modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp)) {
+    LaunchedEffect(count) {
+        if (count <= 1) return@LaunchedEffect
+        while (true) {
+            delay(6_000)
+            pagerState.animateScrollToPage(
+                pagerState.currentPage + 1,
+                animationSpec = tween(700, easing = FastOutSlowInEasing)
+            )
+        }
+    }
+
+    Box(modifier = modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp)) {
         HorizontalPager(
             state = pagerState,
             contentPadding = PaddingValues(horizontal = 64.dp),
             pageSpacing = 16.dp,
             modifier = Modifier.fillMaxWidth()
         ) { page ->
-            val item = items[page]
+            val item = items[page % count]
             SliderCard(
                 item = item,
                 onClick = { onItemClick(item) },
@@ -119,15 +137,17 @@ fun HomeSliderSection(
             )
         }
 
-        Spacer(Modifier.height(12.dp))
-
+        // Dot indicator sits ON the poster bottom (nothing renders below the image).
+        val currentReal = if (infinite) pagerState.currentPage % count else 0
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 10.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            repeat(items.size) { index ->
-                val selected = pagerState.currentPage == index
+            repeat(count) { index ->
+                val selected = currentReal == index
                 val w by animateDpAsState(
                     targetValue = if (selected) 18.dp else 6.dp,
                     animationSpec = tween(220),
@@ -138,13 +158,14 @@ fun HomeSliderSection(
                         .padding(horizontal = 3.dp)
                         .size(width = w, height = 6.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(if (selected) Color.White else Color.White.copy(alpha = 0.35f))
+                        .background(if (selected) Color.White else Color.White.copy(alpha = 0.55f))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) {
                             scope.launch {
-                                pagerState.animateScrollToPage(index, animationSpec = tween(400))
+                                val target = pagerState.currentPage + (index - currentReal)
+                                pagerState.animateScrollToPage(target, animationSpec = tween(400))
                             }
                         }
                 )
@@ -199,18 +220,43 @@ private fun SliderCard(
                     )
             )
 
-            if (item.title.isNotBlank()) {
-                Text(
-                    text = item.title,
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+            if (item.title.isNotBlank() || item.middleText.isNotBlank() || item.smallText.isNotBlank()) {
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(start = 18.dp, end = 92.dp, bottom = 18.dp)
-                )
+                        .padding(start = 18.dp, end = 92.dp, bottom = 16.dp)
+                ) {
+                    if (item.title.isNotBlank()) {
+                        Text(
+                            text = item.title,
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    if (item.middleText.isNotBlank()) {
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = item.middleText,
+                            color = Color.White.copy(alpha = 0.92f),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    if (item.smallText.isNotBlank()) {
+                        Text(
+                            text = item.smallText,
+                            color = Color.White.copy(alpha = 0.70f),
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             // Right-side action stack.
@@ -233,34 +279,6 @@ private fun SliderCard(
                     isContent -> PlayActionButton(onWatchClick)
                     isSports -> WatchLivePill(onWatchClick)
                 }
-            }
-        }
-
-        // Text block under the card — fixed height so pages don't jump.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(40.dp)
-                .padding(top = 10.dp)
-        ) {
-            if (item.middleText.isNotBlank()) {
-                Text(
-                    text = item.middleText,
-                    color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            if (item.smallText.isNotBlank()) {
-                Text(
-                    text = item.smallText,
-                    color = Color.White.copy(alpha = 0.55f),
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     }
