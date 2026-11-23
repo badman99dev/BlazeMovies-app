@@ -174,6 +174,8 @@ dependencies {
 
     // LibVLC "Advance Decoder" engine (used for local/downloaded playback)
     implementation(libs.libvlc.all)
+    implementation(libs.haze)
+    implementation(libs.haze.materials)
     
     // Ketch Download Manager (WorkManager-based)
     implementation("com.github.khushpanchal:Ketch:2.0.6")

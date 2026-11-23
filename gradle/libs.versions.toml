@@ -18,6 +18,7 @@ loggingInterceptor = "4.12.0"
 okhttp = "4.12.0"
 retrofit = "2.9.0"
 media3 = "1.9.0"
+haze = "1.6.10"
 libvlc = "3.6.2"
 dataStore = "1.1.1"
 playServicesAuth = "21.0.0"
@@ -65,6 +66,8 @@ media3-exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", vers
 media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
 media3-datasource-okhttp = { module = "androidx.media3:media3-datasource-okhttp", version.ref = "media3" }
 libvlc-all = { module = "org.videolan.android:libvlc-all", version.ref = "libvlc" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "dataStore" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }

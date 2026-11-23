@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,10 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.movie.app.best.ui.theme.AppRed
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 fun NavController.navigateToBottomTab(route: String) {
     val startDestId = graph.findStartDestination().id
@@ -77,6 +83,7 @@ sealed class BottomNavItem(
 @Composable
 fun BottomNavigationBar(
     navController: NavController,
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
     val items = listOf(
@@ -89,20 +96,34 @@ fun BottomNavigationBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val glassShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF0C0C0C))
+            .clip(glassShape)
+            .hazeEffect(
+                state = hazeState,
+                style = HazeStyle(
+                    backgroundColor = Color(0xFF0C0C0C),
+                    tint = HazeTint(Color(0xFF0C0C0C).copy(alpha = 0.55f)),
+                    blurRadius = 24.dp,
+                    noiseFactor = 0.05f
+                )
+            )
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.08f), Color.Transparent)
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.04f))
+                ),
+                shape = glassShape
+            )
             .navigationBarsPadding()
     ) {
-        // Subtle top separator hairline
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(0.5.dp)
-                .background(Color.White.copy(alpha = 0.08f))
-        )
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()

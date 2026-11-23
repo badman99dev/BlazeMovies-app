@@ -100,6 +100,8 @@ import android.widget.Toast
 import com.movie.app.best.ui.navigation.AppDeepLinkRouter
 import com.movie.app.best.ui.navigation.AppNavigation
 import com.movie.app.best.ui.navigation.BottomNavigationBar
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.movie.app.best.ui.navigation.Screen
 import com.movie.app.best.ui.navigation.navigateToBottomTab
 import com.movie.app.best.ui.screens.auth.AuthViewModel
@@ -266,6 +268,7 @@ fun MainContent(
     var prevLoggedIn by remember { mutableStateOf(authState.isLoggedIn) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val hazeState = rememberHazeState()
 
     // Deep-link handling (FCM notification tap -> notifications panel).
     // Two sources:
@@ -483,7 +486,8 @@ fun MainContent(
                 AppNavigation(
                     navController = navController,
                     isOnline = isConnected,
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    modifier = Modifier.hazeSource(hazeState)
                 )
 
                 // Overlay Floating BottomNavigationBar (YouTube / Netflix style edge-to-edge overlay)
@@ -500,7 +504,8 @@ fun MainContent(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
                     BottomNavigationBar(
-                        navController = navController
+                        navController = navController,
+                        hazeState = hazeState
                     )
                 }
 

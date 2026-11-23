@@ -118,7 +118,7 @@ fun HomeSliderSection(
         }
     }
 
-    Box(modifier = modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp)) {
         HorizontalPager(
             state = pagerState,
             contentPadding = PaddingValues(horizontal = 64.dp),
@@ -137,12 +137,12 @@ fun HomeSliderSection(
             )
         }
 
-        // Dot indicator sits ON the poster bottom (nothing renders below the image).
+        // Dot indicator sits BELOW the poster (image ke andar sirf text rehta hai).
         val currentReal = if (infinite) pagerState.currentPage % count else 0
         Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 10.dp),
+                .fillMaxWidth()
+                .padding(top = 10.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
