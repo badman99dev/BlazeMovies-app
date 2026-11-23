@@ -37,7 +37,6 @@ import com.movie.app.best.ui.screens.moviedetail.MovieDetailScreen
 import com.movie.app.best.ui.screens.search.SearchScreen
 import com.movie.app.best.ui.screens.request.RequestScreen
 import com.movie.app.best.ui.screens.tvshowdetail.TVShowDetailScreen
-import com.movie.app.best.ui.screens.tvshows.TVShowsScreen
 import com.movie.app.best.ui.screens.livetv.LiveTvScreen
 import com.movie.app.best.ui.screens.livetv.LiveTvWatchScreen
 import com.movie.app.best.ui.screens.serieswatch.SeriesWatchScreen
@@ -94,7 +93,6 @@ sealed class Screen(val route: String) {
     }
     object Search : Screen("search")
     object Request : Screen("request")
-    object TVShows : Screen("tv-shows")
     object LiveTv : Screen("live-tv")
     object Downloads : Screen("downloads")
     object Library : Screen("library")
@@ -196,8 +194,7 @@ fun AppNavigation(
         Screen.Sports.route,
         Screen.Zee5.route,
         Screen.Downloads.route,
-        Screen.Library.route,
-        Screen.TVShows.route
+        Screen.Library.route
     )
 
     fun isTabTransition(from: String?, to: String?): Boolean {
@@ -450,15 +447,6 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.TVShows.route, deepLinks = refLinks("app://tv-shows")) {
-            TVShowsScreen(
-                onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },
-                navController = navController,
-                onSearchClick = { navController.navigate(Screen.Search.route) },
-                onMenuClick = onMenuClick
-            )
-        }
-
         composable(Screen.LiveTv.route, deepLinks = refLinks("app://live-tv")) {
             LiveTvScreen(
                 onBackClick = { navController.popBackStack() },
@@ -702,7 +690,10 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.SeriesList.route, deepLinks = refLinks("app://series-list")) {
+        composable(
+            Screen.SeriesList.route,
+            deepLinks = refLinks("app://series-list", "app://tv-shows")
+        ) {
             LatestUploadScreen(
                 onBackClick = { navController.popBackStack() },
                 onContentClick = { slug, isSeries, imdbId -> navigateToContent(slug, isSeries, imdbId) },

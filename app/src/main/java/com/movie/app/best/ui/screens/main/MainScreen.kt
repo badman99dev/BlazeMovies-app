@@ -438,7 +438,6 @@ fun MainContent(
     val shouldShowBottomBar = currentRoute in listOf(
         Screen.Home.route,
         Screen.Sports.route,
-        Screen.TVShows.route,
         Screen.Library.route,
         Screen.Zee5.route,
         Screen.Downloads.route,
