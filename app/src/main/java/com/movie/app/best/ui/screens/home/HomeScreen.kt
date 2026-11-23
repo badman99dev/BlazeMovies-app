@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.movie.app.best.ui.components.AppHeader
 import com.movie.app.best.ui.components.DrawerLinkRouter
 import com.movie.app.best.util.ShareLinks
@@ -331,6 +333,7 @@ private fun SliderBackdrop(
     val heightPx = heightProvider()
     if (heightPx < 8f) return
     val density = LocalDensity.current
+    val context = LocalContext.current
 
     Box(
         modifier = modifier
@@ -338,21 +341,28 @@ private fun SliderBackdrop(
             .height(with(density) { heightPx.toDp() })
             .clipToBounds()
     ) {
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(38.dp)
-        )
+        // A fresh AsyncImage per URL — Coil otherwise keeps showing the previous
+        // slide's poster until the new one finishes loading (sticky background bug).
+        key(imageUrl) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .crossfade(280)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(38.dp)
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0.0f to Color.Black.copy(alpha = 0.30f),
-                        0.55f to Color.Black.copy(alpha = 0.45f),
+                        0.0f to Color.Black.copy(alpha = 0.20f),
+                        0.55f to Color.Black.copy(alpha = 0.38f),
                         1.0f to Color.Black
                     )
                 )
