@@ -142,8 +142,8 @@ private fun ChipPill(
 
 @Composable
 private fun OverlappingChannelLogos(channels: List<UnifiedChannel>) {
-    val size = 22.dp
-    val step = 13.dp
+    val size = 20.dp
+    val step = 9.dp
     val overlapWidth = size + step * (channels.size - 1)
 
     Box(
