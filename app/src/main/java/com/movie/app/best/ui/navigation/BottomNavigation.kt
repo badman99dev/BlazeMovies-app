@@ -23,7 +23,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -98,7 +97,7 @@ fun BottomNavigationBar(
     val currentRoute = navBackStackEntry?.destination?.route
 
     val glassOn = !VisualSettings.navGlassDisabled && hazeState != null
-    val glassShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+    val glassShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -128,9 +127,7 @@ fun BottomNavigationBar(
                             shape = glassShape
                         )
                 } else {
-                    Modifier
-                        .clip(glassShape)
-                        .background(Color(0xFF0C0C0C))
+                    Modifier.background(Color(0xFF0C0C0C))
                 }
             )
             .navigationBarsPadding()
@@ -158,24 +155,6 @@ fun BottomNavigationBar(
                 )
             }
         }
-
-        // Blaze Red top hairline — brand signature, shown in both glass & flat modes
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color.Transparent,
-                            AppRed.copy(alpha = 0.45f),
-                            AppRed.copy(alpha = 0.45f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
     }
 }
 
@@ -187,91 +166,73 @@ private fun NavItem(
 ) {
     // Snappy, subtle micro-interactions
     val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.06f else 1f,
+        targetValue = if (selected) 1.08f else 1f,
         animationSpec = tween(150),
         label = "iconScale"
     )
-    // Selected content is pure white so it stays crisp on the red bubble; inactive stays muted grey.
-    val contentTint by animateColorAsState(
-        targetValue = if (selected) Color.White else Color(0xFF888888),
+    val iconTint by animateColorAsState(
+        targetValue = if (selected) AppRed else Color(0xFF888888),
         animationSpec = tween(160),
-        label = "contentTint"
+        label = "iconTint"
     )
-    val bubbleAlpha by animateFloatAsState(
+    val labelTint by animateColorAsState(
+        targetValue = if (selected) AppRed else Color(0xFF888888),
+        animationSpec = tween(160),
+        label = "labelTint"
+    )
+    val indicatorAlpha by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
-        animationSpec = tween(180),
-        label = "bubbleAlpha"
-    )
-    val bubbleScale by animateFloatAsState(
-        targetValue = if (selected) 1f else 0.88f,
-        animationSpec = tween(180),
-        label = "bubbleScale"
+        animationSpec = tween(160),
+        label = "indicatorAlpha"
     )
 
-    Box(
-        contentAlignment = Alignment.Center,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .widthIn(min = 60.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 8.dp, vertical = 5.dp)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .widthIn(min = 52.dp)
     ) {
-        // Active bubble — translucent Blaze Red glass with a thin red/white border
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .graphicsLayer {
-                    alpha = bubbleAlpha
-                    scaleX = bubbleScale
-                    scaleY = bubbleScale
-                }
-                .clip(RoundedCornerShape(18.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFFDC2626).copy(alpha = 0.32f),
-                            Color(0xFFDC2626).copy(alpha = 0.20f)
-                        )
-                    )
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.35f),
-                            Color(0xFFDC2626).copy(alpha = 0.55f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(18.dp)
-                )
-        )
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(28.dp)
         ) {
             Icon(
                 imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                 contentDescription = item.title,
-                tint = contentTint,
+                tint = iconTint,
                 modifier = Modifier
                     .size(22.dp)
                     .scale(iconScale)
             )
-
-            Spacer(modifier = Modifier.height(3.dp))
-
-            Text(
-                text = item.title,
-                color = contentTint,
-                fontSize = 9.5.sp,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1
-            )
         }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = item.title,
+            color = labelTint,
+            fontSize = 9.5.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 1
+        )
+
+        Spacer(modifier = Modifier.height(3.dp))
+
+        // Sleek indicator pill at bottom (fades in cleanly without jumping)
+        Box(
+            modifier = Modifier
+                .size(width = 14.dp, height = 2.5.dp)
+                .background(
+                    AppRed.copy(alpha = indicatorAlpha),
+                    RoundedCornerShape(50)
+                )
+        )
     }
 }
