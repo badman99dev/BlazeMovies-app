@@ -151,7 +151,6 @@ fun HomeScreen(
                 HomeChipsRow(
                     chips = uiState.chips,
                     liveChannels = uiState.liveChannels,
-                    onLiveTvClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
                     onChipClick = { chip -> DrawerLinkRouter.open(context, navController, chip.deepLink) },
                     modifier = Modifier.padding(
                         top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 48.dp,

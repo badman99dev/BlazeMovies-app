@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -41,30 +40,67 @@ private val GlassBrush = Brush.verticalGradient(
 )
 private val GlassBorder = Color.White.copy(alpha = 0.34f)
 
+private const val TOKEN_CHANNEL_ICONS = "channel_icons"
+private val TOKEN_REGEX = Regex("\\{([^}]*)\\}")
+
+private sealed interface ChipPart {
+    data class Text(val value: String) : ChipPart
+    data object ChannelIcons : ChipPart
+}
+
+/**
+ * Splits a chip label into text + supported token parts.
+ * - `{channel_icons}` → overlapping live TV channel logos.
+ * - Any other `{token}` is unsupported and silently dropped (hidden).
+ * Text keeps its original order, so "Live tv {channel_icons}" renders text first, then icons.
+ */
+private fun parseChipLabel(label: String): List<ChipPart> {
+    val parts = mutableListOf<ChipPart>()
+    var last = 0
+    for (match in TOKEN_REGEX.findAll(label)) {
+        val before = label.substring(last, match.range.first).trim()
+        if (before.isNotEmpty()) parts += ChipPart.Text(before)
+        if (match.groupValues[1].trim().lowercase() == TOKEN_CHANNEL_ICONS) {
+            parts += ChipPart.ChannelIcons
+        }
+        last = match.range.last + 1
+    }
+    val tail = label.substring(last).trim()
+    if (tail.isNotEmpty()) parts += ChipPart.Text(tail)
+    return parts
+}
+
+private fun ChipItem.hasRenderableContent(): Boolean =
+    iconUrl.isNotBlank() || parseChipLabel(label).isNotEmpty()
+
 @Composable
 fun HomeChipsRow(
     chips: List<ChipItem>,
     liveChannels: List<UnifiedChannel>,
-    onLiveTvClick: () -> Unit,
     onChipClick: (ChipItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val visibleChips = remember(chips) { chips.filter { it.hasRenderableContent() } }
+
     LazyRow(
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item(key = "live_tv_default") {
-            LiveTvChip(channels = liveChannels, onClick = onLiveTvClick)
-        }
-        items(chips, key = { "chip_${it.id}_${it.label}" }) { chip ->
-            NormalChip(chip = chip, onClick = { onChipClick(chip) })
+        items(visibleChips, key = { "chip_${it.id}_${it.label}" }) { chip ->
+            ChipPill(chip = chip, liveChannels = liveChannels, onClick = { onChipClick(chip) })
         }
     }
 }
 
 @Composable
-private fun LiveTvChip(channels: List<UnifiedChannel>, onClick: () -> Unit) {
+private fun ChipPill(
+    chip: ChipItem,
+    liveChannels: List<UnifiedChannel>,
+    onClick: () -> Unit
+) {
+    val parts = remember(chip.label) { parseChipLabel(chip.label) }
+
     Row(
         modifier = Modifier
             .height(40.dp)
@@ -76,19 +112,31 @@ private fun LiveTvChip(channels: List<UnifiedChannel>, onClick: () -> Unit) {
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = if (chip.iconUrl.isNotBlank()) 12.dp else 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-        if (channels.isNotEmpty()) {
-            OverlappingChannelLogos(channels = channels.take(4))
-            Spacer(Modifier.width(9.dp))
+        if (chip.iconUrl.isNotBlank()) {
+            AsyncImage(
+                model = chip.iconUrl,
+                contentDescription = chip.label,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(18.dp)
+            )
         }
-        Text(
-            text = "Live TV",
-            color = Color.White,
-            fontSize = 13.5.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        parts.forEach { part ->
+            when (part) {
+                is ChipPart.Text -> Text(
+                    text = part.value,
+                    color = Color.White,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                ChipPart.ChannelIcons -> if (liveChannels.isNotEmpty()) {
+                    OverlappingChannelLogos(channels = liveChannels.take(4))
+                }
+            }
+        }
     }
 }
 
@@ -135,39 +183,5 @@ private fun OverlappingChannelLogos(channels: List<UnifiedChannel>) {
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun NormalChip(chip: ChipItem, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .height(40.dp)
-            .clip(PillShape)
-            .background(GlassBrush)
-            .border(1.dp, GlassBorder, PillShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = if (chip.iconUrl.isNotBlank()) 12.dp else 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (chip.iconUrl.isNotBlank()) {
-            AsyncImage(
-                model = chip.iconUrl,
-                contentDescription = chip.label,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(Modifier.width(7.dp))
-        }
-        Text(
-            text = chip.label,
-            color = Color.White,
-            fontSize = 13.5.sp,
-            fontWeight = FontWeight.SemiBold
-        )
     }
 }
