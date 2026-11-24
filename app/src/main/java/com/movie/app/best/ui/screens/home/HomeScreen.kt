@@ -7,6 +7,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import com.movie.app.best.ui.util.LocalCollapsibleBarsState
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
@@ -143,25 +146,18 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = 88.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // LIVE TV — heading hamesha, content skeleton
-            if (uiState.liveChannelsError == null || uiState.liveChannels.isNotEmpty()) {
-                item {
-                    LiveChannelsCarousel(
-                        channels = uiState.liveChannels,
-                        isLoading = uiState.isLiveChannelsLoading && uiState.liveChannels.isEmpty(),
-                        onChannelClick = { channel ->
-                            navController.navigate(
-                                com.movie.app.best.ui.navigation.Screen.LiveTvWatch.createRoute(
-                                    slug = channel.slug,
-                                    name = channel.name,
-                                    logo = channel.logoUrl
-                                )
-                            )
-                        },
-                        onMoreClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
-                        applyTopPadding = true
+            // CHIPS — slim glass pill row at the very top (Live TV chip is always first).
+            item {
+                HomeChipsRow(
+                    chips = uiState.chips,
+                    liveChannels = uiState.liveChannels,
+                    onLiveTvClick = { navController.navigate(com.movie.app.best.ui.navigation.Screen.LiveTv.route) },
+                    onChipClick = { chip -> DrawerLinkRouter.open(context, navController, chip.deepLink) },
+                    modifier = Modifier.padding(
+                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 48.dp,
+                        bottom = 12.dp
                     )
-                }
+                )
             }
 
             // Hero slider — sits between the Live TV row and Trending.

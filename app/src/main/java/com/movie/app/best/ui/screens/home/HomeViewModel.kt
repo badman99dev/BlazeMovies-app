@@ -6,6 +6,7 @@ import com.movie.app.best.data.model.Resource
 import com.movie.app.best.data.model.Movie
 import com.movie.app.best.data.model.AppNotification
 import com.movie.app.best.data.model.SliderItem
+import com.movie.app.best.data.model.ChipItem
 import com.movie.app.best.data.model.UnifiedChannel
 import com.movie.app.best.data.model.toUnified
 import com.movie.app.best.data.model.BookmarkItem
@@ -144,6 +145,7 @@ class HomeViewModel @Inject constructor(
                                 sliderItems = data?.slider?.items ?: state.sliderItems,
                                 isSliderLoading = false,
                                 sliderError = null,
+                                chips = data?.chips?.items ?: state.chips,
                                 trendingMovies = data?.trending?.items ?: state.trendingMovies,
                                 isTrendingLoading = false,
                                 trendingError = null,
@@ -342,6 +344,8 @@ data class HomeUiState(
     val isSliderLoading: Boolean = false,
     val sliderError: String? = null,
     val bookmarkedSlugs: Set<String> = emptySet(),
+
+    val chips: List<ChipItem> = emptyList(),
 
     val trendingMovies: List<Movie> = emptyList(),
     val isTrendingLoading: Boolean = false,

@@ -241,8 +241,20 @@ data class SliderResponse(
     val items: List<SliderItem> = emptyList()
 )
 
+data class ChipItem(
+    val id: Int = 0,
+    val label: String = "",
+    @SerializedName("icon_url") val iconUrl: String = "",
+    @SerializedName("deep_link") val deepLink: String = ""
+)
+
+data class ChipsResponse(
+    val items: List<ChipItem> = emptyList()
+)
+
 data class HomeFeedResponse(
     val slider: SliderResponse? = null,
+    val chips: ChipsResponse? = null,
     val trending: NewReleaseResult? = null,
     @SerializedName("new_release_in") val newReleaseIn: NewReleaseResult? = null,
     @SerializedName("new_release_us") val newReleaseUs: NewReleaseResult? = null,
