@@ -29,6 +29,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -274,7 +275,7 @@ fun Zee5Screen(
         ) {
             Zee5Header(
                 onSearchClick = onSearchClick,
-                onBackClick = { }
+                onBackClick = { navController.popBackStack() }
             )
             Zee5TabBar(
                 currentTab = currentTab,
@@ -297,13 +298,25 @@ fun Zee5Header(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.zee5_logo),
-            contentDescription = "ZEE5",
-            modifier = Modifier
-                .height(28.dp)
-                .width(34.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            Image(
+                painter = painterResource(id = R.drawable.zee5_logo),
+                contentDescription = "ZEE5",
+                modifier = Modifier
+                    .height(28.dp)
+                    .width(34.dp)
+            )
+        }
 
         IconButton(onClick = onSearchClick) {
             Icon(

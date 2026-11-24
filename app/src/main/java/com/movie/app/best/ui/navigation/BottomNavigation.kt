@@ -90,7 +90,6 @@ fun BottomNavigationBar(
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.Sports,
-        BottomNavItem.Zee5,
         BottomNavItem.Downloads,
         BottomNavItem.Library
     )

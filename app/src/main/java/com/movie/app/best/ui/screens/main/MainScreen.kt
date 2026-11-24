@@ -442,7 +442,6 @@ fun MainContent(
         Screen.Home.route,
         Screen.Sports.route,
         Screen.Library.route,
-        Screen.Zee5.route,
         Screen.Downloads.route,
         Screen.Profile.route
     )
